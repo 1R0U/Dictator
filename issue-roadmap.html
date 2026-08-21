@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>欲望国家シム — 開発ロードマップ</title>
+<style>
+  :root{
+    --bg:#0c0e13; --panel:#151821; --panel2:#1b1f2b; --line:#2a2f3d;
+    --ink:#eceef4; --mut:#8891a3; --faint:#565e70;
+    --nz:#e8a33d;   /* のぞみ: backend */
+    --hr:#4bc3f0;   /* ひらまさ: frontend */
+    --ic:#4fd699;   /* いちろー: 横断 */
+    --dc:#b09bf7;   /* 決定待ち */
+    --p1:#e0566a;   /* priority-1 */
+    --mono:ui-monospace,"Cascadia Code","SFMono-Regular",Consolas,monospace;
+    --sans:system-ui,"Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{background:var(--bg)}
+  body{margin:0;color:var(--ink);font-family:var(--sans);line-height:1.55;
+    background:
+      radial-gradient(1100px 560px at 78% -8%, #1a2233 0%, transparent 58%),
+      var(--bg);
+    padding:40px 28px 70px;}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1200px;margin:0 auto}
+
+  /* header */
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;
+    border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:28px}
+  .kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:3px;color:var(--faint);text-transform:uppercase;margin-bottom:8px}
+  h1{font-family:var(--mono);font-size:27px;letter-spacing:.3px;margin:0;font-weight:600}
+  h1 .dim{color:var(--faint);font-weight:400}
+  .status{font-family:var(--sans);color:var(--mut);font-size:13px;margin-top:10px;max-width:60ch}
+  .status b{color:var(--ink);font-weight:600}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:12px}
+  .legend span{display:flex;align-items:center;gap:7px;color:var(--mut);white-space:nowrap}
+  .dot{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+
+  .sectitle{font-family:var(--mono);font-size:11.5px;letter-spacing:3px;color:var(--faint);
+    text-transform:uppercase;margin:38px 0 14px;display:flex;align-items:center;gap:12px}
+  .sectitle::after{content:"";flex:1;height:1px;background:var(--line)}
+  .secsub{font-size:12.5px;color:var(--mut);margin:-8px 0 16px}
+
+  /* pipeline */
+  .pipe{display:flex;gap:0;align-items:stretch;overflow-x:auto;padding-bottom:8px}
+  .stage{min-width:150px;flex:1;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:12px 13px;position:relative}
+  .stage + .stage{margin-left:24px}
+  .stage::before{content:"→";position:absolute;left:-18px;top:50%;transform:translateY(-50%);
+    color:var(--faint);font-size:16px;font-family:var(--mono)}
+  .stage:first-child::before{display:none}
+  .stage .n{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+  .stage .t{font-weight:700;font-size:13.5px;margin:3px 0 8px}
+  .stage .who{display:flex;gap:5px;flex-wrap:wrap}
+  .tag{font-family:var(--mono);font-size:10.5px;padding:2px 6px;border-radius:999px;
+    display:inline-block;border:1px solid currentColor}
+  .tnz{color:var(--nz)} .thr{color:var(--hr)} .tic{color:var(--ic)} .tdc{color:var(--dc)}
+
+  /* lanes */
+  .lane{display:grid;grid-template-columns:132px 1fr;gap:16px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-left-width:3px;
+    border-radius:10px;padding:15px 16px;margin-bottom:12px}
+  .lane.NZ{border-left-color:var(--nz)} .lane.HR{border-left-color:var(--hr)}
+  .lane.IC{border-left-color:var(--ic)} .lane.DC{border-left-color:var(--dc)}
+  .lhead .who{font-weight:700;font-size:15.5px}
+  .lhead .role{font-family:var(--mono);font-size:11px;color:var(--mut);margin-top:3px;line-height:1.5}
+  .lhead .cnt{font-family:var(--mono);font-size:11px;margin-top:7px}
+  .cnz{color:var(--nz)} .chr{color:var(--hr)} .cic{color:var(--ic)} .cdc{color:var(--dc)}
+  .track{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .chip{display:flex;flex-direction:column;gap:2px;background:var(--panel2);
+    border:1px solid var(--line);border-radius:8px;padding:8px 11px 7px;min-width:128px;max-width:190px;position:relative;
+    transition:border-color .12s,background .12s}
+  a.chip:hover{border-color:var(--faint)}
+  .chip .top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+  .chip .id{font-family:var(--mono);font-weight:700;font-size:12px}
+  .chip .pr{font-family:var(--mono);font-size:9px;color:var(--faint)}
+  .chip .ds{font-size:11.5px;color:var(--mut);line-height:1.4}
+  .chip.now{border-color:var(--p1);background:rgba(224,86,106,.09)}
+  .chip.now .nb{position:absolute;top:-8px;right:-6px;font-size:9px;font-family:var(--mono);
+    background:var(--p1);color:#2a0508;border-radius:4px;padding:1px 5px;font-weight:700}
+  .chip.wait{border-style:dashed}
+  .arrow{align-self:center;color:var(--faint);font-family:var(--mono);font-size:13px}
+  .statusleg{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--mut);margin:0 0 16px}
+  .statusleg span{display:flex;align-items:center;gap:6px}
+  .statusleg i{width:11px;height:11px;border-radius:3px;display:inline-block;border:1px solid}
+
+  /* decisions */
+  .decisions{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+  .dcard{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-left:3px solid var(--dc);border-radius:10px;padding:14px 16px}
+  .dcard .h{font-family:var(--mono);font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--dc);
+    display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+  .dcard .h a{color:var(--ink)}
+  .dcard .h a:hover{text-decoration:underline}
+  .dcard .pr{color:var(--faint);font-weight:400;font-size:10.5px}
+  .dcard p{margin:0 0 6px;font-size:12.5px;color:var(--mut)}
+  .dcard .who{font-family:var(--mono);font-size:11px;color:var(--faint)}
+  .dcard .who b{color:var(--ink);font-weight:600}
+
+  /* sync */
+  .syncs{display:flex;flex-direction:column;gap:10px}
+  .sync{display:grid;grid-template-columns:28px 1fr;gap:12px;background:var(--panel);
+    border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+  .sync .num{font-family:var(--mono);color:var(--faint);font-size:13px}
+  .sync .h{font-family:var(--mono);font-size:13px;font-weight:700;margin-bottom:4px}
+  .sync .h b{color:var(--ic)}
+  .sync p{margin:0;font-size:12.5px;color:var(--mut)}
+
+  .note{font-size:11.5px;color:var(--faint);margin-top:30px;font-family:var(--mono);line-height:1.7}
+  .note b{color:var(--mut)}
+
+  @media (max-width:720px){
+    .lane{grid-template-columns:1fr}
+    .chip{max-width:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="kicker">issue roadmap · desire-nation-sim</div>
+      <h1>欲望国家シム <span class="dim">/ 開発ロードマップ</span></h1>
+      <div class="status">現在の状況：コードはまだ0行（README設計のみ）。<b>issueは24件発行済み・アサイン未定</b>。まずは <b style="color:var(--ic)">Setup(#1)</b> と <b style="color:var(--dc)">軸決定(#20)</b> から着手。</div>
+    </div>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--nz)"></i>のぞみ ｜バックエンド中心</span>
+      <span><i class="dot" style="background:var(--hr)"></i>ひらまさ ｜フロント専任</span>
+      <span><i class="dot" style="background:var(--ic)"></i>いちろー ｜横断・足りない所</span>
+      <span><i class="dot" style="background:var(--dc)"></i>決定待ち ｜要議論</span>
+    </div>
+  </header>
+
+  <div class="statusleg">
+    <span><i style="border-color:var(--p1);background:rgba(224,86,106,.18)"></i>▶ 各レーンの着手一番手</span>
+    <span><i style="border-color:var(--faint);border-style:dashed"></i>⏳ 他人の完了 or 決定待ち</span>
+    <span><i style="border-color:var(--line);background:var(--panel2)"></i>順番待ち（依存なし・空いたら着手可）</span>
+  </div>
+
+  <!-- PIPELINE -->
+  <div class="sectitle">1プレイの流れ（画面が何につながっているか）</div>
+  <div class="pipe">
+    <div class="stage"><div class="n">01</div><div class="t">タイトル画面</div>
+      <div class="who"><span class="tag thr">ひらまさ #12</span></div></div>
+    <div class="stage"><div class="n">02</div><div class="t">冒頭宣言 → AI判定</div>
+      <div class="who"><span class="tag thr">#13</span><span class="tag tnz">#8</span></div></div>
+    <div class="stage"><div class="n">03</div><div class="t">節目生成 ×5<br>（初日〜1年後）</div>
+      <div class="who"><span class="tag tnz">のぞみ #9</span><span class="tag thr">#14</span></div></div>
+    <div class="stage"><div class="n">04</div><div class="t">検診イベント ×3<br>（1ヶ月/半年/1年）</div>
+      <div class="who"><span class="tag thr">#15</span><span class="tag tdc">#21待ち</span></div></div>
+    <div class="stage"><div class="n">05</div><div class="t">エンディング判定<br>→ 文章生成</div>
+      <div class="who"><span class="tag tnz">のぞみ #6 #10</span></div></div>
+    <div class="stage"><div class="n">06</div><div class="t">二段演出 → 履歴保存</div>
+      <div class="who"><span class="tag thr">#16</span><span class="tag tic">#7</span></div></div>
+  </div>
+
+  <!-- LANES -->
+  <div class="sectitle">誰が・どの順で作るか</div>
+  <div class="secsub">1レーン＝1人の着手推奨順。左から右へ。番号はGitHub issue（クリックで開く）。</div>
+
+  <div class="lane IC">
+    <div class="lhead">
+      <div class="who">いちろー</div>
+      <div class="role">横断／基盤・統括<br>（土台を作り、隙間を埋める）</div>
+      <div class="cnt cic">5 issues + 意思決定の進行役</div>
+    </div>
+    <div class="track">
+      <a class="chip now" href="https://github.com/1R0U/Dictator/issues/1" target="_blank" rel="noopener"><span class="nb">次</span><div class="top"><span class="id cic">#1</span><span class="pr">P1</span></div><div class="ds">Setup<br>雛形・全員の作業環境</div></a>
+      <span class="arrow">→</span>
+      <a class="chip" href="https://github.com/1R0U/Dictator/issues/3" target="_blank" rel="noopener"><div class="top"><span class="id cic">#3</span><span class="pr">P2</span></div><div class="ds">マイルストーン定義<br>のぞみ#9が使う</div></a>
+      <span class="arrow">→</span>
+      <a class="chip" href="https://github.com/1R0U/Dictator/issues/7" target="_blank" rel="noopener"><div class="top"><span class="id cic">#7</span><span class="pr">P3</span></div><div class="ds">結果アーカイブ保存<br>history.js</div></a>
+      <span class="arrow">→</span>
+      <a class="chip wait" href="https://github.com/1R0U/Dictator/issues/11" target="_blank" rel="noopener"><div class="top"><span class="id cic">#11</span><span class="pr">P2</span></div><div class="ds">共通タイムアウト機構<br>⏳ #8/9/10完了待ち</div></a>
+      <span class="arrow">→</span>
+      <a class="chip wait" href="https://github.com/1R0U/Dictator/issues/19" target="_blank" rel="noopener"><div class="top"><span class="id cic">#19</span><span class="pr">P2</span></div><div class="ds">Safety Net<br>⏳ 通しプレイできてから最後に収録</div></a>
+    </div>
+  </div>
+
+  <div class="lane NZ">
+    <div class="lhead">
+      <div class="who">のぞみ</div>
+      <div class="role">バックエンド中心<br>（AI連携・ロジック・データ）</div>
+      <div class="cnt cnz">7 issues</div>
+    </div>
+    <div class="track">
+      <a class="chip now" href="https://github.com/1R0U/Dictator/issues/2" target="_blank" rel="noopener"><span class="nb">次</span><div class="top"><span class="id cnz">#2</span><span class="pr">P1</span></div><div class="ds">欲望軸 axes.js<br>暫定5軸で先行着手</div></a>
+      <span class="arrow">→</span>
+      <a class="chip" href="https://github.com/1R0U/Dictator/issues/4" target="_blank" rel="noopener"><div class="top"><span class="id cnz">#4</span><span class="pr">P1</span></div><div class="ds">few-shot例文<br>prompts.js</div></a>
+      <span class="arrow">→</span>
+      <a class="chip" href="https://github.com/1R0U/Dictator/issues/5" target="_blank" rel="noopener"><div class="top"><span class="id cnz">#5</span><span class="pr">P1</span></div><div class="ds">meter加算ロジック</div></a>
+      <span class="arrow">→</span>
+      <a class="chip" href="https://github.com/1R0U/Dictator/issues/8" target="_blank" rel="noopener"><div class="top"><span class="id cnz">#8</span><span class="pr">P1</span></div><div class="ds">mapDesire実装<br>★ひらまさ#13が待つ</div></a>
+      <span class="arrow">→</span>
+      <a class="chip" href="https://github.com/1R0U/Dictator/issues/6" target="_blank" rel="noopener"><div class="top"><span class="id cnz">#6</span><span class="pr">P1</span></div><div class="ds">エンディング型判定</div></a>
+      <span class="arrow">→</span>
+      <a class="chip" href="https://github.com/1R0U/Dictator/issues/9" target="_blank" rel="noopener"><div class="top"><span class="id cnz">#9</span><span class="pr">P1</span></div><div class="ds">generateBeat実装<br>★ひらまさ#14が待つ</div></a>
+      <span class="arrow">→</span>
+      <a class="chip" href="https://github.com/1R0U/Dictator/issues/10" target="_blank" rel="noopener"><div class="top"><span class="id cnz">#10</span><span class="pr">P2</span></div><div class="ds">generateEnding実装</div></a>
+    </div>
+  </div>
+
+  <div class="lane HR">
+    <div class="lhead">
+      <div class="who">ひらまさ</div>
+      <div class="role">フロント専任<br>（画面・遷移・演出）</div>
+      <div class="cnt chr">7 issues</div>
+    </div>
+    <div class="track">
+      <a class="chip now" href="https://github.com/1R0U/Dictator/issues/12" target="_blank" rel="noopener"><span class="nb">次</span><div class="top"><span class="id chr">#12</span><span class="pr">P1</span></div><div class="ds">タイトル画面<br>依存なしですぐ着手可</div></a>
+      <span class="arrow">→</span>
+      <a class="chip wait" href="https://github.com/1R0U/Dictator/issues/13" target="_blank" rel="noopener"><div class="top"><span class="id chr">#13</span><span class="pr">P1</span></div><div class="ds">冒頭宣言フォーム<br>⏳ のぞみ#8待ち（先に画面だけ作れる）</div></a>
+      <span class="arrow">→</span>
+      <a class="chip wait" href="https://github.com/1R0U/Dictator/issues/14" target="_blank" rel="noopener"><div class="top"><span class="id chr">#14</span><span class="pr">P1</span></div><div class="ds">節目共通コンポーネント<br>⏳ のぞみ#9待ち</div></a>
+      <span class="arrow">→</span>
+      <a class="chip" href="https://github.com/1R0U/Dictator/issues/16" target="_blank" rel="noopener"><div class="top"><span class="id chr">#16</span><span class="pr">P1</span></div><div class="ds">エンディング二段演出</div></a>
+      <span class="arrow">→</span>
+      <a class="chip wait" href="https://github.com/1R0U/Dictator/issues/15" target="_blank" rel="noopener"><div class="top"><span class="id chr">#15</span><span class="pr">P2</span></div><div class="ds">検診イベント<br>⏳ #21の演出決定待ち</div></a>
+      <span class="arrow">→</span>
+      <a class="chip" href="https://github.com/1R0U/Dictator/issues/17" target="_blank" rel="noopener"><div class="top"><span class="id chr">#17</span><span class="pr">P3</span></div><div class="ds">履歴一覧画面</div></a>
+      <span class="arrow">→</span>
+      <a class="chip" href="https://github.com/1R0U/Dictator/issues/18" target="_blank" rel="noopener"><div class="top"><span class="id chr">#18</span><span class="pr">P3</span></div><div class="ds">履歴詳細画面</div></a>
+    </div>
+  </div>
+
+  <!-- DECISIONS -->
+  <div class="sectitle">先に決めないと詰まる論点（5件）</div>
+  <div class="secsub">コードではなく話し合いで進むissue。放置するとバックエンド／フロント双方の着手が遅れる。</div>
+  <div class="decisions">
+    <div class="dcard" style="border-left-color:var(--p1)">
+      <div class="h"><a href="https://github.com/1R0U/Dictator/issues/20" target="_blank" rel="noopener">★ #20 欲望軸の最終決定</a><span class="pr">P1</span></div>
+      <p>軸名・軸数が決まらないと axes.js(#2) とエンディング判定(#6) が確定しない。一番早く潰したい論点。</p>
+      <div class="who">担当推奨：<b>のぞみ + いちろー</b></div>
+    </div>
+    <div class="dcard">
+      <div class="h"><a href="https://github.com/1R0U/Dictator/issues/21" target="_blank" rel="noopener">#21 検診イベントの演出詳細</a><span class="pr">P3</span></div>
+      <p>欲望鑑定士のキャラ性が決まらないと検診イベント(#15)のUIが着手できない。</p>
+      <div class="who">担当推奨：<b>ひらまさ + いちろー</b></div>
+    </div>
+    <div class="dcard">
+      <div class="h"><a href="https://github.com/1R0U/Dictator/issues/22" target="_blank" rel="noopener">#22 1プレイの長さ</a><span class="pr">P3</span></div>
+      <p>目標プレイ時間が文章量の目安になる。generateBeat(#9)とUIの情報量の両方に影響。</p>
+      <div class="who">担当推奨：<b>3人で（5分で決める）</b></div>
+    </div>
+    <div class="dcard">
+      <div class="h"><a href="https://github.com/1R0U/Dictator/issues/23" target="_blank" rel="noopener">#23 プロンプトのトーン・文章量</a><span class="pr">P2</span></div>
+      <p>実装(#9 #10)自体は先に進められるが、本番トーンに寄せる仕上げ工程として必要。</p>
+      <div class="who">担当推奨：<b>のぞみ</b></div>
+    </div>
+    <div class="dcard">
+      <div class="h"><a href="https://github.com/1R0U/Dictator/issues/24" target="_blank" rel="noopener">#24 マッピング精度検証</a><span class="pr">P3</span></div>
+      <p>#8実装後、複数パターンの宣言文で実際に試して精度を確認する検証タスク。</p>
+      <div class="who">担当推奨：<b>のぞみ</b></div>
+    </div>
+  </div>
+
+  <!-- SYNC POINTS -->
+  <div class="sectitle">レーンをまたぐ合流ポイント</div>
+  <div class="syncs">
+    <div class="sync">
+      <div class="num">①</div>
+      <div><div class="h"><b>いちろー #1</b> ⟶ 全員の着手開始</div>
+      <p>雛形ができるまでは誰も実機確認できない。最初の1〜2時間で終わらせて、すぐ #12 と #2 を並走させる。</p></div>
+    </div>
+    <div class="sync">
+      <div class="num">②</div>
+      <div><div class="h"><b>のぞみ #8</b> ⟶ ひらまさ #13・#15</div>
+      <p>mapDesireが動けば、冒頭宣言フォームと検診イベントの送信ボタンが実データにつながる。それまでUIはダミー応答で先行可。</p></div>
+    </div>
+    <div class="sync">
+      <div class="num">③</div>
+      <div><div class="h"><b>のぞみ #9</b> ⟶ ひらまさ #14</div>
+      <p>generateBeatが動けば節目共通コンポーネントに本物のNEWS/MEMOが流れる。5節目すべてで使う要の結合。</p></div>
+    </div>
+    <div class="sync">
+      <div class="num">④</div>
+      <div><div class="h"><b>のぞみ #6 + #10</b> ＋ <b>ひらまさ #16</b> ⟶ 初回通しプレイ</div>
+      <p>判定ロジック・生成・二段演出が揃った時点で、タイトルからエンディングまで初めて通しでプレイできる。ここがプロダクト完成の瞬間。</p></div>
+    </div>
+    <div class="sync">
+      <div class="num">⑤</div>
+      <div><div class="h">初回通しプレイ ⟶ <b>いちろー #19</b></div>
+      <p>通しで動くようになってから、その実プレイのテキストを保険シナリオとして収録する。本番直前の最終工程。</p></div>
+    </div>
+  </div>
+
+  <div class="note">読み方：上＝1プレイで画面がどうつながるか／中＝担当ごとの着手順（左→右）／論点＝コードでなく話し合いで進む5件／下＝レーンをまたぐ合流ポイント。<br>
+  <b>凡例</b>：のぞみ=backend系issue 7件、ひらまさ=frontend系issue 7件、いちろー=基盤・データ保存・安全網の5件＋決定の進行役、決定待ち=どの実装issueにも数えていない5件。合計24件。</div>
+
+</div>
+</body>
+</html>
