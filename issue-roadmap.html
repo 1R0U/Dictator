@@ -80,6 +80,9 @@
   .chip.now .nb{position:absolute;top:-8px;right:-6px;font-size:9px;font-family:var(--mono);
     background:var(--p1);color:#2a0508;border-radius:4px;padding:1px 5px;font-weight:700}
   .chip.wait{border-style:dashed}
+  .chip.disc{border-color:var(--dc);background:rgba(176,155,247,.08)}
+  .chip.disc .id{color:var(--dc)}
+  .chip .db{font-size:9px;font-family:var(--mono);color:var(--dc);letter-spacing:.5px}
   .arrow{align-self:center;color:var(--faint);font-family:var(--mono);font-size:13px}
   .statusleg{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--mut);margin:0 0 16px}
   .statusleg span{display:flex;align-items:center;gap:6px}
@@ -123,19 +126,19 @@
     <div>
       <div class="kicker">issue roadmap · desire-nation-sim</div>
       <h1>欲望国家シム <span class="dim">/ 開発ロードマップ</span></h1>
-      <div class="status">現在の状況：コードはまだ0行（README設計のみ）。<b>issueは24件発行済み・アサイン未定</b>。まずは <b style="color:var(--ic)">Setup(#1)</b> と <b style="color:var(--dc)">軸決定(#20)</b> から着手。</div>
+      <div class="status">現在の状況：コードはまだ0行（README設計のみ）。<b>issueは24件発行済み・アサイン未定</b>。まずは <b style="color:var(--ic)">いちろーのSetup(#1)</b> と <b style="color:var(--ic)">軸決定(#20)</b> から着手。</div>
     </div>
     <div class="legend">
-      <span><i class="dot" style="background:var(--nz)"></i>のぞみ ｜バックエンド中心</span>
-      <span><i class="dot" style="background:var(--hr)"></i>ひらまさ ｜フロント専任</span>
-      <span><i class="dot" style="background:var(--ic)"></i>いちろー ｜横断・足りない所</span>
-      <span><i class="dot" style="background:var(--dc)"></i>決定待ち ｜要議論</span>
+      <span><i class="dot" style="background:var(--nz)"></i>のぞみ ｜バックエンド中心・7件</span>
+      <span><i class="dot" style="background:var(--hr)"></i>ひらまさ ｜フロント専任・7件</span>
+      <span><i class="dot" style="background:var(--ic)"></i>いちろー ｜横断・最多10件</span>
     </div>
   </header>
 
   <div class="statusleg">
     <span><i style="border-color:var(--p1);background:rgba(224,86,106,.18)"></i>▶ 各レーンの着手一番手</span>
-    <span><i style="border-color:var(--faint);border-style:dashed"></i>⏳ 他人の完了 or 決定待ち</span>
+    <span><i style="border-color:var(--faint);border-style:dashed"></i>⏳ 他人の完了待ち</span>
+    <span><i style="border-color:var(--dc);background:rgba(176,155,247,.15)"></i>💬 コードでなく話し合いで決めるissue</span>
     <span><i style="border-color:var(--line);background:var(--panel2)"></i>順番待ち（依存なし・空いたら着手可）</span>
   </div>
 
@@ -149,7 +152,7 @@
     <div class="stage"><div class="n">03</div><div class="t">節目生成 ×5<br>（初日〜1年後）</div>
       <div class="who"><span class="tag tnz">のぞみ #9</span><span class="tag thr">#14</span></div></div>
     <div class="stage"><div class="n">04</div><div class="t">検診イベント ×3<br>（1ヶ月/半年/1年）</div>
-      <div class="who"><span class="tag thr">#15</span><span class="tag tdc">#21待ち</span></div></div>
+      <div class="who"><span class="tag thr">#15</span><span class="tag tic">#21待ち</span></div></div>
     <div class="stage"><div class="n">05</div><div class="t">エンディング判定<br>→ 文章生成</div>
       <div class="who"><span class="tag tnz">のぞみ #6 #10</span></div></div>
     <div class="stage"><div class="n">06</div><div class="t">二段演出 → 履歴保存</div>
@@ -163,17 +166,27 @@
   <div class="lane IC">
     <div class="lhead">
       <div class="who">いちろー</div>
-      <div class="role">横断／基盤・統括<br>（土台を作り、隙間を埋める）</div>
-      <div class="cnt cic">5 issues + 意思決定の進行役</div>
+      <div class="role">横断／基盤・統括・意思決定<br>（土台を作り、隙間とジャッジを引き受ける）</div>
+      <div class="cnt cic">10 issues（最多）</div>
     </div>
     <div class="track">
       <a class="chip now" href="https://github.com/1R0U/Dictator/issues/1" target="_blank" rel="noopener"><span class="nb">次</span><div class="top"><span class="id cic">#1</span><span class="pr">P1</span></div><div class="ds">Setup<br>雛形・全員の作業環境</div></a>
       <span class="arrow">→</span>
+      <a class="chip disc now" href="https://github.com/1R0U/Dictator/issues/20" target="_blank" rel="noopener"><div class="top"><span class="id">#20</span><span class="pr">P1</span></div><div class="db">💬議論</div><div class="ds">欲望軸の最終決定<br>のぞみ#2・#6が待つ</div></a>
+      <span class="arrow">→</span>
       <a class="chip" href="https://github.com/1R0U/Dictator/issues/3" target="_blank" rel="noopener"><div class="top"><span class="id cic">#3</span><span class="pr">P2</span></div><div class="ds">マイルストーン定義<br>のぞみ#9が使う</div></a>
+      <span class="arrow">→</span>
+      <a class="chip disc" href="https://github.com/1R0U/Dictator/issues/21" target="_blank" rel="noopener"><div class="top"><span class="id">#21</span><span class="pr">P3</span></div><div class="db">💬議論</div><div class="ds">検診演出の詳細<br>ひらまさ#15が待つ</div></a>
+      <span class="arrow">→</span>
+      <a class="chip disc" href="https://github.com/1R0U/Dictator/issues/22" target="_blank" rel="noopener"><div class="top"><span class="id">#22</span><span class="pr">P3</span></div><div class="db">💬議論</div><div class="ds">1プレイの長さ<br>3人で5分で決める</div></a>
       <span class="arrow">→</span>
       <a class="chip" href="https://github.com/1R0U/Dictator/issues/7" target="_blank" rel="noopener"><div class="top"><span class="id cic">#7</span><span class="pr">P3</span></div><div class="ds">結果アーカイブ保存<br>history.js</div></a>
       <span class="arrow">→</span>
       <a class="chip wait" href="https://github.com/1R0U/Dictator/issues/11" target="_blank" rel="noopener"><div class="top"><span class="id cic">#11</span><span class="pr">P2</span></div><div class="ds">共通タイムアウト機構<br>⏳ #8/9/10完了待ち</div></a>
+      <span class="arrow">→</span>
+      <a class="chip disc wait" href="https://github.com/1R0U/Dictator/issues/23" target="_blank" rel="noopener"><div class="top"><span class="id">#23</span><span class="pr">P2</span></div><div class="db">💬議論</div><div class="ds">プロンプトのトーン決定<br>⏳ #9/#10の仕上げ用</div></a>
+      <span class="arrow">→</span>
+      <a class="chip disc wait" href="https://github.com/1R0U/Dictator/issues/24" target="_blank" rel="noopener"><div class="top"><span class="id">#24</span><span class="pr">P3</span></div><div class="db">💬議論</div><div class="ds">マッピング精度検証<br>⏳ のぞみ#8完了待ち</div></a>
       <span class="arrow">→</span>
       <a class="chip wait" href="https://github.com/1R0U/Dictator/issues/19" target="_blank" rel="noopener"><div class="top"><span class="id cic">#19</span><span class="pr">P2</span></div><div class="ds">Safety Net<br>⏳ 通しプレイできてから最後に収録</div></a>
     </div>
@@ -225,37 +238,6 @@
     </div>
   </div>
 
-  <!-- DECISIONS -->
-  <div class="sectitle">先に決めないと詰まる論点（5件）</div>
-  <div class="secsub">コードではなく話し合いで進むissue。放置するとバックエンド／フロント双方の着手が遅れる。</div>
-  <div class="decisions">
-    <div class="dcard" style="border-left-color:var(--p1)">
-      <div class="h"><a href="https://github.com/1R0U/Dictator/issues/20" target="_blank" rel="noopener">★ #20 欲望軸の最終決定</a><span class="pr">P1</span></div>
-      <p>軸名・軸数が決まらないと axes.js(#2) とエンディング判定(#6) が確定しない。一番早く潰したい論点。</p>
-      <div class="who">担当推奨：<b>のぞみ + いちろー</b></div>
-    </div>
-    <div class="dcard">
-      <div class="h"><a href="https://github.com/1R0U/Dictator/issues/21" target="_blank" rel="noopener">#21 検診イベントの演出詳細</a><span class="pr">P3</span></div>
-      <p>欲望鑑定士のキャラ性が決まらないと検診イベント(#15)のUIが着手できない。</p>
-      <div class="who">担当推奨：<b>ひらまさ + いちろー</b></div>
-    </div>
-    <div class="dcard">
-      <div class="h"><a href="https://github.com/1R0U/Dictator/issues/22" target="_blank" rel="noopener">#22 1プレイの長さ</a><span class="pr">P3</span></div>
-      <p>目標プレイ時間が文章量の目安になる。generateBeat(#9)とUIの情報量の両方に影響。</p>
-      <div class="who">担当推奨：<b>3人で（5分で決める）</b></div>
-    </div>
-    <div class="dcard">
-      <div class="h"><a href="https://github.com/1R0U/Dictator/issues/23" target="_blank" rel="noopener">#23 プロンプトのトーン・文章量</a><span class="pr">P2</span></div>
-      <p>実装(#9 #10)自体は先に進められるが、本番トーンに寄せる仕上げ工程として必要。</p>
-      <div class="who">担当推奨：<b>のぞみ</b></div>
-    </div>
-    <div class="dcard">
-      <div class="h"><a href="https://github.com/1R0U/Dictator/issues/24" target="_blank" rel="noopener">#24 マッピング精度検証</a><span class="pr">P3</span></div>
-      <p>#8実装後、複数パターンの宣言文で実際に試して精度を確認する検証タスク。</p>
-      <div class="who">担当推奨：<b>のぞみ</b></div>
-    </div>
-  </div>
-
   <!-- SYNC POINTS -->
   <div class="sectitle">レーンをまたぐ合流ポイント</div>
   <div class="syncs">
@@ -266,28 +248,38 @@
     </div>
     <div class="sync">
       <div class="num">②</div>
+      <div><div class="h"><b>いちろー #20</b> ⟶ のぞみ #2・#6</div>
+      <p>欲望軸の名前・数が決まらないと axes.js とエンディング判定が確定しない。#1と並行してすぐ話し合いに入る。</p></div>
+    </div>
+    <div class="sync">
+      <div class="num">③</div>
       <div><div class="h"><b>のぞみ #8</b> ⟶ ひらまさ #13・#15</div>
       <p>mapDesireが動けば、冒頭宣言フォームと検診イベントの送信ボタンが実データにつながる。それまでUIはダミー応答で先行可。</p></div>
     </div>
     <div class="sync">
-      <div class="num">③</div>
+      <div class="num">④</div>
       <div><div class="h"><b>のぞみ #9</b> ⟶ ひらまさ #14</div>
       <p>generateBeatが動けば節目共通コンポーネントに本物のNEWS/MEMOが流れる。5節目すべてで使う要の結合。</p></div>
     </div>
     <div class="sync">
-      <div class="num">④</div>
+      <div class="num">⑤</div>
+      <div><div class="h"><b>いちろー #21</b> ⟶ ひらまさ #15</div>
+      <p>欲望鑑定士のキャラ性が決まらないと検診イベントのUIに着手できない。優先度は低いが早めに片付けたい。</p></div>
+    </div>
+    <div class="sync">
+      <div class="num">⑥</div>
       <div><div class="h"><b>のぞみ #6 + #10</b> ＋ <b>ひらまさ #16</b> ⟶ 初回通しプレイ</div>
       <p>判定ロジック・生成・二段演出が揃った時点で、タイトルからエンディングまで初めて通しでプレイできる。ここがプロダクト完成の瞬間。</p></div>
     </div>
     <div class="sync">
-      <div class="num">⑤</div>
+      <div class="num">⑦</div>
       <div><div class="h">初回通しプレイ ⟶ <b>いちろー #19</b></div>
       <p>通しで動くようになってから、その実プレイのテキストを保険シナリオとして収録する。本番直前の最終工程。</p></div>
     </div>
   </div>
 
-  <div class="note">読み方：上＝1プレイで画面がどうつながるか／中＝担当ごとの着手順（左→右）／論点＝コードでなく話し合いで進む5件／下＝レーンをまたぐ合流ポイント。<br>
-  <b>凡例</b>：のぞみ=backend系issue 7件、ひらまさ=frontend系issue 7件、いちろー=基盤・データ保存・安全網の5件＋決定の進行役、決定待ち=どの実装issueにも数えていない5件。合計24件。</div>
+  <div class="note">読み方：上＝1プレイで画面がどうつながるか／中＝担当ごとの着手順（左→右）／下＝レーンをまたぐ合流ポイント。紫バッジ「💬議論」＝コードでなく話し合いで進むissue。<br>
+  <b>凡例</b>：のぞみ=backend系issue 7件、ひらまさ=frontend系issue 7件、いちろー=基盤・データ・安全網5件＋議論issue5件＝10件（最多、経験者として広めに持つ）。合計24件。</div>
 
 </div>
 </body>
