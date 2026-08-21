@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check package.json exists
+        id: pkg
+        run: |
+          if [ -f package.json ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.pkg.outputs.exists == 'true'
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.pkg.outputs.exists == 'true'
+        run: npm ci
+
+      - name: Lint
+        if: steps.pkg.outputs.exists == 'true'
+        run: npm run lint --if-present
+
+      - name: Test
+        if: steps.pkg.outputs.exists == 'true'
+        run: npm test --if-present
+
+      - name: No package.json yet
+        if: steps.pkg.outputs.exists == 'false'
+        run: echo "package.json not found yet - skipping install/lint/test."
