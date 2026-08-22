@@ -18,12 +18,35 @@
 
 ## Setup（環境構築）
 
-現時点では`package.json`未作成（設計フェーズ）のため、`npm install`が必要なものはまだない。ローカルExpoに移行する際に必要になる前提は以下の通り。
+`npx create-expo-app`相当の雛形（`package.json` / `App.js` / `app.json` / `index.js`）は作成済み。Snackを経由せず、最初からローカルExpoで開始している（詰まったときの避難先ではなく本線）。
 
 - **Node.js 20系 / npm** — CI（[.github/workflows/ci.yml](.github/workflows/ci.yml)）もNode 20で揃えている
-- **Expo** — グローバルインストール不要、`npx create-expo-app`でプロジェクト作成、`npx expo start`で起動
 - **実機確認用にExpo Goアプリ**（iOS/Android）、またはシミュレータ/エミュレータ
 - **Claude APIキー** — `.env`等で環境変数として渡し、リポジトリにはコミットしない（クライアントから直接fetchするため、公開ビルドでのキー露出に注意）
+
+### 起動手順
+
+```bash
+git clone <このリポジトリ>
+cd Dictator
+npm install
+npx expo start
+```
+
+- ターミナルに表示されるQRコードをExpo Goアプリ（iOS/Android）で読み取ると実機プレビューできる
+- ブラウザで確認したい場合は起動後に`w`キー、またはコマンド`npx expo start --web`
+- シミュレータ/エミュレータを使う場合は起動後に`i`（iOS）/ `a`（Android）キー
+
+### もしローカルで詰まったら（Expo Snackへの退避）
+
+ローカル環境構築がうまくいかない場合は、[snack.expo.dev](https://snack.expo.dev/) に`App.js`の中身を貼り付けるだけでブラウザ実機プレビューに切り替えられる（`components/` 以下など複数ファイルに分かれた分はSnack上に個別ファイルとして作成し直す）。
+
+### ディレクトリ構成
+
+- `components/` — UIコンポーネント（画面・表示部品）
+- `api/` — Claude API呼び出し関数（`mapDesire.js` / `generateBeat.js` / `generateEnding.js`）
+- `data/` — 欲望軸・プロンプト・履歴などの静的データ定義
+- `game/` — メーター加算やエンディング判定などのゲームロジック
 
 ## Flow（画面 / 進行フロー）
 
