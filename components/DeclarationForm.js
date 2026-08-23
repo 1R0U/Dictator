@@ -5,6 +5,7 @@ import {
   Platform,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -13,18 +14,28 @@ import {
 
 const MAX_LENGTH = 500;
 
+/**
+ * 最初の法律を入力し、親コンポーネントへ送信するフォーム。
+ */
 export default function DeclarationForm({ onBack, onSubmit }) {
   const [declaration, setDeclaration] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const canSubmit = declaration.trim().length > 0 && !isSubmitting;
 
+  /**
+   * 入力内容を整形して送信し、失敗時は再試行できる状態に戻す。
+   */
   const handleSubmit = async () => {
     if (!canSubmit) return;
 
+    setSubmitError('');
     setIsSubmitting(true);
 
     try {
       await onSubmit(declaration.trim());
+    } catch {
+      setSubmitError('宣言を送信できませんでした。時間をおいて、もう一度お試しください。');
     } finally {
       setIsSubmitting(false);
     }
@@ -37,7 +48,11 @@ export default function DeclarationForm({ onBack, onSubmit }) {
         style={styles.keyboardView}
       >
         <View pointerEvents="none" style={styles.accent} />
-        <View style={styles.content}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          style={styles.scrollView}
+        >
           <View>
             <Pressable
               accessibilityRole="button"
@@ -90,10 +105,15 @@ export default function DeclarationForm({ onBack, onSubmit }) {
                 <Text style={styles.submitText}>この法律を宣言する</Text>
               )}
             </Pressable>
+            {submitError ? (
+              <Text accessibilityLiveRegion="polite" style={styles.errorText}>
+                {submitError}
+              </Text>
+            ) : null}
           </View>
 
           <Text style={styles.note}>宣言は、この国の未来を決定します。</Text>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -107,6 +127,9 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
   accent: {
     position: 'absolute',
     top: 0,
@@ -116,7 +139,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#7e2024',
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'space-between',
     paddingHorizontal: 28,
     paddingTop: 64,
@@ -202,6 +225,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     letterSpacing: 1.5,
+  },
+  errorText: {
+    color: '#d98b8f',
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: 'center',
   },
   note: {
     color: '#625e58',

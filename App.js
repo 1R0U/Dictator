@@ -20,9 +20,12 @@ function DestinationPlaceholder({ eyebrow, title }) {
 export default function App() {
   const [stage, setStage] = useState(STAGES.TITLE);
 
-  const handleDeclarationSubmit = async (declaration) => {
-    // AI連携と次画面への遷移はIssue #28で実装する。
-    console.log('冒頭宣言:', declaration);
+  /**
+   * 冒頭宣言を送信する。
+   * AI連携と次画面への遷移はIssue #28で実装する。
+   */
+  const handleDeclarationSubmit = async () => {
+    // Issue #13では入力UIとコールバック呼び出しまでを確認する。
   };
 
   let screen;
