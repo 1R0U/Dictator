@@ -2,6 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
+import DeclarationForm from './components/DeclarationForm';
 import TitleScreen from './components/TitleScreen';
 import { STAGES } from './game/navigation';
 
@@ -19,11 +20,24 @@ function DestinationPlaceholder({ eyebrow, title }) {
 export default function App() {
   const [stage, setStage] = useState(STAGES.TITLE);
 
+  /**
+   * 冒頭宣言を送信する。
+   * AI連携と次画面への遷移はIssue #28で実装する。
+   */
+  const handleDeclarationSubmit = async () => {
+    // Issue #13では入力UIとコールバック呼び出しまでを確認する。
+  };
+
   let screen;
 
   switch (stage) {
     case STAGES.DECLARATION:
-      screen = <DestinationPlaceholder eyebrow="NEW REGIME" title="冒頭宣言" />;
+      screen = (
+        <DeclarationForm
+          onBack={() => setStage(STAGES.TITLE)}
+          onSubmit={handleDeclarationSubmit}
+        />
+      );
       break;
     case STAGES.HISTORY:
       screen = <DestinationPlaceholder eyebrow="ARCHIVE" title="過去の記録" />;
