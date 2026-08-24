@@ -11,9 +11,7 @@ async function readEntries() {
   return Array.isArray(parsed) ? parsed : [];
 }
 
-// result: { declarationSummary, desireAxes, endingType, endingTitle } を想定。
-// 日時は保存時にsavedAtとして付与する。
-export async function saveResult(result) {
+async function appendEntry(result) {
   const entries = await readEntries();
   const entry = { ...result, savedAt: new Date().toISOString() };
 
@@ -24,4 +22,15 @@ export async function saveResult(result) {
 
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
   return entry;
+}
+
+// 同時に呼ばれてもread-modify-writeが衝突しないよう、保存処理を直列化するキュー。
+let saveQueue = Promise.resolve();
+
+// result: { declarationSummary, desireAxes, endingType, endingTitle } を想定。
+// 日時は保存時にsavedAtとして付与する。
+export function saveResult(result) {
+  const run = saveQueue.then(() => appendEntry(result));
+  saveQueue = run.catch(() => {});
+  return run;
 }
