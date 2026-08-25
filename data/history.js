@@ -34,3 +34,9 @@ export function saveResult(result) {
   saveQueue = run.catch(() => {});
   return run;
 }
+
+// 保存済みの結果一覧を新しい順（直近が先頭）で返す。記録が無い場合は空配列を返す。
+export async function loadResults() {
+  const entries = await readEntries();
+  return entries.slice().reverse();
+}
