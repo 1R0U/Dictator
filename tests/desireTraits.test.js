@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {
   DESIRE_LEVELS,
   getDesireLevel,
+  getDesireTraitKeywords,
   getDesireTraitSentence,
 } = require('../game/desireTraits');
 
@@ -38,5 +39,20 @@ test('5軸すべてに低・中・高の異なる傾向文がある', () => {
     ];
     assert.equal(new Set(sentences).size, 3);
     assert.ok(sentences.every((sentence) => sentence.startsWith('あなたの欲望は')));
+  }
+});
+
+test('強調キーワードは各傾向文に実在し、軸ごとに1語だけ持つ', () => {
+  const axisKeys = ['domination', 'egoism', 'innovation', 'prestige', 'madness'];
+  const values = [10, 50, 90];
+
+  for (const axisKey of axisKeys) {
+    for (const value of values) {
+      const sentence = getDesireTraitSentence(axisKey, value);
+      const keywords = getDesireTraitKeywords(axisKey, value);
+
+      assert.equal(keywords.length, 1);
+      assert.ok(sentence.includes(keywords[0]));
+    }
   }
 });
