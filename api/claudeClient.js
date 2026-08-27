@@ -4,7 +4,7 @@
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
-const TIMEOUT_MS = 20000;
+const TIMEOUT_MS = 15000;
 
 /**
  * Claude APIにメッセージを送信し、応答テキストを返す。
@@ -50,5 +50,4 @@ export async function callClaudeApi({ apiKey, model, system, messages, maxTokens
   }
 }
 
-export { TIMEOUT_MS };
 export default callClaudeApi;
