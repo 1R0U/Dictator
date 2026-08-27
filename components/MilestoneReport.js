@@ -49,11 +49,21 @@ export default function MilestoneReport({
   const [scrollMetrics, setScrollMetrics] = useState({ containerHeight: 0, contentHeight: 0, scrollY: 0 });
   const canScrollBody = scrollMetrics.contentHeight > scrollMetrics.containerHeight + 1;
   const scrollThumbHeight = canScrollBody
-    ? Math.max(24, (scrollMetrics.containerHeight / scrollMetrics.contentHeight) * scrollMetrics.containerHeight)
+    ? Math.min(
+        scrollMetrics.containerHeight,
+        Math.max(24, (scrollMetrics.containerHeight / scrollMetrics.contentHeight) * scrollMetrics.containerHeight),
+      )
     : 0;
+  const scrollThumbTrackSpace = Math.max(0, scrollMetrics.containerHeight - scrollThumbHeight);
   const scrollThumbTop = canScrollBody
-    ? (scrollMetrics.scrollY / (scrollMetrics.contentHeight - scrollMetrics.containerHeight)) *
-      (scrollMetrics.containerHeight - scrollThumbHeight)
+    ? Math.min(
+        scrollThumbTrackSpace,
+        Math.max(
+          0,
+          (scrollMetrics.scrollY / (scrollMetrics.contentHeight - scrollMetrics.containerHeight)) *
+            scrollThumbTrackSpace,
+        ),
+      )
     : 0;
 
   useEffect(() => {
