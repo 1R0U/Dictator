@@ -18,6 +18,7 @@ import {
   shouldShowCheckup,
 } from './game/checkup';
 import { createGenerationInput } from './game/declaration';
+import { applyMapping } from './game/meter';
 import { STAGES } from './game/navigation';
 
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
@@ -138,12 +139,12 @@ export default function App() {
   };
 
   /** 現在までの宣言を踏まえたNEWS/MEMOを生成して節目に保存する。 */
-  const generateCurrentMilestoneReport = async (declarations) => {
+  const generateCurrentMilestoneReport = async (declarations, meter = desireAxes) => {
     const milestone = MILESTONES[milestoneIndex];
     const report = await generateBeat({
       declaration: generationInput.declaration,
       milestoneLabel: milestone.label,
-      meter: desireAxes,
+      meter,
       previousDeclarations: getPreviousDeclarationTexts(declarations),
       apiKey: CLAUDE_API_KEY,
     });
@@ -163,13 +164,17 @@ export default function App() {
     setHandledCheckups((current) => completeCheckup(current, milestoneKey));
   };
 
-  /** 追加宣言を保存し、現在の節目の検診を完了する。 */
+  /** 追加宣言をメーターへ反映し、現在の節目の検診を完了する。 */
   const handleAdditionalDeclaration = async (declaration) => {
     const milestoneKey = MILESTONES[milestoneIndex].key;
     const nextDeclaration = createAdditionalDeclaration(milestoneKey, declaration);
     const nextDeclarations = [...additionalDeclarations, nextDeclaration];
 
-    await generateCurrentMilestoneReport(nextDeclarations);
+    const mapping = await mapDesire(nextDeclaration.declaration, CLAUDE_API_KEY);
+    const nextDesireAxes = applyMapping(desireAxes, mapping);
+
+    await generateCurrentMilestoneReport(nextDeclarations, nextDesireAxes);
+    setDesireAxes(nextDesireAxes);
     setAdditionalDeclarations(nextDeclarations);
     completeCurrentCheckup();
   };
