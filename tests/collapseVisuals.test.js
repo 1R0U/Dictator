@@ -50,4 +50,6 @@ test('01〜10の表示名が指定された正式名称と一致する', () => {
 test('通常エンドや不明な型には滅亡画像を表示しない', () => {
   assert.equal(getCollapseVisual('ironic_peace'), null);
   assert.equal(getCollapseVisual('unknown'), null);
+  assert.equal(getCollapseVisual('constructor'), null);
+  assert.equal(getCollapseVisual('__proto__'), null);
 });

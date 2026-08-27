@@ -71,8 +71,11 @@ const COLLAPSE_VISUALS = Object.freeze({
   }),
 });
 
+/** Return visual metadata only for explicitly registered collapse route keys. */
 function getCollapseVisual(endingType) {
-  return COLLAPSE_VISUALS[endingType] ?? null;
+  return Object.hasOwn(COLLAPSE_VISUALS, endingType)
+    ? COLLAPSE_VISUALS[endingType]
+    : null;
 }
 
 module.exports = { COLLAPSE_VISUALS, getCollapseVisual };
