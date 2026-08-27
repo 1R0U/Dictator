@@ -7,6 +7,7 @@ const {
   completeCheckup,
   createAdditionalDeclaration,
   getPreviousDeclarationTexts,
+  selectRandomIndex,
   shouldShowCheckup,
 } = require('../game/checkup');
 
@@ -62,4 +63,16 @@ test('それまでの追加宣言を時系列順で生成処理へ渡す', () =>
     '休日を増やす',
     '祝日には菓子を配る',
   ]);
+});
+
+test('側近画像を乱数に応じて選択肢の範囲内から選ぶ', () => {
+  assert.equal(selectRandomIndex(2, 0), 0);
+  assert.equal(selectRandomIndex(2, 0.499999), 0);
+  assert.equal(selectRandomIndex(2, 0.5), 1);
+  assert.equal(selectRandomIndex(2, 0.999999), 1);
+});
+
+test('側近画像の選択肢や乱数が不正な場合は拒否する', () => {
+  assert.throws(() => selectRandomIndex(0, 0.5), RangeError);
+  assert.throws(() => selectRandomIndex(2, 1), RangeError);
 });

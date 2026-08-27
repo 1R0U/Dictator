@@ -1,10 +1,21 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
   MAX_ADDITIONAL_DECLARATION_LENGTH,
   canSubmitAdditionalDeclaration,
+  selectRandomIndex,
 } from '../game/checkup';
+
+const AIDE_PORTRAITS = [
+  require('../assets/aide-presenting.png'),
+  require('../assets/aide-panicking.png'),
+];
+
+/** Selects one aide portrait for the lifetime of a checkup prompt. */
+function selectRandomAidePortrait() {
+  return AIDE_PORTRAITS[selectRandomIndex(AIDE_PORTRAITS.length)];
+}
 
 /**
  * 節目の検診で、側近が追加宣言の有無を確認する吹き出しUI。
@@ -15,6 +26,7 @@ import {
  * @param {Function} props.onSubmit 追加宣言を確定する処理。
  */
 export default function CheckupEvent({ milestoneLabel, onSkip, onSubmit }) {
+  const [aidePortrait] = useState(selectRandomAidePortrait);
   const [declaration, setDeclaration] = useState('');
   const [pendingAction, setPendingAction] = useState('');
   const [submitError, setSubmitError] = useState('');
@@ -131,18 +143,12 @@ export default function CheckupEvent({ milestoneLabel, onSkip, onSubmit }) {
 
       <View style={styles.characterColumn}>
         <View accessibilityLabel="独裁者の側近" accessible style={styles.portrait}>
-          <View style={styles.hair} />
-          <View style={styles.face}>
-            <View style={styles.glasses}>
-              <View style={styles.lens} />
-              <View style={styles.glassesBridge} />
-              <View style={styles.lens} />
-            </View>
-            <View style={styles.mouth} />
-          </View>
-          <View style={styles.suit}>
-            <View style={styles.tie} />
-          </View>
+          <Image
+            accessible={false}
+            resizeMode="contain"
+            source={aidePortrait}
+            style={styles.portraitImage}
+          />
         </View>
         <Text style={styles.characterName}>側近</Text>
         <Text style={styles.characterRole}>欲望監査担当</Text>
@@ -164,65 +170,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   portrait: {
-    width: 78,
-    height: 104,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
+    width: 104,
+    height: 138,
   },
-  hair: {
-    position: 'absolute',
-    top: 0,
-    width: 58,
-    height: 31,
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    backgroundColor: '#3c3938',
-  },
-  face: {
-    position: 'absolute',
-    top: 17,
-    width: 55,
-    height: 57,
-    alignItems: 'center',
-    borderBottomLeftRadius: 22,
-    borderBottomRightRadius: 22,
-    backgroundColor: '#c6a982',
-  },
-  glasses: {
-    marginTop: 17,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  lens: {
-    width: 18,
-    height: 12,
-    borderWidth: 2,
-    borderColor: '#242326',
-    borderRadius: 6,
-  },
-  glassesBridge: {
-    width: 6,
-    height: 2,
-    backgroundColor: '#242326',
-  },
-  mouth: {
-    width: 15,
-    height: 2,
-    marginTop: 10,
-    backgroundColor: '#694b42',
-  },
-  suit: {
-    width: 74,
-    height: 43,
-    alignItems: 'center',
-    backgroundColor: '#29282d',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  tie: {
-    width: 7,
-    height: 28,
-    backgroundColor: '#7e2024',
+  portraitImage: {
+    width: '100%',
+    height: '100%',
   },
   characterName: {
     marginTop: 7,
