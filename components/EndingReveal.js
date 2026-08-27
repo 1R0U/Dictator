@@ -16,20 +16,10 @@ const PHASES = Object.freeze({
   METER: 'meter',
 });
 
-/**
- * エンディング本文を先に見せ、操作後に最終欲望メーターを開示する。
- *
- * @param {Object} props
- * @param {string} props.headline generateEndingが返すエンディング見出し。
- * @param {string} props.body generateEndingが返すエンディング本文。
- * @param {Object.<string, number>} props.finalMeter 各欲望軸の最終値。
- * @param {Function} [props.onRevealComplete] メーター開示アニメーション完了時の処理。
- * @param {Function} [props.onReturnHome] 表示完了後にホームへ戻る処理。
- * @param {string} [props.returnLabel] 表示完了後の戻るボタン文言。
- */
 export default function EndingReveal({
   headline,
   body,
+  declarations,
   finalMeter,
   onRevealComplete,
   onReturnHome,
@@ -63,7 +53,6 @@ export default function EndingReveal({
     };
   }, [completionNotifier, headline, meterAnimations]);
 
-  /** 欲望メーターを順番に開示し、完了を外部へ通知する。 */
   const revealMeter = () => {
     if (phase !== PHASES.ENDING || isRevealing.current) return;
 
@@ -109,6 +98,17 @@ export default function EndingReveal({
           <Text style={styles.kicker}>DESIRE REVEALED</Text>
           <Text style={styles.meterTitle}>あなたが本当に望んでいたもの</Text>
           <Text style={styles.meterLead}>宣言の裏に積み重なった欲望の最終値</Text>
+
+          {declarations && declarations.length > 0 ? (
+            <View style={styles.declarationList}>
+              <Text style={styles.declarationTitle}>あなたの宣言</Text>
+              {declarations.map((d, i) => (
+                <Text key={i} style={styles.declarationItem}>
+                  {i === 0 ? '▶ ' : '＋ '}「{d}」
+                </Text>
+              ))}
+            </View>
+          ) : null}
 
           <View style={styles.meterList}>
             {AXES.map((axis, index) => {
@@ -250,6 +250,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 20,
     textAlign: 'center',
+  },
+  declarationList: {
+    marginTop: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#2d2b30',
+    backgroundColor: '#1a1a1d',
+  },
+  declarationTitle: {
+    color: '#b9985a',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 2,
+    marginBottom: 10,
+  },
+  declarationItem: {
+    color: '#c8c0b5',
+    fontSize: 14,
+    lineHeight: 24,
+    marginBottom: 4,
   },
   meterList: {
     marginTop: 30,

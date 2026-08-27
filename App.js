@@ -124,11 +124,7 @@ function DayGenerationScreen({
           追加宣言「{additionalDeclaration.declaration}」
         </Text>
       ) : null}
-      {desireAxes ? (
-        <Text style={styles.destinationAxes}>
-          {AXES.map((axis) => `${axis.label} ${desireAxes[axis.key]}`).join('　')}
-        </Text>
-      ) : null}
+      
     </DestinationPlaceholder>
   );
 }
@@ -347,6 +343,8 @@ export default function App() {
         <DestinationPlaceholder eyebrow="FINAL REPORT" title="世界の結末">
           <EndingReveal
             body={endingReport?.body ?? FALLBACK_ENDING_BODY}
+            declarations={[generationInput?.declaration, ...additionalDeclarations.map(d => d.declaration)].filter(Boolean)}
+            declarations={[generationInput?.declaration, ...additionalDeclarations.map(d => d.declaration)].filter(Boolean)}
             finalMeter={desireAxes ?? FALLBACK_FINAL_METER}
             headline={endingReport?.title ?? FALLBACK_ENDING_HEADLINE}
             onRevealComplete={handleEndingRevealComplete}
