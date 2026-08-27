@@ -4,6 +4,7 @@ import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text } from 'react-nat
 
 import { mapDesire } from './api/mapDesire';
 import { generateBeat } from './api/generateBeat';
+import { generateEnding } from './api/generateEnding';
 import CheckupEvent from './components/CheckupEvent';
 import DeclarationForm from './components/DeclarationForm';
 import EndingReveal from './components/EndingReveal';
@@ -32,9 +33,11 @@ const DUMMY_FINAL_METER = Object.freeze({
   love: 28,
   pleasure: 57,
 });
-// エンディング生成（#23等）が未接続のため、接続までの仮のエンディング型・見出し。
+// エンディング型の判定ロジック（#6/#25）が未実装のため、型自体は仮固定。
 const DUMMY_ENDING_TYPE = 'ironic_peace';
-const DUMMY_ENDING_HEADLINE = '黄金色の静寂';
+const FALLBACK_ENDING_HEADLINE = '黄金色の静寂';
+const FALLBACK_ENDING_BODY =
+  '国はあなたの宣言を忠実に実行し続けた。やがて人々は命令に従うことだけを覚え、静かな繁栄と引き換えに、自ら選ぶ未来を手放した。';
 
 /**
  * 未実装の遷移先に共通のプレースホルダー画面を表示する。
@@ -126,6 +129,7 @@ export default function App() {
   const [milestoneReports, setMilestoneReports] = useState({});
   const [selectedHistoryResult, setSelectedHistoryResult] = useState(null);
   const [loadingMilestoneKey, setLoadingMilestoneKey] = useState(null);
+  const [endingReport, setEndingReport] = useState(null);
 
   /**
    * 冒頭宣言を送信する。
@@ -160,6 +164,7 @@ export default function App() {
         milestoneLabel: milestone.label,
         meter,
         previousDeclarations: getPreviousDeclarationTexts(declarations),
+        tone: generationInput.tone,
         apiKey: CLAUDE_API_KEY,
       });
 
@@ -207,13 +212,27 @@ export default function App() {
     }
   };
 
+  /** 選択トーンを反映したエンディングを生成し、結末画面へ進む。 */
+  const handleFinish = async () => {
+    const ending = await generateEnding({
+      declaration: generationInput.declaration,
+      endingType: DUMMY_ENDING_TYPE,
+      meter: DUMMY_FINAL_METER,
+      tone: generationInput.tone,
+      apiKey: CLAUDE_API_KEY,
+    });
+
+    setEndingReport(ending);
+    setStage(STAGES.ENDING);
+  };
+
   /** エンディング二段演出の完了を受けて、結果を履歴へ保存する。 */
   const handleEndingRevealComplete = () => {
     saveResult({
       declarationSummary: generationInput?.declaration ?? '',
       desireAxes: DUMMY_FINAL_METER,
       endingType: DUMMY_ENDING_TYPE,
-      endingTitle: DUMMY_ENDING_HEADLINE,
+      endingTitle: endingReport?.title ?? FALLBACK_ENDING_HEADLINE,
     }).catch((err) => {
       console.warn('handleEndingRevealComplete: failed to save result', err.message);
     });
@@ -228,6 +247,7 @@ export default function App() {
     setAdditionalDeclarations([]);
     setMilestoneReports({});
     setLoadingMilestoneKey(null);
+    setEndingReport(null);
     setStage(STAGES.TITLE);
   };
 
@@ -292,7 +312,7 @@ export default function App() {
           onNext={() => (
             setMilestoneIndex((current) => Math.min(current + 1, MILESTONES.length - 1))
           )}
-          onFinish={() => setStage(STAGES.ENDING)}
+          onFinish={handleFinish}
           showCheckup={showCheckup}
           additionalDeclaration={additionalDeclaration}
           onSkipCheckup={handleSkipCheckup}
@@ -307,9 +327,9 @@ export default function App() {
       screen = (
         <DestinationPlaceholder eyebrow="FINAL REPORT" title="世界の結末">
           <EndingReveal
-            body="国はあなたの宣言を忠実に実行し続けた。やがて人々は命令に従うことだけを覚え、静かな繁栄と引き換えに、自ら選ぶ未来を手放した。"
+            body={endingReport?.body ?? FALLBACK_ENDING_BODY}
             finalMeter={DUMMY_FINAL_METER}
-            headline={DUMMY_ENDING_HEADLINE}
+            headline={endingReport?.title ?? FALLBACK_ENDING_HEADLINE}
             onRevealComplete={handleEndingRevealComplete}
             onReturnHome={handleReturnHome}
           />
