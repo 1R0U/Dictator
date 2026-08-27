@@ -1,12 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { mapDesire } from './api/mapDesire';
 import { generateBeat } from './api/generateBeat';
 import CheckupEvent from './components/CheckupEvent';
 import DeclarationForm from './components/DeclarationForm';
 import EndingReveal from './components/EndingReveal';
+import History from './components/History';
 import MilestoneReport from './components/MilestoneReport';
 import TitleScreen from './components/TitleScreen';
 import { AXES } from './data/axes';
@@ -19,6 +20,7 @@ import {
   shouldShowCheckup,
 } from './game/checkup';
 import { createGenerationInput } from './game/declaration';
+import { formatHistoryDate, getHistoryTitle } from './game/historyView';
 import { applyMapping } from './game/meter';
 import { STAGES } from './game/navigation';
 
@@ -122,6 +124,7 @@ export default function App() {
   const [handledCheckups, setHandledCheckups] = useState([]);
   const [additionalDeclarations, setAdditionalDeclarations] = useState([]);
   const [milestoneReports, setMilestoneReports] = useState({});
+  const [selectedHistoryResult, setSelectedHistoryResult] = useState(null);
   const [loadingMilestoneKey, setLoadingMilestoneKey] = useState(null);
 
   /**
@@ -240,7 +243,34 @@ export default function App() {
       );
       break;
     case STAGES.HISTORY:
-      screen = <DestinationPlaceholder eyebrow="ARCHIVE" title="過去の記録" />;
+      screen = (
+        <History
+          onBack={() => setStage(STAGES.TITLE)}
+          onSelect={(result) => {
+            setSelectedHistoryResult(result);
+            setStage(STAGES.HISTORY_DETAIL);
+          }}
+        />
+      );
+      break;
+    case STAGES.HISTORY_DETAIL:
+      screen = (
+        <DestinationPlaceholder eyebrow="ARCHIVE DETAIL" title={getHistoryTitle(selectedHistoryResult)}>
+          <Text style={styles.historyDetailDate}>
+            {formatHistoryDate(selectedHistoryResult?.savedAt)}
+          </Text>
+          <Text style={styles.historyDetailNote}>
+            詳細なエンディング再現はIssue #18で実装します。
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setStage(STAGES.HISTORY)}
+            style={({ pressed }) => [styles.historyBackButton, pressed && styles.historyPressed]}
+          >
+            <Text style={styles.historyBackButtonText}>← 履歴一覧へ戻る</Text>
+          </Pressable>
+        </DestinationPlaceholder>
+      );
       break;
     case STAGES.DAY_GENERATION: {
       const milestone = MILESTONES[milestoneIndex];
@@ -290,7 +320,10 @@ export default function App() {
       screen = (
         <TitleScreen
           onStart={() => setStage(STAGES.DECLARATION)}
-          onOpenHistory={() => setStage(STAGES.HISTORY)}
+          onOpenHistory={() => {
+            setSelectedHistoryResult(null);
+            setStage(STAGES.HISTORY);
+          }}
         />
       );
   }
@@ -353,5 +386,35 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 22,
     textAlign: 'center',
+  },
+  historyDetailDate: {
+    marginTop: 18,
+    color: '#b9985a',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  historyDetailNote: {
+    marginTop: 28,
+    color: '#8e8982',
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  historyBackButton: {
+    minHeight: 52,
+    marginTop: 28,
+    paddingHorizontal: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#b9985a',
+  },
+  historyBackButtonText: {
+    color: '#d8c9aa',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  historyPressed: {
+    opacity: 0.65,
   },
 });

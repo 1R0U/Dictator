@@ -9,5 +9,6 @@ test('タイトル画面の各導線に一意なstage indexが割り当てられ
   assert.equal(STAGES.HISTORY, 2);
   assert.equal(STAGES.DAY_GENERATION, 3);
   assert.equal(STAGES.ENDING, 4);
-  assert.equal(new Set(Object.values(STAGES)).size, 5);
+  assert.equal(STAGES.HISTORY_DETAIL, 5);
+  assert.equal(new Set(Object.values(STAGES)).size, 6);
 });
