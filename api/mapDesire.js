@@ -29,7 +29,7 @@ function buildSystemPrompt() {
 // Claudeが指示に反してコードフェンスでJSONを囲んで返すことがあるため除去する
 function extractJsonText(text) {
   const trimmed = text.trim();
-  const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const fenceMatch = trimmed.match(/```\s*(?:json)?\s*([\s\S]*?)```/i);
   return fenceMatch ? fenceMatch[1].trim() : trimmed;
 }
 
