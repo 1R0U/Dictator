@@ -9,6 +9,7 @@ import {
   createRevealCompletionNotifier,
   normalizeMeterValue,
 } from '../game/endingReveal';
+import { getDesireTraitSentence } from '../game/desireTraits';
 
 const PHASES = Object.freeze({
   ENDING: 'ending',
@@ -24,6 +25,7 @@ const PHASES = Object.freeze({
  * @param {Object.<string, number>} props.finalMeter 各欲望軸の最終値。
  * @param {Function} [props.onRevealComplete] メーター開示アニメーション完了時の処理。
  * @param {Function} [props.onReturnHome] 表示完了後にホームへ戻る処理。
+ * @param {string} [props.returnLabel] 表示完了後の戻るボタン文言。
  */
 export default function EndingReveal({
   headline,
@@ -31,6 +33,7 @@ export default function EndingReveal({
   finalMeter,
   onRevealComplete,
   onReturnHome,
+  returnLabel = 'ホームへ戻る',
 }) {
   const [phase, setPhase] = useState(PHASES.ENDING);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
@@ -110,6 +113,7 @@ export default function EndingReveal({
           <View style={styles.meterList}>
             {AXES.map((axis, index) => {
               const value = clampMeterValue(finalMeter?.[axis.key]);
+              const traitSentence = getDesireTraitSentence(axis.key, value);
               const width = meterAnimations[index].interpolate({
                 inputRange: [0, 1],
                 outputRange: ['0%', `${normalizeMeterValue(value)}%`],
@@ -117,7 +121,7 @@ export default function EndingReveal({
 
               return (
                 <View
-                  accessibilityLabel={`${axis.name} ${value}`}
+                  accessibilityLabel={`${axis.name} ${value}。${traitSentence}`}
                   accessibilityValue={{
                     max: METER_MAX,
                     min: METER_MIN,
@@ -128,12 +132,17 @@ export default function EndingReveal({
                   style={styles.meterRow}
                 >
                   <View style={styles.meterLabels}>
-                    <Text style={styles.axisLabel}>{axis.label}</Text>
+                    <Text style={styles.axisLabel}>
+                      {axis.label} / {axis.englishName.toUpperCase()}
+                    </Text>
                     <Text style={styles.axisValue}>{value}</Text>
                   </View>
                   <View style={styles.meterTrack}>
                     <Animated.View style={[styles.meterFill, { width }]} />
                   </View>
+                  <Text style={styles.axisTrait}>
+                    {traitSentence}
+                  </Text>
                 </View>
               );
             })}
@@ -150,7 +159,7 @@ export default function EndingReveal({
               onPress={onReturnHome}
               style={({ pressed }) => [styles.homeButton, pressed && styles.pressed]}
             >
-              <Text style={styles.homeButtonText}>ホームへ戻る</Text>
+              <Text style={styles.homeButtonText}>{returnLabel}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -263,6 +272,12 @@ const styles = StyleSheet.create({
     color: '#f3eee4',
     fontSize: 14,
     fontWeight: '900',
+  },
+  axisTrait: {
+    marginTop: 3,
+    color: '#8e8982',
+    fontSize: 11,
+    lineHeight: 18,
   },
   meterTrack: {
     height: 10,

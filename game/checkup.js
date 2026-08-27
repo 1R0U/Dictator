@@ -63,11 +63,30 @@ function getPreviousDeclarationTexts(declarations) {
   return declarations.map((item) => item.declaration);
 }
 
+/**
+ * 乱数値を配列内の安全なインデックスへ変換する。
+ *
+ * @param {number} itemCount 選択肢の数。
+ * @param {number} [randomValue=Math.random()] 0以上1未満の乱数。
+ * @returns {number} 選択されたインデックス。
+ */
+function selectRandomIndex(itemCount, randomValue = Math.random()) {
+  if (!Number.isInteger(itemCount) || itemCount <= 0) {
+    throw new RangeError('itemCount must be a positive integer.');
+  }
+  if (!Number.isFinite(randomValue) || randomValue < 0 || randomValue >= 1) {
+    throw new RangeError('randomValue must be between 0 (inclusive) and 1 (exclusive).');
+  }
+
+  return Math.floor(randomValue * itemCount);
+}
+
 module.exports = {
   MAX_ADDITIONAL_DECLARATION_LENGTH,
   canSubmitAdditionalDeclaration,
   completeCheckup,
   createAdditionalDeclaration,
   getPreviousDeclarationTexts,
+  selectRandomIndex,
   shouldShowCheckup,
 };

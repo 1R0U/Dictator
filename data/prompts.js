@@ -6,11 +6,11 @@ export const FEW_SHOT_DECLARATION = '男性は、あらゆる場面で女性よ�
 
 // mapDesireのfew-shot例：上記宣言に対する隠し欲望軸への配点例
 export const FEW_SHOT_MAPPING = {
-  wealth: 0,
-  power: 5,
-  fame: 1,
-  love: -4,
-  pleasure: 0,
+  domination: 100,
+  egoism: 75,
+  innovation: 20,
+  prestige: 80,
+  madness: 85,
 };
 
 export const FEW_SHOT_BEATS = [
@@ -94,8 +94,8 @@ export const TONE_PROMPTS = {
     instruction:
       'NHKの報道番組のような硬質で淡々としたトーンで書いてください。数字・固有名詞・法律名を具体的に。感情を排し、事実の積み重ねだけで異常さが伝わるようにしてください。側近メモは官僚的な文体で。',
   },
-  emo: {
-    key: 'emo',
+  emotional: {
+    key: 'emotional',
     label: 'エモ',
     instruction:
       '感情に訴えるエモーショナルなトーンで書いてください。登場人物の心情描写を厚めに、読者の共感を誘う書き方を心がけてください。側近メモは独裁者への複雑な感情（忠誠と疑問の狭間）がにじむように。',
