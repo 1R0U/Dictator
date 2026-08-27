@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { computeDesireDistance, matchFigure } = require('../game/figureMatch');
-const { FIGURES } = require('../data/figures');
+const { FIGURES, buildFallbackBlurb } = require('../data/figures');
 
 test('候補人物のパターンと完全一致する欲望軸は距離0でその人物を選出する', () => {
   const target = FIGURES[0];
@@ -35,13 +35,19 @@ test('ユークリッド距離を軸ごとの差から算出する', () => {
   assert.equal(distance, 5);
 });
 
-test('データセット内の全人物に重複しないkeyとblurbがある', () => {
+test('データセット内の全人物に重複しないkeyと、名前・エピセット・パターンがある', () => {
   const keys = FIGURES.map((figure) => figure.key);
   assert.equal(new Set(keys).size, FIGURES.length);
+  assert.ok(FIGURES.length >= 20);
 
   for (const figure of FIGURES) {
     assert.ok(figure.name);
-    assert.ok(figure.blurb);
+    assert.ok(figure.epithet);
     assert.ok(figure.pattern);
   }
+});
+
+test('AI応答が得られない場合のフォールバック一言紹介に人物名を含む', () => {
+  const target = FIGURES[0];
+  assert.match(buildFallbackBlurb(target), new RegExp(target.name));
 });

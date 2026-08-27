@@ -12,7 +12,7 @@ import {
 import { getDesireTraitSentence } from '../game/desireTraits';
 import { getDesireBiasComment } from '../game/desireBias';
 import { matchFigure } from '../game/figureMatch';
-import { FIGURE_DIAGNOSIS_DISCLAIMER } from '../data/figures';
+import { FIGURE_DIAGNOSIS_DISCLAIMER, buildFallbackBlurb } from '../data/figures';
 
 const PHASES = Object.freeze({
   ENDING: 'ending',
@@ -26,6 +26,8 @@ const PHASES = Object.freeze({
  * @param {string} props.headline generateEndingが返すエンディング見出し。
  * @param {string} props.body generateEndingが返すエンディング本文。
  * @param {Object.<string, number>} props.finalMeter 各欲望軸の最終値。
+ * @param {{figure: Object, blurb: string, biasComment: string}} [props.figureDiagnosis]
+ *   事前に選出・生成済みの偉人診断（未指定時はローカルで即時算出する）。
  * @param {Function} [props.onRevealComplete] メーター開示アニメーション完了時の処理。
  * @param {Function} [props.onReturnHome] 表示完了後にホームへ戻る処理。
  * @param {string} [props.returnLabel] 表示完了後の戻るボタン文言。
@@ -34,6 +36,7 @@ export default function EndingReveal({
   headline,
   body,
   finalMeter,
+  figureDiagnosis,
   onRevealComplete,
   onReturnHome,
   returnLabel = 'ホームへ戻る',
@@ -41,8 +44,12 @@ export default function EndingReveal({
   const [phase, setPhase] = useState(PHASES.ENDING);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
   const meterAnimations = useRef(AXES.map(() => new Animated.Value(0))).current;
-  const figureMatch = matchFigure(finalMeter);
-  const biasComment = getDesireBiasComment(finalMeter);
+  const localMatch = matchFigure(finalMeter);
+  const resolvedFigure = figureDiagnosis?.figure ?? localMatch?.figure;
+  const resolvedBlurb = figureDiagnosis?.figure && figureDiagnosis?.blurb
+    ? figureDiagnosis.blurb
+    : (resolvedFigure ? buildFallbackBlurb(resolvedFigure) : null);
+  const resolvedBiasComment = figureDiagnosis?.biasComment ?? getDesireBiasComment(finalMeter);
   const activeAnimation = useRef(null);
   const isRevealing = useRef(false);
   const onRevealCompleteRef = useRef(onRevealComplete);
@@ -158,14 +165,14 @@ export default function EndingReveal({
             <Text style={styles.scaleText}>50</Text>
             <Text style={styles.scaleText}>{METER_MAX}</Text>
           </View>
-          {isRevealComplete && figureMatch ? (
+          {isRevealComplete && resolvedFigure ? (
             <View accessibilityLiveRegion="polite" style={styles.figurePanel}>
               <Text style={styles.figureKicker}>DICTATOR DIAGNOSIS</Text>
               <Text style={styles.figureLead}>あなたに最も近い歴史上の人物は…</Text>
-              <Text style={styles.figureName}>{figureMatch.figure.name}</Text>
-              <Text style={styles.figureEpithet}>{figureMatch.figure.epithet}</Text>
-              <Text style={styles.figureBlurb}>{figureMatch.figure.blurb}</Text>
-              <Text style={styles.biasComment}>{biasComment}</Text>
+              <Text style={styles.figureName}>{resolvedFigure.name}</Text>
+              <Text style={styles.figureEpithet}>{resolvedFigure.epithet}</Text>
+              <Text style={styles.figureBlurb}>{resolvedBlurb}</Text>
+              <Text style={styles.biasComment}>{resolvedBiasComment}</Text>
               <Text style={styles.figureDisclaimer}>{FIGURE_DIAGNOSIS_DISCLAIMER}</Text>
             </View>
           ) : null}

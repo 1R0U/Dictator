@@ -12,6 +12,7 @@ import {
 import { mapDesire } from './api/mapDesire';
 import { generateBeat } from './api/generateBeat';
 import { generateEnding } from './api/generateEnding';
+import { generateFigureDiagnosis } from './api/generateFigureDiagnosis';
 import CheckupEvent from './components/CheckupEvent';
 import DeclarationForm from './components/DeclarationForm';
 import EndingReveal from './components/EndingReveal';
@@ -30,6 +31,7 @@ import {
 } from './game/checkup';
 import { createGenerationInput } from './game/declaration';
 import { applyMapping } from './game/meter';
+import { matchFigure } from './game/figureMatch';
 import { STAGES } from './game/navigation';
 
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
@@ -147,6 +149,7 @@ export default function App() {
   const [selectedHistoryResult, setSelectedHistoryResult] = useState(null);
   const [loadingMilestoneKey, setLoadingMilestoneKey] = useState(null);
   const [endingReport, setEndingReport] = useState(null);
+  const [figureDiagnosis, setFigureDiagnosis] = useState(null);
   const [isEndingLoading, setIsEndingLoading] = useState(false);
 
   /**
@@ -236,15 +239,24 @@ export default function App() {
     setIsEndingLoading(true);
 
     try {
-      const ending = await generateEnding({
-        declaration: generationInput.declaration,
-        endingType: DUMMY_ENDING_TYPE,
-        meter: desireAxes ?? FALLBACK_FINAL_METER,
-        tone: generationInput.tone,
-        apiKey: CLAUDE_API_KEY,
-      });
+      const meter = desireAxes ?? FALLBACK_FINAL_METER;
+      const match = matchFigure(meter);
+
+      const [ending, diagnosis] = await Promise.all([
+        generateEnding({
+          declaration: generationInput.declaration,
+          endingType: DUMMY_ENDING_TYPE,
+          meter,
+          tone: generationInput.tone,
+          apiKey: CLAUDE_API_KEY,
+        }),
+        match
+          ? generateFigureDiagnosis({ figure: match.figure, desireAxes: meter, apiKey: CLAUDE_API_KEY })
+          : Promise.resolve(null),
+      ]);
 
       setEndingReport(ending);
+      setFigureDiagnosis(match && diagnosis ? { figure: match.figure, ...diagnosis } : null);
     } catch (err) {
       console.warn('handleFinish: failed to generate ending', err.message);
     } finally {
@@ -261,6 +273,7 @@ export default function App() {
       endingBody: endingReport?.body ?? FALLBACK_ENDING_BODY,
       endingType: DUMMY_ENDING_TYPE,
       endingTitle: endingReport?.title ?? FALLBACK_ENDING_HEADLINE,
+      figureDiagnosis: figureDiagnosis ?? null,
     }).catch((err) => {
       console.warn('handleEndingRevealComplete: failed to save result', err.message);
     });
@@ -276,6 +289,7 @@ export default function App() {
     setMilestoneReports({});
     setLoadingMilestoneKey(null);
     setEndingReport(null);
+    setFigureDiagnosis(null);
     setIsEndingLoading(false);
     setStage(STAGES.TITLE);
   };
@@ -347,6 +361,7 @@ export default function App() {
         <DestinationPlaceholder eyebrow="FINAL REPORT" title="世界の結末">
           <EndingReveal
             body={endingReport?.body ?? FALLBACK_ENDING_BODY}
+            figureDiagnosis={figureDiagnosis}
             finalMeter={desireAxes ?? FALLBACK_FINAL_METER}
             headline={endingReport?.title ?? FALLBACK_ENDING_HEADLINE}
             onRevealComplete={handleEndingRevealComplete}
