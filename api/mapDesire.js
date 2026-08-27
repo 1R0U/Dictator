@@ -2,7 +2,7 @@
 // Claude API（Haiku）に直接fetchする。ネイティブ実行前提でCORSなし。
 
 import { AXES } from '../data/axes';
-import { FEW_SHOT } from '../data/prompts';
+import { FEW_SHOT_DECLARATION, FEW_SHOT_MAPPING } from '../data/prompts';
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-haiku-4-5-20241022';
@@ -21,9 +21,16 @@ function buildSystemPrompt() {
     'JSONのみを返し、それ以外のテキストは一切含めないでください。\n' +
     '\n' +
     '例：\n' +
-    '宣言：「' + FEW_SHOT.declaration + '」\n' +
-    '回答：' + JSON.stringify(FEW_SHOT.mapping)
+    '宣言：「' + FEW_SHOT_DECLARATION + '」\n' +
+    '回答：' + JSON.stringify(FEW_SHOT_MAPPING)
   );
+}
+
+// Claudeが指示に反してコードフェンスでJSONを囲んで返すことがあるため除去する
+function extractJsonText(text) {
+  const trimmed = text.trim();
+  const fenceMatch = trimmed.match(/```\s*(?:json)?\s*([\s\S]*?)```/i);
+  return fenceMatch ? fenceMatch[1].trim() : trimmed;
 }
 
 /**
@@ -63,7 +70,7 @@ export async function mapDesire(declaration, apiKey) {
 
     const data = await response.json();
     const text = data.content?.[0]?.text ?? '';
-    const parsed = JSON.parse(text);
+    const parsed = JSON.parse(extractJsonText(text));
 
     // 各軸が存在し数値であることを確認
     const result = {};
