@@ -1,5 +1,8 @@
 const UNKNOWN_ENDING_TITLE = '名称のない結末';
 const UNKNOWN_SAVED_AT = '日時不明';
+const UNKNOWN_DECLARATION = '記録に残されていない宣言';
+const { normalizeDesireAxes } = require('./desireScale');
+const { ENDING_CATALOG } = require('../data/endingCatalog');
 
 /**
  * 履歴一覧に表示するエンディング見出しを返す。
@@ -33,9 +36,37 @@ function normalizeHistoryResults(results) {
       ...result,
       savedAt: typeof result.savedAt === 'string' ? result.savedAt : '',
       endingTitle: typeof result.endingTitle === 'string' ? result.endingTitle : '',
+      endingBody: typeof result.endingBody === 'string' ? result.endingBody : '',
       declarationSummary:
         typeof result.declarationSummary === 'string' ? result.declarationSummary : '',
+      desireAxes: normalizeDesireAxes(result.desireAxes, 0),
     }));
+}
+
+/** Build the ending text shown when replaying a saved history record. */
+function getHistoryEndingBody(result) {
+  if (typeof result?.endingBody === 'string' && result.endingBody.trim()) {
+    return result.endingBody.trim();
+  }
+
+  const typeBody = ENDING_CATALOG[result?.endingType]?.body;
+  if (typeBody) return typeBody;
+
+  const declaration = getHistoryDeclarationSummary(result);
+  return `「${declaration}」から始まった国の、記録された結末。`;
+}
+
+/** Return the saved opening declaration or a safe fallback. */
+function getHistoryDeclarationSummary(result) {
+  return typeof result?.declarationSummary === 'string'
+    && result.declarationSummary.trim()
+    ? result.declarationSummary.trim()
+    : UNKNOWN_DECLARATION;
+}
+
+/** Return a readable label for the saved ending type. */
+function getHistoryEndingTypeLabel(result) {
+  return ENDING_CATALOG[result?.endingType]?.label ?? '分類不明';
 }
 
 /**
@@ -64,8 +95,12 @@ function formatHistoryDate(savedAt, locale = 'ja-JP', timeZone) {
 
 module.exports = {
   UNKNOWN_ENDING_TITLE,
+  UNKNOWN_DECLARATION,
   UNKNOWN_SAVED_AT,
   formatHistoryDate,
+  getHistoryDeclarationSummary,
+  getHistoryEndingBody,
+  getHistoryEndingTypeLabel,
   getHistoryTitle,
   normalizeHistoryResults,
 };

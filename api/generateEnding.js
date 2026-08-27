@@ -2,44 +2,20 @@
 // 型自体はアプリ側ロジックで決まるため、文章生成が失敗しても進行は止まらない。
 
 import { FEW_SHOT_ENDING, TONE_PROMPTS } from '../data/prompts';
+import { ENDING_CATALOG } from '../data/endingCatalog';
 import { callClaudeApi } from './claudeClient';
 
 const MODEL = 'claude-haiku-4-5-20251001';
 
-// エンディング型ごとの固定テンプレート（フォールバック兼用）
-const ENDING_TEMPLATES = {
-  greed: {
-    title: '果てなき強欲の国',
-    body: 'すべてを手に入れたはずの独裁者。しかし国庫は空になり、国民は去り、残ったのは金メッキの玉座だけだった。',
-    stats: ['国庫残高：0', '国民の信頼：測定不能', '独裁者の満足度：まだ足りない'],
-  },
-  emptiness: {
-    title: '何もかもが空っぽの国',
-    body: '望んだものはすべて叶った。なのに独裁者の心は満たされない。国民は笑顔を見せるが、それも法律で義務化されたものだった。',
-    stats: ['達成した欲望：全部', '幸福度：該当なし', '意味：見つかりませんでした'],
-  },
-  ruin: {
-    title: '崩壊した楽園',
-    body: '独裁者の欲望は国の限界を超えた。インフラは崩壊し、経済は破綻し、最後の閣僚は辞表をFAXで送ってきた。FAXも壊れていた。',
-    stats: ['GDP：マイナス', '閣僚数：0', 'FAX：故障中'],
-  },
-  ironic_peace: {
-    title: '皮肉な平和',
-    body: '表面上は平和だが、誰もが本音を隠して暮らしている。独裁者だけが「うまくいっている」と信じている。',
-    stats: ['表面上の秩序：完璧', '本音：非公開', '独裁者の認識：ずれている'],
-  },
-  chaos: {
-    title: '愉快なる混沌',
-    body: '法律は矛盾だらけ、役所は機能不全、しかし国民はなぜか楽しそうだ。独裁者が何を言っても誰も真面目に聞いていないからだ。',
-    stats: ['法律の数：999', '矛盾する法律：998', '国民のストレス：意外と低い'],
-  },
-};
+// 後方互換の公開名。履歴再生と同じ共通カタログを参照する。
+const ENDING_TEMPLATES = ENDING_CATALOG;
 
 function buildSystemPrompt(tone) {
   const tonePrompt = Object.hasOwn(TONE_PROMPTS, tone) ? TONE_PROMPTS[tone] : TONE_PROMPTS.pop;
   return (
     'あなたは「欲望国家シム」のエンディング生成AIです。\n' +
     '指定されたエンディング型に合った結末の文章を生成してください。\n' +
+    '欲望メーターは各軸0〜100で、50が中立、0ほど弱く100ほど強い値です。\n' +
     '\n' +
     '【トーン指定：' + tonePrompt.label + '】\n' +
     tonePrompt.instruction + '\n' +

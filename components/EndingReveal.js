@@ -24,6 +24,7 @@ const PHASES = Object.freeze({
  * @param {Object.<string, number>} props.finalMeter 各欲望軸の最終値。
  * @param {Function} [props.onRevealComplete] メーター開示アニメーション完了時の処理。
  * @param {Function} [props.onReturnHome] 表示完了後にホームへ戻る処理。
+ * @param {string} [props.returnLabel] 表示完了後の戻るボタン文言。
  */
 export default function EndingReveal({
   headline,
@@ -31,6 +32,7 @@ export default function EndingReveal({
   finalMeter,
   onRevealComplete,
   onReturnHome,
+  returnLabel = 'ホームへ戻る',
 }) {
   const [phase, setPhase] = useState(PHASES.ENDING);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
@@ -150,7 +152,7 @@ export default function EndingReveal({
               onPress={onReturnHome}
               style={({ pressed }) => [styles.homeButton, pressed && styles.pressed]}
             >
-              <Text style={styles.homeButtonText}>ホームへ戻る</Text>
+              <Text style={styles.homeButtonText}>{returnLabel}</Text>
             </Pressable>
           ) : null}
         </View>

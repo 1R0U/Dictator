@@ -3,20 +3,25 @@
 
 import { AXES } from '../data/axes';
 import { FEW_SHOT_DECLARATION, FEW_SHOT_MAPPING } from '../data/prompts';
+import {
+  DESIRE_NEUTRAL,
+  clampDesireValue,
+} from '../game/desireScale';
 import { callClaudeApi } from './claudeClient';
 
 const MODEL = 'claude-haiku-4-5-20241022';
 
-// パース失敗時のフォールバック（全軸+1）
+// パース失敗時のフォールバック（中立より少し高い全軸60）
 const FALLBACK_MAPPING = Object.fromEntries(
-  AXES.map((axis) => [axis.key, 1])
+  AXES.map((axis) => [axis.key, 60])
 );
 
 function buildSystemPrompt() {
   return (
     'あなたは「欲望国家シム」の欲望分析AIです。\n' +
     'プレイヤーの宣言テキストを読み、隠し欲望軸への配点をJSON形式で返してください。\n' +
-    '軸は wealth / power / fame / love / pleasure の5つ。各軸 -5 〜 +5 の整数。\n' +
+    '軸は wealth / power / fame / love / pleasure の5つ。各軸0〜100の整数。\n' +
+    '50を中立とし、欲望が弱いほど0、強いほど100に近づけてください。\n' +
     'JSONのみを返し、それ以外のテキストは一切含めないでください。\n' +
     '\n' +
     '例：\n' +
@@ -54,8 +59,9 @@ export async function mapDesire(declaration, apiKey) {
     const result = {};
     for (const axis of AXES) {
       const val = parsed[axis.key];
-      result[axis.key] =
-        typeof val === 'number' ? Math.max(-5, Math.min(5, Math.round(val))) : 0;
+      result[axis.key] = typeof val === 'number'
+        ? clampDesireValue(val)
+        : DESIRE_NEUTRAL;
     }
     return result;
   } catch (err) {

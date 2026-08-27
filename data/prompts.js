@@ -6,11 +6,11 @@ export const FEW_SHOT_DECLARATION = '男性は、あらゆる場面で女性よ�
 
 // mapDesireのfew-shot例：上記宣言に対する隠し欲望軸への配点例
 export const FEW_SHOT_MAPPING = {
-  wealth: 0,
-  power: 5,
-  fame: 1,
-  love: -4,
-  pleasure: 0,
+  wealth: 50,
+  power: 100,
+  fame: 60,
+  love: 10,
+  pleasure: 50,
 };
 
 export const FEW_SHOT_BEATS = [
