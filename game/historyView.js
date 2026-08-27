@@ -16,6 +16,19 @@ function getHistoryTitle(result) {
     : UNKNOWN_ENDING_TITLE;
 }
 
+/** Return safe, trimmed additional declarations from a persisted result. */
+function getHistoryAdditionalDeclarations(result) {
+  if (!Array.isArray(result?.additionalDeclarations)) return [];
+
+  return result.additionalDeclarations
+    .filter((item) => item !== null && typeof item === 'object' && !Array.isArray(item))
+    .filter((item) => typeof item.declaration === 'string' && item.declaration.trim())
+    .map((item) => ({
+      milestoneKey: typeof item.milestoneKey === 'string' ? item.milestoneKey : '',
+      declaration: item.declaration.trim(),
+    }));
+}
+
 /**
  * Normalize persisted data so the history screen can render safely.
  *
@@ -39,6 +52,7 @@ function normalizeHistoryResults(results) {
       endingBody: typeof result.endingBody === 'string' ? result.endingBody : '',
       declarationSummary:
         typeof result.declarationSummary === 'string' ? result.declarationSummary : '',
+      additionalDeclarations: getHistoryAdditionalDeclarations(result),
       desireAxes: normalizeDesireAxes(result.desireAxes, 0),
     }));
 }
@@ -98,6 +112,7 @@ module.exports = {
   UNKNOWN_DECLARATION,
   UNKNOWN_SAVED_AT,
   formatHistoryDate,
+  getHistoryAdditionalDeclarations,
   getHistoryDeclarationSummary,
   getHistoryEndingBody,
   getHistoryEndingTypeLabel,

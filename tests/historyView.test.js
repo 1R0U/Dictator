@@ -5,6 +5,7 @@ const {
   UNKNOWN_ENDING_TITLE,
   UNKNOWN_SAVED_AT,
   formatHistoryDate,
+  getHistoryAdditionalDeclarations,
   getHistoryDeclarationSummary,
   getHistoryEndingBody,
   getHistoryEndingTypeLabel,
@@ -29,6 +30,7 @@ test('normalizeHistoryResults handles empty and malformed stored values', () => 
       7,
     ]),
     [{
+      additionalDeclarations: [],
       declarationSummary: '',
       desireAxes: { domination: 0, egoism: 0, innovation: 0, madness: 0, prestige: 0 },
       endingBody: '',
@@ -36,6 +38,24 @@ test('normalizeHistoryResults handles empty and malformed stored values', () => 
       savedAt: '',
     }],
   );
+});
+
+test('追加宣言を履歴表示向けに正規化する', () => {
+  const result = {
+    additionalDeclarations: [
+      null,
+      'invalid',
+      { milestoneKey: 'month1', declaration: '  休日を増やす  ' },
+      { milestoneKey: 12, declaration: '祝日には菓子を配る' },
+      { milestoneKey: 'year1', declaration: '   ' },
+    ],
+  };
+
+  assert.deepEqual(getHistoryAdditionalDeclarations(result), [
+    { milestoneKey: 'month1', declaration: '休日を増やす' },
+    { milestoneKey: '', declaration: '祝日には菓子を配る' },
+  ]);
+  assert.deepEqual(getHistoryAdditionalDeclarations({}), []);
 });
 
 test('履歴詳細の本文は保存値または宣言概要から再構成する', () => {
