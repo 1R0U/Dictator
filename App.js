@@ -66,6 +66,7 @@ function DayGenerationScreen({
   onSkipCheckup,
   onSubmitAdditionalDeclaration,
   report,
+  isReportLoading,
 }) {
   return (
     <DestinationPlaceholder eyebrow="MILESTONE" title={milestone.label}>
@@ -79,7 +80,9 @@ function DayGenerationScreen({
         />
       ) : (
         <MilestoneReport
+          isFallback={report?.isFallback ?? false}
           isFinal={!nextMilestone}
+          isLoading={isReportLoading}
           key={milestone.key}
           memo={report?.memo ?? `側近メモ：${milestone.description} 表向きは平静だが、現場では想定外の影響が広がっている。`}
           milestoneLabel={milestone.label}
@@ -115,6 +118,7 @@ export default function App() {
   const [handledCheckups, setHandledCheckups] = useState([]);
   const [additionalDeclarations, setAdditionalDeclarations] = useState([]);
   const [milestoneReports, setMilestoneReports] = useState({});
+  const [loadingMilestoneKey, setLoadingMilestoneKey] = useState(null);
 
   /**
    * 冒頭宣言を送信する。
@@ -132,6 +136,7 @@ export default function App() {
     setHandledCheckups([]);
     setAdditionalDeclarations([]);
     setMilestoneReports({});
+    setLoadingMilestoneKey(null);
 
     const result = await mapDesire(nextGenerationInput.declaration, CLAUDE_API_KEY);
     setDesireAxes(result);
@@ -141,21 +146,30 @@ export default function App() {
   /** 現在までの宣言を踏まえたNEWS/MEMOを生成して節目に保存する。 */
   const generateCurrentMilestoneReport = async (declarations, meter = desireAxes) => {
     const milestone = MILESTONES[milestoneIndex];
-    const report = await generateBeat({
-      declaration: generationInput.declaration,
-      milestoneLabel: milestone.label,
-      meter,
-      previousDeclarations: getPreviousDeclarationTexts(declarations),
-      apiKey: CLAUDE_API_KEY,
-    });
+    setLoadingMilestoneKey(milestone.key);
+    try {
+      const report = await generateBeat({
+        declaration: generationInput.declaration,
+        milestoneLabel: milestone.label,
+        meter,
+        previousDeclarations: getPreviousDeclarationTexts(declarations),
+        apiKey: CLAUDE_API_KEY,
+      });
 
-    setMilestoneReports((current) => ({ ...current, [milestone.key]: report }));
+      setMilestoneReports((current) => ({ ...current, [milestone.key]: report }));
+    } finally {
+      setLoadingMilestoneKey((current) => (current === milestone.key ? null : current));
+    }
   };
 
   /** 追加宣言せず、これまでの宣言を踏まえた物語へ進む。 */
   const handleSkipCheckup = async () => {
-    await generateCurrentMilestoneReport(additionalDeclarations);
     completeCurrentCheckup();
+    try {
+      await generateCurrentMilestoneReport(additionalDeclarations);
+    } catch (err) {
+      console.warn('handleSkipCheckup: failed to generate report', err.message);
+    }
   };
 
   /** 現在の節目の検診を処理済みにする。 */
@@ -170,13 +184,20 @@ export default function App() {
     const nextDeclaration = createAdditionalDeclaration(milestoneKey, declaration);
     const nextDeclarations = [...additionalDeclarations, nextDeclaration];
 
-    const mapping = await mapDesire(nextDeclaration.declaration, CLAUDE_API_KEY);
-    const nextDesireAxes = applyMapping(desireAxes, mapping);
-
-    await generateCurrentMilestoneReport(nextDeclarations, nextDesireAxes);
-    setDesireAxes(nextDesireAxes);
     setAdditionalDeclarations(nextDeclarations);
     completeCurrentCheckup();
+    setLoadingMilestoneKey(milestoneKey);
+
+    try {
+      const mapping = await mapDesire(nextDeclaration.declaration, CLAUDE_API_KEY);
+      const nextDesireAxes = applyMapping(desireAxes, mapping);
+
+      await generateCurrentMilestoneReport(nextDeclarations, nextDesireAxes);
+      setDesireAxes(nextDesireAxes);
+    } catch (err) {
+      console.warn('handleAdditionalDeclaration: failed to generate report', err.message);
+      setLoadingMilestoneKey((current) => (current === milestoneKey ? null : current));
+    }
   };
 
   /** エンディング表示後にプレイ状態を初期化してホームへ戻る。 */
@@ -187,6 +208,7 @@ export default function App() {
     setHandledCheckups([]);
     setAdditionalDeclarations([]);
     setMilestoneReports({});
+    setLoadingMilestoneKey(null);
     setStage(STAGES.TITLE);
   };
 
@@ -230,6 +252,7 @@ export default function App() {
           onSkipCheckup={handleSkipCheckup}
           onSubmitAdditionalDeclaration={handleAdditionalDeclaration}
           report={milestoneReports[milestone.key]}
+          isReportLoading={loadingMilestoneKey === milestone.key}
         />
       );
       break;

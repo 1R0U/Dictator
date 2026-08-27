@@ -91,7 +91,7 @@ export async function generateBeat({
 
     if (!response.ok) {
       console.warn('generateBeat: API error', response.status);
-      return FALLBACK;
+      return { ...FALLBACK, isFallback: true };
     }
 
     const data = await response.json();
@@ -100,7 +100,7 @@ export async function generateBeat({
     return parseBeat(text);
   } catch (err) {
     console.warn('generateBeat: fallback used', err.message);
-    return FALLBACK;
+    return { ...FALLBACK, isFallback: true };
   } finally {
     clearTimeout(timer);
   }
@@ -118,7 +118,7 @@ function parseBeat(text) {
 
     if (newsIdx === -1 || memoIdx === -1 || memoIdx < newsIdx)  {
     // マーカーが見つからない場合、全文をニュースとして扱う
-    return { news: text.trim() || FALLBACK.news, memo: FALLBACK.memo };
+    return { news: text.trim() || FALLBACK.news, memo: FALLBACK.memo, isFallback: true };
   }
 
   const news = text
@@ -131,6 +131,7 @@ function parseBeat(text) {
   return {
     news: news || FALLBACK.news,
     memo: memo || FALLBACK.memo,
+    isFallback: !news || !memo,
   };
 }
 

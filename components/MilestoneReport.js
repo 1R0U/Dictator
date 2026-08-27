@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { REPORT_SIDES, getReportContent } from '../game/milestoneReport';
+import {
+  REPORT_SIDES,
+  REPORT_STATUS,
+  getReportContent,
+  getReportStatus,
+} from '../game/milestoneReport';
 
 /**
  * 節目ごとのニュース（表）と側近メモ（裏）を切り替えて表示する。
@@ -15,6 +20,8 @@ import { REPORT_SIDES, getReportContent } from '../game/milestoneReport';
  * @param {Function} [props.onNext] 次の節目へ進む処理。
  * @param {string} [props.nextLabel] 次へボタンのラベル。
  * @param {boolean} [props.isFinal] 最後の節目かどうか。
+ * @param {boolean} [props.isLoading] generateBeat呼び出し中かどうか。trueの間はローディング表示に差し替える。
+ * @param {boolean} [props.isFallback] #11のタイムアウト・フォールバック機構がフォールバック本文を返したかどうか。
  */
 export default function MilestoneReport({
   milestoneLabel,
@@ -25,10 +32,13 @@ export default function MilestoneReport({
   onNext,
   nextLabel = '次の節目へ',
   isFinal = false,
+  isLoading = false,
+  isFallback = false,
 }) {
   const [activeSide, setActiveSide] = useState(REPORT_SIDES.NEWS);
   const isNews = activeSide === REPORT_SIDES.NEWS;
   const reportContent = getReportContent(activeSide, { news, memo });
+  const status = getReportStatus({ isLoading, isFallback });
 
   useEffect(() => {
     setActiveSide(REPORT_SIDES.NEWS);
@@ -36,52 +46,66 @@ export default function MilestoneReport({
 
   return (
     <View style={styles.container}>
-      <View accessibilityRole="tablist" style={styles.tabs}>
-        <Pressable
-          accessibilityRole="tab"
-          accessibilityState={{ selected: isNews }}
-          onPress={() => setActiveSide(REPORT_SIDES.NEWS)}
-          style={({ pressed }) => [
-            styles.tab,
-            isNews && styles.activeNewsTab,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={[styles.tabText, isNews && styles.activeTabText]}>表・ニュース</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="tab"
-          accessibilityState={{ selected: !isNews }}
-          onPress={() => setActiveSide(REPORT_SIDES.MEMO)}
-          style={({ pressed }) => [
-            styles.tab,
-            !isNews && styles.activeMemoTab,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={[styles.tabText, !isNews && styles.activeMemoTabText]}>
-            裏・側近メモ
-          </Text>
-        </Pressable>
-      </View>
-
-      <View
-        accessibilityLiveRegion="polite"
-        style={[styles.report, isNews ? styles.newsReport : styles.memoReport]}
-      >
-        <View style={styles.reportHeader}>
-          <Text style={[styles.badge, !isNews && styles.memoBadge]}>
-            {isNews ? 'DICTATOR TIMES' : 'CONFIDENTIAL'}
-          </Text>
-          <Text style={styles.milestone}>{milestoneLabel}</Text>
+      {status === REPORT_STATUS.LOADING ? (
+        <View accessibilityLiveRegion="polite" style={styles.loading}>
+          <ActivityIndicator color="#b9985a" size="large" />
+          <Text style={styles.loadingText}>{milestoneLabel}の情報を集めています…</Text>
         </View>
-        <Text style={[styles.heading, !isNews && styles.memoHeading]}>
-          {isNews ? '国家からの最新報道' : '独裁者だけに届く側近メモ'}
-        </Text>
-        <View style={styles.rule} />
-        <Text style={[styles.body, !isNews && styles.memoBody]}>{reportContent}</Text>
-        <Text style={styles.switchHint}>タブを押して表と裏を切り替え</Text>
-      </View>
+      ) : (
+        <>
+          {status === REPORT_STATUS.FALLBACK ? (
+            <Text accessibilityLiveRegion="polite" style={styles.fallbackNotice}>
+              通信状況により、代替の速報を表示しています
+            </Text>
+          ) : null}
+          <View accessibilityRole="tablist" style={styles.tabs}>
+            <Pressable
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isNews }}
+              onPress={() => setActiveSide(REPORT_SIDES.NEWS)}
+              style={({ pressed }) => [
+                styles.tab,
+                isNews && styles.activeNewsTab,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.tabText, isNews && styles.activeTabText]}>表・ニュース</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="tab"
+              accessibilityState={{ selected: !isNews }}
+              onPress={() => setActiveSide(REPORT_SIDES.MEMO)}
+              style={({ pressed }) => [
+                styles.tab,
+                !isNews && styles.activeMemoTab,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.tabText, !isNews && styles.activeMemoTabText]}>
+                裏・側近メモ
+              </Text>
+            </Pressable>
+          </View>
+
+          <View
+            accessibilityLiveRegion="polite"
+            style={[styles.report, isNews ? styles.newsReport : styles.memoReport]}
+          >
+            <View style={styles.reportHeader}>
+              <Text style={[styles.badge, !isNews && styles.memoBadge]}>
+                {isNews ? 'DICTATOR TIMES' : 'CONFIDENTIAL'}
+              </Text>
+              <Text style={styles.milestone}>{milestoneLabel}</Text>
+            </View>
+            <Text style={[styles.heading, !isNews && styles.memoHeading]}>
+              {isNews ? '国家からの最新報道' : '独裁者だけに届く側近メモ'}
+            </Text>
+            <View style={styles.rule} />
+            <Text style={[styles.body, !isNews && styles.memoBody]}>{reportContent}</Text>
+            <Text style={styles.switchHint}>タブを押して表と裏を切り替え</Text>
+          </View>
+        </>
+      )}
       {onPrevious || onNext ? (
         <View style={styles.navigation}>
           {onPrevious ? (
@@ -160,6 +184,35 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
+  },
+  loading: {
+    minHeight: 300,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 14,
+    borderWidth: 1,
+    borderColor: '#38353a',
+    backgroundColor: '#111114',
+  },
+  loadingText: {
+    color: '#d8c9aa',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textAlign: 'center',
+  },
+  fallbackNotice: {
+    marginBottom: 10,
+    padding: 10,
+    color: '#d98b8f',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: '#7e2024',
+    backgroundColor: '#1c1315',
   },
   report: {
     minHeight: 300,
