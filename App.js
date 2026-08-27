@@ -70,6 +70,7 @@ function DayGenerationScreen({
   onPrevious,
   onNext,
   onFinish,
+  isFinishing,
   showCheckup,
   additionalDeclaration,
   onSkipCheckup,
@@ -98,8 +99,10 @@ function DayGenerationScreen({
           previousLabel={previousMilestone ? `${previousMilestone.label}へ戻る` : undefined}
           onPrevious={previousMilestone ? onPrevious : undefined}
           news={report?.news ?? `【${milestone.label}】${milestone.description} 政府は状況を注視すると発表しています。`}
-          nextLabel={nextMilestone ? `${nextMilestone.label}へ進む` : '結末を見る'}
-          onNext={nextMilestone ? onNext : onFinish}
+          nextLabel={
+            nextMilestone ? `${nextMilestone.label}へ進む` : (isFinishing ? '結末を生成中…' : '結末を見る')
+          }
+          onNext={nextMilestone ? onNext : (isFinishing ? undefined : onFinish)}
         />
       )}
       {additionalDeclaration ? (
@@ -130,6 +133,7 @@ export default function App() {
   const [selectedHistoryResult, setSelectedHistoryResult] = useState(null);
   const [loadingMilestoneKey, setLoadingMilestoneKey] = useState(null);
   const [endingReport, setEndingReport] = useState(null);
+  const [isEndingLoading, setIsEndingLoading] = useState(false);
 
   /**
    * 冒頭宣言を送信する。
@@ -214,16 +218,25 @@ export default function App() {
 
   /** 選択トーンを反映したエンディングを生成し、結末画面へ進む。 */
   const handleFinish = async () => {
-    const ending = await generateEnding({
-      declaration: generationInput.declaration,
-      endingType: DUMMY_ENDING_TYPE,
-      meter: DUMMY_FINAL_METER,
-      tone: generationInput.tone,
-      apiKey: CLAUDE_API_KEY,
-    });
+    if (isEndingLoading) return;
+    setIsEndingLoading(true);
 
-    setEndingReport(ending);
-    setStage(STAGES.ENDING);
+    try {
+      const ending = await generateEnding({
+        declaration: generationInput.declaration,
+        endingType: DUMMY_ENDING_TYPE,
+        meter: DUMMY_FINAL_METER,
+        tone: generationInput.tone,
+        apiKey: CLAUDE_API_KEY,
+      });
+
+      setEndingReport(ending);
+    } catch (err) {
+      console.warn('handleFinish: failed to generate ending', err.message);
+    } finally {
+      setIsEndingLoading(false);
+      setStage(STAGES.ENDING);
+    }
   };
 
   /** エンディング二段演出の完了を受けて、結果を履歴へ保存する。 */
@@ -248,6 +261,7 @@ export default function App() {
     setMilestoneReports({});
     setLoadingMilestoneKey(null);
     setEndingReport(null);
+    setIsEndingLoading(false);
     setStage(STAGES.TITLE);
   };
 
@@ -313,6 +327,7 @@ export default function App() {
             setMilestoneIndex((current) => Math.min(current + 1, MILESTONES.length - 1))
           )}
           onFinish={handleFinish}
+          isFinishing={isEndingLoading}
           showCheckup={showCheckup}
           additionalDeclaration={additionalDeclaration}
           onSkipCheckup={handleSkipCheckup}
