@@ -12,6 +12,8 @@ import {
   View,
 } from 'react-native';
 
+import { TONES, canStartDeclaration } from '../game/declaration';
+
 const MAX_LENGTH = 500;
 
 /**
@@ -19,9 +21,10 @@ const MAX_LENGTH = 500;
  */
 export default function DeclarationForm({ onBack, onSubmit }) {
   const [declaration, setDeclaration] = useState('');
+  const [selectedTone, setSelectedTone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const canSubmit = declaration.trim().length > 0 && !isSubmitting;
+  const canSubmit = canStartDeclaration(declaration, selectedTone) && !isSubmitting;
 
   /**
    * 入力内容を整形して送信し、失敗時は再試行できる状態に戻す。
@@ -33,7 +36,7 @@ export default function DeclarationForm({ onBack, onSubmit }) {
     setIsSubmitting(true);
 
     try {
-      await onSubmit(declaration.trim());
+      await onSubmit(declaration.trim(), selectedTone);
     } catch {
       setSubmitError('宣言を送信できませんでした。時間をおいて、もう一度お試しください。');
     } finally {
@@ -84,6 +87,38 @@ export default function DeclarationForm({ onBack, onSubmit }) {
                 value={declaration}
               />
               <Text style={styles.counter}>{declaration.length} / {MAX_LENGTH}</Text>
+            </View>
+
+            <View>
+              <Text style={styles.toneLabel}>物語のトーンを選ぶ</Text>
+              <View style={styles.toneGrid}>
+                {TONES.map((tone) => {
+                  const isSelected = selectedTone === tone.id;
+
+                  return (
+                    <Pressable
+                      accessibilityLabel={`${tone.label}トーン`}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: isSelected }}
+                      disabled={isSubmitting}
+                      onPress={() => setSelectedTone(tone.id)}
+                      key={tone.id}
+                      style={({ pressed }) => [
+                        styles.toneButton,
+                        isSelected && styles.selectedToneButton,
+                        pressed && styles.pressedButton,
+                      ]}
+                    >
+                      <Text style={[styles.toneButtonText, isSelected && styles.selectedToneButtonText]}>
+                        {tone.label}
+                      </Text>
+                      <Text style={[styles.toneDescription, isSelected && styles.selectedToneDescription]}>
+                        {tone.description}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
 
             <Pressable
@@ -182,6 +217,48 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: 18,
+  },
+  toneLabel: {
+    marginBottom: 10,
+    color: '#d8c9aa',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  toneGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  toneButton: {
+    width: '48%',
+    minHeight: 70,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#4e483d',
+    backgroundColor: '#141417',
+  },
+  selectedToneButton: {
+    borderColor: '#b9985a',
+    backgroundColor: '#b9985a',
+  },
+  toneButtonText: {
+    color: '#f3eee4',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 2,
+  },
+  selectedToneButtonText: {
+    color: '#111114',
+  },
+  toneDescription: {
+    marginTop: 5,
+    color: '#a9a39a',
+    fontSize: 11,
+  },
+  selectedToneDescription: {
+    color: '#3c3020',
   },
   inputFrame: {
     minHeight: 190,

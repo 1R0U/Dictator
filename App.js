@@ -4,6 +4,7 @@ import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
 import DeclarationForm from './components/DeclarationForm';
 import TitleScreen from './components/TitleScreen';
+import { createGenerationInput } from './game/declaration';
 import { STAGES } from './game/navigation';
 
 function DestinationPlaceholder({ eyebrow, title }) {
@@ -19,12 +20,19 @@ function DestinationPlaceholder({ eyebrow, title }) {
 
 export default function App() {
   const [stage, setStage] = useState(STAGES.TITLE);
+  const [generationInput, setGenerationInput] = useState(null);
 
   /**
    * 冒頭宣言を送信する。
    * AI連携と次画面への遷移はIssue #28で実装する。
    */
-  const handleDeclarationSubmit = async () => {
+  const handleDeclarationSubmit = async (declaration, tone) => {
+    const nextGenerationInput = createGenerationInput(declaration, tone);
+
+    setGenerationInput(nextGenerationInput);
+
+    // Future generation calls should receive `nextGenerationInput` here.
+    // State is retained in `generationInput` for subsequent game screens.
     // Issue #13では入力UIとコールバック呼び出しまでを確認する。
   };
 
