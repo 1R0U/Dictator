@@ -1,4 +1,10 @@
-const DESIRE_KEYS = Object.freeze(['wealth', 'power', 'fame', 'love', 'pleasure']);
+const DESIRE_KEYS = Object.freeze([
+  'domination',
+  'egoism',
+  'innovation',
+  'prestige',
+  'madness',
+]);
 const DESIRE_MIN = 0;
 const DESIRE_MAX = 100;
 const DESIRE_NEUTRAL = 50;

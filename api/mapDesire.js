@@ -16,9 +16,13 @@ function buildSystemPrompt() {
   return (
     'あなたは「欲望国家シム」の欲望分析AIです。\n' +
     'プレイヤーの宣言テキストを読み、隠し欲望軸への配点をJSON形式で返してください。\n' +
-    '軸は wealth / power / fame / love / pleasure の5つ。各軸0〜100の整数。\n' +
+    '軸は domination / egoism / innovation / prestige / madness の5つ。各軸0〜100の整数。\n' +
     '50を中立とし、欲望が弱いほど0、強いほど100に近づけてください。\n' +
-    'wealth=富や所有、power=支配や統制、fame=承認や名誉、love=愛情や憎悪、pleasure=享楽や刺激として評価してください。\n' +
+    'domination（支配）：高=独裁・圧政、中=秩序・均衡、低=放任・混沌。\n' +
+    'egoism（我欲）：高=貪欲・暴君、中=実利・合理、低=献身・犠牲。\n' +
+    'innovation（変革）：高=創世・異端、中=保守・安定、低=停滞・固執。\n' +
+    'prestige（威信）：高=畏怖・恐怖、中=威厳・尊敬、低=迎合・軽蔑。\n' +
+    'madness（狂気）：高=破滅・狂信、中=偏執・妄信、低=理性・平穏。\n' +
     '5軸はそれぞれ独立に根拠を判断し、同じ数値を一律に割り当てないでください。\n' +
     'JSONのみを返し、それ以外のテキストは一切含めないでください。\n' +
     '\n' +
@@ -40,7 +44,7 @@ function extractJsonText(text) {
  *
  * @param {string} declaration - プレイヤーの宣言テキスト
  * @param {string} apiKey      - Claude APIキー
- * @returns {Promise<Object>}  - { wealth: number, power: number, ... }
+ * @returns {Promise<Object>}  - { domination: number, egoism: number, ... }
  */
 export async function mapDesire(declaration, apiKey) {
   try {

@@ -9,6 +9,7 @@ import {
   createRevealCompletionNotifier,
   normalizeMeterValue,
 } from '../game/endingReveal';
+import { getDesireTraitSentence } from '../game/desireTraits';
 
 const PHASES = Object.freeze({
   ENDING: 'ending',
@@ -112,6 +113,7 @@ export default function EndingReveal({
           <View style={styles.meterList}>
             {AXES.map((axis, index) => {
               const value = clampMeterValue(finalMeter?.[axis.key]);
+              const traitSentence = getDesireTraitSentence(axis.key, value);
               const width = meterAnimations[index].interpolate({
                 inputRange: [0, 1],
                 outputRange: ['0%', `${normalizeMeterValue(value)}%`],
@@ -119,7 +121,7 @@ export default function EndingReveal({
 
               return (
                 <View
-                  accessibilityLabel={`${axis.name} ${value}`}
+                  accessibilityLabel={`${axis.name} ${value}。${traitSentence}`}
                   accessibilityValue={{
                     max: METER_MAX,
                     min: METER_MIN,
@@ -130,12 +132,17 @@ export default function EndingReveal({
                   style={styles.meterRow}
                 >
                   <View style={styles.meterLabels}>
-                    <Text style={styles.axisLabel}>{axis.label}</Text>
+                    <Text style={styles.axisLabel}>
+                      {axis.label} / {axis.englishName.toUpperCase()}
+                    </Text>
                     <Text style={styles.axisValue}>{value}</Text>
                   </View>
                   <View style={styles.meterTrack}>
                     <Animated.View style={[styles.meterFill, { width }]} />
                   </View>
+                  <Text style={styles.axisTrait}>
+                    {traitSentence}
+                  </Text>
                 </View>
               );
             })}
@@ -265,6 +272,12 @@ const styles = StyleSheet.create({
     color: '#f3eee4',
     fontSize: 14,
     fontWeight: '900',
+  },
+  axisTrait: {
+    marginTop: 3,
+    color: '#8e8982',
+    fontSize: 11,
+    lineHeight: 18,
   },
   meterTrack: {
     height: 10,

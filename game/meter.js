@@ -8,7 +8,7 @@ import { applyDesireScore } from './desireScale';
  * マッピング結果を現在のメーターに加算して新しいメーターを返す。
  * currentMeter も mappingResult も変更しない純粋関数。
  *
- * @param {Object} currentMeter  - { wealth: 50, power: 70, ... }
+ * @param {Object} currentMeter  - { domination: 50, egoism: 70, ... }
  * @param {Object} mappingResult - 軸ごとの宣言評価（0〜100、50が中立）。
  * @returns {Object} newMeter    - 中立との差を加算した値（0〜100に補正済み）。
  */

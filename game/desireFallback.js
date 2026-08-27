@@ -1,31 +1,36 @@
 const { DESIRE_KEYS, DESIRE_NEUTRAL, clampDesireValue } = require('./desireScale');
 
 const AXIS_SIGNALS = Object.freeze({
-  wealth: Object.freeze({
-    increase: Object.freeze(['金', '富', '財産', '国庫', '経済', '給料', '賃金', '土地', '所有', 'money', 'wealth']),
-    decrease: Object.freeze(['貧困', '没収', '破産', '無一文', 'poverty', 'bankrupt']),
+  domination: Object.freeze({
+    high: Object.freeze(['独裁', '圧政', '命令', '支配', '統制', '服従', '軍', '警察', 'dictatorship', 'oppression']),
+    medium: Object.freeze(['秩序', '均衡', '規律', '管理', 'order', 'balance']),
+    low: Object.freeze(['放任', '混沌', '自由', '自治', '無政府', 'laissez-faire', 'chaos']),
   }),
-  power: Object.freeze({
-    increase: Object.freeze(['権力', '命令', '支配', '統制', '禁止', '義務', '服従', '軍', '警察', '罰', '独裁', 'control', 'obey']),
-    decrease: Object.freeze(['自由', '自治', '民主', '選挙', '解放', 'freedom', 'democracy']),
+  egoism: Object.freeze({
+    high: Object.freeze(['我欲', '貪欲', '暴君', '私利', '独占', '贅沢', 'greed', 'tyrant']),
+    medium: Object.freeze(['実利', '合理', '利益', '効率', 'practical', 'rational']),
+    low: Object.freeze(['献身', '犠牲', '奉仕', '寄付', '分配', '無償', 'devotion', 'sacrifice']),
   }),
-  fame: Object.freeze({
-    increase: Object.freeze(['名声', '有名', '称賛', '名誉', '宣伝', '広告', '人気', '英雄', '記念', '表彰', 'fame', 'famous']),
-    decrease: Object.freeze(['匿名', '無名', '忘却', '不名誉', 'anonymous', 'obscure']),
+  innovation: Object.freeze({
+    high: Object.freeze(['創世', '異端', '変革', '改革', '革命', '創造', '発明', '刷新', 'innovation', 'revolution']),
+    medium: Object.freeze(['保守', '安定', '維持', '伝統', 'conservative', 'stability']),
+    low: Object.freeze(['停滞', '固執', '現状', '退行', 'stagnation', 'rigid']),
   }),
-  love: Object.freeze({
-    increase: Object.freeze(['愛', '恋', '家族', '結婚', '夫婦', '友情', '絆', '共生', 'love', 'family']),
-    decrease: Object.freeze(['憎', '差別', '排除', '孤独', '分断', '男女', '迫害', 'hate', 'discrimination']),
+  prestige: Object.freeze({
+    high: Object.freeze(['畏怖', '恐怖', '威圧', '震撼', 'fear', 'dread']),
+    medium: Object.freeze(['威信', '威厳', '尊敬', '名誉', 'prestige', 'respect']),
+    low: Object.freeze(['迎合', '軽蔑', '屈服', '卑屈', '不名誉', 'contempt', 'appease']),
   }),
-  pleasure: Object.freeze({
-    increase: Object.freeze(['快楽', '娯楽', '遊', '酒', '祭', 'ゲーム', '休暇', '楽しい', '笑', '宴', 'pleasure', 'entertainment']),
-    decrease: Object.freeze(['禁止', '禁欲', '苦痛', '我慢', '労働', '処罰', '苦行', 'abstinence', 'suffering']),
+  madness: Object.freeze({
+    high: Object.freeze(['破滅', '狂信', '狂気', '極端', '無謀', '虐殺', 'madness', 'fanatic']),
+    medium: Object.freeze(['偏執', '妄信', '執着', '盲信', 'paranoia', 'delusion']),
+    low: Object.freeze(['理性', '平穏', '冷静', '慎重', '対話', 'reason', 'calm']),
   }),
 });
 
 /**
  * APIを利用できない場合に、宣言文を軸ごとの語彙で独立評価する。
- * 一致しない軸は中立の50とし、一致語が多い軸だけを強める。
+ * 一致しない軸は中立の50とし、低・中・高の根拠を平均して配点する。
  */
 function createFallbackMapping(declaration) {
   const text = typeof declaration === 'string' ? declaration.toLowerCase() : '';
@@ -33,9 +38,15 @@ function createFallbackMapping(declaration) {
   return Object.fromEntries(
     DESIRE_KEYS.map((key) => {
       const signals = AXIS_SIGNALS[key];
-      const increases = signals.increase.filter((keyword) => text.includes(keyword)).length;
-      const decreases = signals.decrease.filter((keyword) => text.includes(keyword)).length;
-      return [key, clampDesireValue(DESIRE_NEUTRAL + ((increases - decreases) * 15))];
+      const matchedScores = [
+        ...signals.low.filter((keyword) => text.includes(keyword)).map(() => 15),
+        ...signals.medium.filter((keyword) => text.includes(keyword)).map(() => 50),
+        ...signals.high.filter((keyword) => text.includes(keyword)).map(() => 85),
+      ];
+      const score = matchedScores.length > 0
+        ? matchedScores.reduce((sum, value) => sum + value, 0) / matchedScores.length
+        : DESIRE_NEUTRAL;
+      return [key, clampDesireValue(score)];
     }),
   );
 }
