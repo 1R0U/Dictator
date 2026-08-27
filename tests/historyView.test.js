@@ -5,6 +5,8 @@ const {
   UNKNOWN_ENDING_TITLE,
   UNKNOWN_SAVED_AT,
   formatHistoryDate,
+  getHistoryEndingBody,
+  getHistoryEndingTypeLabel,
   getHistoryTitle,
   normalizeHistoryResults,
 } = require('../game/historyView');
@@ -25,8 +27,34 @@ test('normalizeHistoryResults handles empty and malformed stored values', () => 
       { endingTitle: 'ending', savedAt: 17, declarationSummary: {} },
       7,
     ]),
-    [{ endingTitle: 'ending', savedAt: '', declarationSummary: '' }],
+    [{
+      declarationSummary: '',
+      desireAxes: { fame: 0, love: 0, pleasure: 0, power: 0, wealth: 0 },
+      endingBody: '',
+      endingTitle: 'ending',
+      savedAt: '',
+    }],
   );
+});
+
+test('履歴詳細の本文は保存値または宣言概要から再構成する', () => {
+  assert.equal(
+    getHistoryEndingBody({ endingBody: '保存された結末。' }),
+    '保存された結末。',
+  );
+  assert.equal(
+    getHistoryEndingBody({ endingType: 'ruin', declarationSummary: '無視される宣言' }),
+    '独裁者の欲望は国の限界を超えた。インフラは崩壊し、経済は破綻し、最後の閣僚は辞表をFAXで送ってきた。FAXも壊れていた。',
+  );
+  assert.equal(
+    getHistoryEndingBody({ declarationSummary: 'パンを無料にする' }),
+    '「パンを無料にする」から始まった国の、記録された結末。',
+  );
+});
+
+test('履歴詳細に保存済みのエンディング型を表示する', () => {
+  assert.equal(getHistoryEndingTypeLabel({ endingType: 'ironic_peace' }), '皮肉な平和');
+  assert.equal(getHistoryEndingTypeLabel({ endingType: 'unknown' }), '分類不明');
 });
 
 test('保存日時を日本語の一覧表示向けに整形する', () => {

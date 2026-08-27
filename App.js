@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { mapDesire } from './api/mapDesire';
 import { generateBeat } from './api/generateBeat';
@@ -8,6 +8,7 @@ import CheckupEvent from './components/CheckupEvent';
 import DeclarationForm from './components/DeclarationForm';
 import EndingReveal from './components/EndingReveal';
 import History from './components/History';
+import HistoryDetail from './components/HistoryDetail';
 import MilestoneReport from './components/MilestoneReport';
 import TitleScreen from './components/TitleScreen';
 import { AXES } from './data/axes';
@@ -20,21 +21,14 @@ import {
   shouldShowCheckup,
 } from './game/checkup';
 import { createGenerationInput } from './game/declaration';
-import { formatHistoryDate, getHistoryTitle } from './game/historyView';
 import { applyMapping } from './game/meter';
 import { STAGES } from './game/navigation';
 
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
-const DUMMY_FINAL_METER = Object.freeze({
-  wealth: 72,
-  power: 91,
-  fame: 64,
-  love: 28,
-  pleasure: 57,
-});
 // エンディング生成（#23等）が未接続のため、接続までの仮のエンディング型・見出し。
 const DUMMY_ENDING_TYPE = 'ironic_peace';
 const DUMMY_ENDING_HEADLINE = '黄金色の静寂';
+const DUMMY_ENDING_BODY = '国はあなたの宣言を忠実に実行し続けた。やがて人々は命令に従うことだけを覚え、静かな繁栄と引き換えに、自ら選ぶ未来を手放した。';
 
 /**
  * 未実装の遷移先に共通のプレースホルダー画面を表示する。
@@ -211,7 +205,8 @@ export default function App() {
   const handleEndingRevealComplete = () => {
     saveResult({
       declarationSummary: generationInput?.declaration ?? '',
-      desireAxes: DUMMY_FINAL_METER,
+      desireAxes,
+      endingBody: DUMMY_ENDING_BODY,
       endingType: DUMMY_ENDING_TYPE,
       endingTitle: DUMMY_ENDING_HEADLINE,
     }).catch((err) => {
@@ -255,21 +250,10 @@ export default function App() {
       break;
     case STAGES.HISTORY_DETAIL:
       screen = (
-        <DestinationPlaceholder eyebrow="ARCHIVE DETAIL" title={getHistoryTitle(selectedHistoryResult)}>
-          <Text style={styles.historyDetailDate}>
-            {formatHistoryDate(selectedHistoryResult?.savedAt)}
-          </Text>
-          <Text style={styles.historyDetailNote}>
-            詳細なエンディング再現はIssue #18で実装します。
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setStage(STAGES.HISTORY)}
-            style={({ pressed }) => [styles.historyBackButton, pressed && styles.historyPressed]}
-          >
-            <Text style={styles.historyBackButtonText}>← 履歴一覧へ戻る</Text>
-          </Pressable>
-        </DestinationPlaceholder>
+        <HistoryDetail
+          onBack={() => setStage(STAGES.HISTORY)}
+          result={selectedHistoryResult}
+        />
       );
       break;
     case STAGES.DAY_GENERATION: {
@@ -307,8 +291,8 @@ export default function App() {
       screen = (
         <DestinationPlaceholder eyebrow="FINAL REPORT" title="世界の結末">
           <EndingReveal
-            body="国はあなたの宣言を忠実に実行し続けた。やがて人々は命令に従うことだけを覚え、静かな繁栄と引き換えに、自ら選ぶ未来を手放した。"
-            finalMeter={DUMMY_FINAL_METER}
+            body={DUMMY_ENDING_BODY}
+            finalMeter={desireAxes}
             headline={DUMMY_ENDING_HEADLINE}
             onRevealComplete={handleEndingRevealComplete}
             onReturnHome={handleReturnHome}
@@ -386,35 +370,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 22,
     textAlign: 'center',
-  },
-  historyDetailDate: {
-    marginTop: 18,
-    color: '#b9985a',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  historyDetailNote: {
-    marginTop: 28,
-    color: '#8e8982',
-    fontSize: 14,
-    lineHeight: 22,
-    textAlign: 'center',
-  },
-  historyBackButton: {
-    minHeight: 52,
-    marginTop: 28,
-    paddingHorizontal: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#b9985a',
-  },
-  historyBackButtonText: {
-    color: '#d8c9aa',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  historyPressed: {
-    opacity: 0.65,
   },
 });

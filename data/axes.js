@@ -4,31 +4,31 @@ export const AXES = [
     key: 'wealth',
     name: '富',
     label: '💰 富',
-    initialValue: 0,
+    initialValue: 50,
   },
   {
     key: 'power',
     name: '権力',
     label: '👑 権力',
-    initialValue: 0,
+    initialValue: 50,
   },
   {
     key: 'fame',
     name: '名声',
     label: '📣 名声',
-    initialValue: 0,
+    initialValue: 50,
   },
   {
     key: 'love',
     name: '愛憎',
     label: '💔 愛憎',
-    initialValue: 0,
+    initialValue: 50,
   },
   {
     key: 'pleasure',
     name: '快楽',
     label: '🎭 快楽',
-    initialValue: 0,
+    initialValue: 50,
   },
 ];
 

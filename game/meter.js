@@ -2,15 +2,7 @@
 // 欲望マッピングの配点結果を累積し、各軸の現在値を更新する。
 
 import { AXES, createInitialMeter } from '../data/axes';
-
-const MIN_VALUE = -10;
-const MAX_VALUE = 10;
-
-/** 値を MIN_VALUE 〜 MAX_VALUE の範囲にクランプする。 */
-
-function clamp(value) {
-  return Math.max(MIN_VALUE, Math.min(MAX_VALUE, value));
-}
+import { applyDesireScore } from './desireScale';
 
 /**
  * マッピング結果を現在のメーターに加算して新しいメーターを返す。
@@ -23,9 +15,10 @@ function clamp(value) {
 export function applyMapping(currentMeter, mappingResult) {
   const newMeter = {};
   for (const axis of AXES) {
-    const current = currentMeter[axis.key] ?? 0;
-    const delta = mappingResult[axis.key] ?? 0;
-    newMeter[axis.key] = clamp(current + delta);
+    newMeter[axis.key] = applyDesireScore(
+      currentMeter?.[axis.key],
+      mappingResult?.[axis.key],
+    );
   }
   return newMeter;
 }
