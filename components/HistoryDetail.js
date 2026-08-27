@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import EndingReveal from './EndingReveal';
@@ -13,10 +14,15 @@ import {
 /** Replay a saved ending headline and desire-meter reveal. */
 export default function HistoryDetail({ result, onBack }) {
   const additionalDeclarations = getHistoryAdditionalDeclarations(result);
+  const scrollViewRef = useRef(null);
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} style={styles.scrollView}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        ref={scrollViewRef}
+        style={styles.scrollView}
+      >
         <Pressable
           accessibilityRole="button"
           onPress={onBack}
@@ -43,6 +49,7 @@ export default function HistoryDetail({ result, onBack }) {
           headline={getHistoryTitle(result)}
           onReturnHome={onBack}
           returnLabel="履歴一覧へ戻る"
+          scrollViewRef={scrollViewRef}
         />
       </ScrollView>
     </SafeAreaView>
