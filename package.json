@@ -16,7 +16,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "node --test"
+    "test": "node --test",
+    "sync-roadmap": "node scripts/sync-roadmap.js"
   },
   "private": true
 }
