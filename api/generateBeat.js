@@ -26,12 +26,14 @@ function buildSystemPrompt(tone) {
     tonePrompt.instruction + '\n' +
     '\n' +
     '出力は必ず以下の形式にしてください：\n' +
+    '### HEADLINE\n（このニュースだけの見出し。15〜25文字程度で本文の要点を一言で。他の時点と使い回せる汎用的な文言は禁止）\n' +
     '### NEWS\n（ニュース本文）\n### MEMO\n（側近メモ）\n' +
     '\n' +
     '例：\n' +
     '宣言：「' + FEW_SHOT_DECLARATION + '」\n' +
     '時点：' + example.milestone + '\n' +
     '回答：\n' +
+    '### HEADLINE\n' + example.headline + '\n' +
     '### NEWS\n' + example.text + '\n' +
     '### MEMO\n' +
     '側近メモ：法務局が「究極」を辞書通りに取った。' +
@@ -51,7 +53,7 @@ function buildSystemPrompt(tone) {
  * @param {{ milestoneLabel: string, news: string, memo: string }[]} params.previousEvents - これまでに生成済みの出来事
  * @param {string} params.tone          - トーンキー（pop / horror / real / emo）
  * @param {string} params.apiKey        - Claude APIキー
- * @returns {Promise<{news: string, memo: string}>}
+ * @returns {Promise<{headline: string, news: string, memo: string}>}
  */
 export async function generateBeat({
   declaration,
@@ -120,26 +122,37 @@ function createContextualFallback({ allDeclarations, milestoneLabel, previousEve
     : '';
 
   return {
+    headline: `${milestoneLabel}、「${latestDeclaration}」の運用続く`,
     news: `【${milestoneLabel}】${continuity}「${latestDeclaration}」の運用が国の制度と暮らしへ広がり続けています。`,
     memo: `側近メモ：${continuity || '布告直後から、'}「${latestDeclaration}」の解釈と実行をめぐる動きを引き続き監視している。`,
   };
 }
 
 /**
- * AIの出力テキストを ### NEWS / ### MEMO で分割する。
+ * AIの出力テキストを ### HEADLINE / ### NEWS / ### MEMO で分割する。
  */
 function parseBeat(text, fallback) {
+  const headlineMarker = '### HEADLINE';
   const newsMarker = '### NEWS';
   const memoMarker = '### MEMO';
 
+  const headlineIdx = text.indexOf(headlineMarker);
   const newsIdx = text.indexOf(newsMarker);
   const memoIdx = text.indexOf(memoMarker);
 
     if (newsIdx === -1 || memoIdx === -1 || memoIdx < newsIdx)  {
     // マーカーが見つからない場合、全文をニュースとして扱う
-    return { news: text.trim() || fallback.news, memo: fallback.memo, isFallback: true };
+    return {
+      headline: fallback.headline,
+      news: text.trim() || fallback.news,
+      memo: fallback.memo,
+      isFallback: true,
+    };
   }
 
+  const headline = headlineIdx !== -1 && headlineIdx < newsIdx
+    ? text.substring(headlineIdx + headlineMarker.length, newsIdx).trim()
+    : '';
   const news = text
     .substring(newsIdx + newsMarker.length, memoIdx)
     .trim();
@@ -148,6 +161,7 @@ function parseBeat(text, fallback) {
     .trim();
 
   return {
+    headline: headline || fallback.headline,
     news: news || fallback.news,
     memo: memo || fallback.memo,
     isFallback: !news || !memo,

@@ -16,6 +16,7 @@ export const FEW_SHOT_MAPPING = {
 export const FEW_SHOT_BEATS = [
   {
     milestone: '初日',
+    headline: '役所、"究極"を字義通り解釈し即日施行',
     text:
       '役所が「究極」の意味を真面目に解釈した結果、\n' +
       '・じゃんけんは男性が必ず勝利\n' +
