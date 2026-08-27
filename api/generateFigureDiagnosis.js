@@ -3,6 +3,7 @@
 // 人物の選出自体はgame/figureMatch.jsが担い、ここでは文面のみ生成する。
 
 import { callClaudeApi } from './claudeClient';
+import { extractMarkedSections } from './markedSections';
 import { getDesireBiasComment } from '../game/desireBias';
 import { buildFallbackBlurb } from '../data/figures';
 
@@ -40,12 +41,10 @@ function buildUserMessage({ figure, desireAxes }) {
 
 /** AIの出力テキストを ### INTRO / ### BIAS で分割する。形式不正時はnull。 */
 function parseDiagnosis(text) {
-  const introIdx = text.indexOf(INTRO_MARKER);
-  const biasIdx = text.indexOf(BIAS_MARKER);
-  if (introIdx === -1 || biasIdx === -1 || !(introIdx < biasIdx)) return null;
+  const sections = extractMarkedSections(text, [INTRO_MARKER, BIAS_MARKER]);
+  if (!sections) return null;
 
-  const blurb = text.substring(introIdx + INTRO_MARKER.length, biasIdx).trim();
-  const biasComment = text.substring(biasIdx + BIAS_MARKER.length).trim();
+  const [blurb, biasComment] = sections;
   if (!blurb || !biasComment) return null;
 
   return { blurb, biasComment };

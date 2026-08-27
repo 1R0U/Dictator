@@ -44,8 +44,7 @@ export default function EndingReveal({
   const [phase, setPhase] = useState(PHASES.ENDING);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
   const meterAnimations = useRef(AXES.map(() => new Animated.Value(0))).current;
-  const localMatch = matchFigure(finalMeter);
-  const resolvedFigure = figureDiagnosis?.figure ?? localMatch?.figure;
+  const resolvedFigure = figureDiagnosis?.figure ?? matchFigure(finalMeter)?.figure;
   const resolvedBlurb = figureDiagnosis?.figure && figureDiagnosis?.blurb
     ? figureDiagnosis.blurb
     : (resolvedFigure ? buildFallbackBlurb(resolvedFigure) : null);
