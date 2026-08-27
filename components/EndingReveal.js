@@ -226,7 +226,12 @@ export default function EndingReveal({
       style={styles.container}
     >
       {collapseVisual ? (
-        <Modal animationType="fade" transparent={false} visible={isImageFullscreen}>
+        <Modal
+          animationType="fade"
+          onRequestClose={() => setIsImageFullscreen(false)}
+          transparent={false}
+          visible={isImageFullscreen}
+        >
           <Pressable
             accessibilityRole="button"
             onPress={() => setIsImageFullscreen(false)}

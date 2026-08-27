@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
-    paddingBottom: 96,
+    paddingBottom: 140,
   },
   destinationScroll: {
     flex: 1,
