@@ -3,6 +3,7 @@ const STAGES = Object.freeze({
   DECLARATION: 1,
   HISTORY: 2,
   DAY_GENERATION: 3,
+  ENDING: 4,
 });
 
 module.exports = { STAGES };

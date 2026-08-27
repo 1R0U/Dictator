@@ -1,15 +1,25 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { mapDesire } from './api/mapDesire';
 import DeclarationForm from './components/DeclarationForm';
+import EndingReveal from './components/EndingReveal';
+import MilestoneReport from './components/MilestoneReport';
 import TitleScreen from './components/TitleScreen';
 import { AXES } from './data/axes';
+import { MILESTONES } from './data/milestones';
 import { createGenerationInput } from './game/declaration';
 import { STAGES } from './game/navigation';
 
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
+const DUMMY_FINAL_METER = Object.freeze({
+  wealth: 72,
+  power: 91,
+  fame: 64,
+  love: 28,
+  pleasure: 57,
+});
 
 /**
  * 未実装の遷移先に共通のプレースホルダー画面を表示する。
@@ -17,22 +27,42 @@ const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
 function DestinationPlaceholder({ eyebrow, title, children }) {
   return (
     <SafeAreaView style={styles.destination}>
-      <View style={styles.destinationContent}>
+      <ScrollView contentContainerStyle={styles.destinationContent} style={styles.destinationScroll}>
         <Text style={styles.eyebrow}>{eyebrow}</Text>
         <Text style={styles.destinationTitle}>{title}</Text>
         {children}
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 /**
- * 初日の宣言内容と欲望軸を表示する。
+ * 節目ごとの宣言内容、表裏レポート、欲望軸を表示する。
  */
-function DayGenerationScreen({ declaration, desireAxes }) {
+function DayGenerationScreen({
+  declaration,
+  desireAxes,
+  milestone,
+  previousMilestone,
+  nextMilestone,
+  onPrevious,
+  onNext,
+  onFinish,
+}) {
   return (
-    <DestinationPlaceholder eyebrow="DAY 1" title="初日">
+    <DestinationPlaceholder eyebrow="MILESTONE" title={milestone.label}>
       <Text style={styles.destinationDeclaration}>「{declaration}」</Text>
+      <MilestoneReport
+        isFinal={!nextMilestone}
+        key={milestone.key}
+        memo={`側近メモ：${milestone.description} 表向きは平静だが、現場では想定外の影響が広がっている。`}
+        milestoneLabel={milestone.label}
+        previousLabel={previousMilestone ? `${previousMilestone.label}へ戻る` : undefined}
+        onPrevious={previousMilestone ? onPrevious : undefined}
+        news={`【${milestone.label}】${milestone.description} 政府は状況を注視すると発表しています。`}
+        nextLabel={nextMilestone ? `${nextMilestone.label}へ進む` : '結末を見る'}
+        onNext={nextMilestone ? onNext : onFinish}
+      />
       {desireAxes ? (
         <Text style={styles.destinationAxes}>
           {AXES.map((axis) => `${axis.label} ${desireAxes[axis.key]}`).join('　')}
@@ -48,6 +78,8 @@ function DayGenerationScreen({ declaration, desireAxes }) {
 export default function App() {
   const [stage, setStage] = useState(STAGES.TITLE);
   const [generationInput, setGenerationInput] = useState(null);
+  const [desireAxes, setDesireAxes] = useState(null);
+  const [milestoneIndex, setMilestoneIndex] = useState(0);
 
   /**
    * 冒頭宣言を送信する。
@@ -61,10 +93,19 @@ export default function App() {
   const handleDeclarationSubmit = async (declaration, tone) => {
     const nextGenerationInput = createGenerationInput(declaration, tone);
     setGenerationInput(nextGenerationInput);
+    setMilestoneIndex(0);
 
     const result = await mapDesire(nextGenerationInput.declaration, CLAUDE_API_KEY);
     setDesireAxes(result);
     setStage(STAGES.DAY_GENERATION);
+  };
+
+  /** エンディング表示後にプレイ状態を初期化してホームへ戻る。 */
+  const handleReturnHome = () => {
+    setGenerationInput(null);
+    setDesireAxes(null);
+    setMilestoneIndex(0);
+    setStage(STAGES.TITLE);
   };
 
   let screen;
@@ -86,7 +127,32 @@ export default function App() {
         <DayGenerationScreen
           declaration={generationInput?.declaration ?? ''}
           desireAxes={desireAxes}
+          milestone={MILESTONES[milestoneIndex]}
+          previousMilestone={MILESTONES[milestoneIndex - 1]}
+          nextMilestone={MILESTONES[milestoneIndex + 1]}
+          onPrevious={() => (
+            setMilestoneIndex((current) => Math.max(current - 1, 0))
+          )}
+          onNext={() => (
+            setMilestoneIndex((current) => Math.min(current + 1, MILESTONES.length - 1))
+          )}
+          onFinish={() => setStage(STAGES.ENDING)}
         />
+      );
+      break;
+    case STAGES.ENDING:
+      screen = (
+        <DestinationPlaceholder eyebrow="FINAL REPORT" title="世界の結末">
+          <EndingReveal
+            body="国はあなたの宣言を忠実に実行し続けた。やがて人々は命令に従うことだけを覚え、静かな繁栄と引き換えに、自ら選ぶ未来を手放した。"
+            finalMeter={DUMMY_FINAL_METER}
+            headline="黄金色の静寂"
+            onRevealComplete={() => {
+              // Issue #31で、このタイミングに履歴保存処理を接続する。
+            }}
+            onReturnHome={handleReturnHome}
+          />
+        </DestinationPlaceholder>
       );
       break;
     default:
@@ -112,10 +178,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#0b0b0d',
   },
   destinationContent: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
+  },
+  destinationScroll: {
+    flex: 1,
   },
   eyebrow: {
     marginBottom: 12,
@@ -131,7 +200,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   destinationDeclaration: {
-    marginTop: 24,
+    marginVertical: 24,
     maxWidth: 320,
     color: '#a9a39a',
     fontSize: 15,
