@@ -1,7 +1,6 @@
 // 節目（マイルストーン）定義：進行ロジックはこの配列をインデックスで参照する
 // 検診（追加宣言）は半年後・3年後・10年後の3回。
-// 50年後は「国の滅亡」エンドへ分岐しうる節目（game/milestoneEnding.js参照）で、
-// 分岐しなかった場合のみ最後の2XXX年（遠い未来）へ進む。
+// 各節目の文章生成時に非表示の滅亡リスクを更新し、閾値到達時はそこで滅亡へ分岐する。
 export const MILESTONES = [
   {
     key: 'day1',
@@ -64,8 +63,5 @@ export const MILESTONES = [
     hasCheckup: false,
   },
 ];
-
-// 「国の滅亡」エンドへ分岐しうる節目のキー（game/milestoneEnding.js参照）。
-export const NATION_COLLAPSE_CHECK_KEY = 'year50';
 
 export default MILESTONES;

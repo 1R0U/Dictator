@@ -23,7 +23,7 @@ import MilestoneReport from './components/MilestoneReport';
 import TitleScreen from './components/TitleScreen';
 import { AXES } from './data/axes';
 import { saveResult } from './data/history';
-import { MILESTONES, NATION_COLLAPSE_CHECK_KEY } from './data/milestones';
+import { MILESTONES } from './data/milestones';
 import {
   completeCheckup,
   createAdditionalDeclaration,
@@ -34,7 +34,11 @@ import {
 import { createGenerationInput } from './game/declaration';
 import { applyMapping } from './game/meter';
 import { matchFigure } from './game/figureMatch';
-import { shouldTriggerNationCollapse } from './game/milestoneEnding';
+import {
+  advanceCollapseState,
+  determineCollapseRoute,
+  shouldTriggerNationCollapse,
+} from './game/milestoneEnding';
 import { isMilestoneReportPending } from './game/milestoneReport';
 import { STAGES } from './game/navigation';
 import { getPreviousMilestoneEvents } from './game/storyContext';
@@ -51,8 +55,6 @@ const FALLBACK_FINAL_METER = Object.freeze({
 });
 // エンディング型の判定ロジック（#6/#25）が未実装のため、型自体は仮固定。
 const DUMMY_ENDING_TYPE = 'ironic_peace';
-// 50年時点で国の滅亡エンドへ分岐する場合に強制する型（ENDING_CATALOG.ruinに対応）。
-const NATION_COLLAPSE_ENDING_TYPE = 'ruin';
 const FALLBACK_ENDING_HEADLINE = '黄金色の静寂';
 const FALLBACK_ENDING_BODY =
   '国はあなたの宣言を忠実に実行し続けた。やがて人々は命令に従うことだけを覚え、静かな繁栄と引き換えに、自ら選ぶ未来を手放した。';
@@ -96,6 +98,7 @@ function DayGenerationScreen({
   onNext,
   onFinish,
   isFinishing,
+  isCollapsePending,
   showCheckup,
   additionalDeclarations = [],
   onSkipCheckup,
@@ -127,7 +130,7 @@ function DayGenerationScreen({
         <MilestoneReport
           headline={report?.headline ?? ''}
           isFallback={report?.isFallback ?? false}
-          isFinal={!nextMilestone}
+          isFinal={!nextMilestone && !isCollapsePending}
           isLoading={isReportLoading}
           key={milestone.key}
           memo={report?.memo ?? ''}
@@ -136,9 +139,13 @@ function DayGenerationScreen({
           onPrevious={previousMilestone ? onPrevious : undefined}
           news={report?.news ?? ''}
           nextLabel={
-            nextMilestone ? `${nextMilestone.label}へ進む` : (isFinishing ? '結末を生成中…' : '結末を見る')
+            isFinishing
+              ? '時間を進めています…'
+              : nextMilestone
+              ? `${nextMilestone.label}へ進む`
+              : (isCollapsePending ? '時間を進める' : '結末を見る')
           }
-          onNext={nextMilestone ? onNext : (isFinishing ? undefined : onFinish)}
+          onNext={isFinishing ? undefined : (isCollapsePending ? onFinish : (nextMilestone ? onNext : onFinish))}
         />
       )}
       {desireAxes ? (
@@ -201,6 +208,21 @@ export default function App() {
     generatingMilestonesRef.current.add(milestone.key);
     setLoadingMilestoneKey(milestone.key);
     try {
+      const previousReport = MILESTONES
+        .slice(0, milestoneIndex)
+        .map((item) => milestoneReports[item.key])
+        .filter(Boolean)
+        .at(-1);
+      const collapseState = advanceCollapseState({
+        previousRisk: previousReport?.collapseRisk ?? 0,
+        previousPressure: previousReport?.collapsePressure,
+        axes: meter,
+        previousAxes: previousReport?.desireAxesSnapshot,
+        milestoneIndex,
+      });
+      const collapseRoute = shouldTriggerNationCollapse(collapseState.risk)
+        ? determineCollapseRoute(meter, collapseState.pressure)
+        : null;
       const report = await generateBeat({
         declaration: generationInput.declaration,
         milestoneLabel: milestone.label,
@@ -213,9 +235,19 @@ export default function App() {
         ),
         tone: generationInput.tone,
         apiKey: CLAUDE_API_KEY,
+        collapseRoute,
       });
 
-      setMilestoneReports((current) => ({ ...current, [milestone.key]: report }));
+      setMilestoneReports((current) => ({
+        ...current,
+        [milestone.key]: {
+          ...report,
+          collapseRisk: collapseState.risk,
+          collapsePressure: collapseState.pressure,
+          collapseRoute,
+          desireAxesSnapshot: { ...meter },
+        },
+      }));
     } finally {
       generatingMilestonesRef.current.delete(milestone.key);
       setLoadingMilestoneKey((current) => (current === milestone.key ? null : current));
@@ -305,11 +337,19 @@ export default function App() {
           declaration: generationInput.declaration,
           endingType: resolvedEndingType,
           meter,
+          previousDeclarations: getPreviousDeclarationTexts(additionalDeclarations),
           tone: generationInput.tone,
           apiKey: CLAUDE_API_KEY,
         }),
         match
-          ? generateFigureDiagnosis({ figure: match.figure, desireAxes: meter, apiKey: CLAUDE_API_KEY })
+          ? generateFigureDiagnosis({
+            figure: match.figure,
+            desireAxes: meter,
+            apiKey: CLAUDE_API_KEY,
+          }).catch((err) => {
+            console.warn('handleFinish: figure diagnosis failed', err.message);
+            return null;
+          })
           : Promise.resolve(null),
       ]);
 
@@ -393,10 +433,8 @@ export default function App() {
         MILESTONES,
         milestoneIndex,
       );
-      // 50年時点で欲望が振り切れていれば、2XXX年へ進まずここで国の滅亡エンドへ分岐する。
-      const isNationCollapsePoint = milestone.key === NATION_COLLAPSE_CHECK_KEY
-        && shouldTriggerNationCollapse(desireAxes ?? FALLBACK_FINAL_METER);
-      const nextMilestone = isNationCollapsePoint ? undefined : MILESTONES[milestoneIndex + 1];
+      const collapseRoute = milestoneReports[milestone.key]?.collapseRoute;
+      const nextMilestone = MILESTONES[milestoneIndex + 1];
 
       screen = (
         <DayGenerationScreen
@@ -411,8 +449,9 @@ export default function App() {
           onNext={() => (
             setMilestoneIndex((current) => Math.min(current + 1, MILESTONES.length - 1))
           )}
-          onFinish={() => handleFinish(isNationCollapsePoint ? NATION_COLLAPSE_ENDING_TYPE : undefined)}
+          onFinish={() => handleFinish(collapseRoute ?? undefined)}
           isFinishing={isEndingLoading}
+          isCollapsePending={Boolean(collapseRoute)}
           showCheckup={showCheckup}
           additionalDeclarations={visibleAdditionalDeclarations}
           onSkipCheckup={handleSkipCheckup}
@@ -436,6 +475,7 @@ export default function App() {
         >
           <EndingReveal
             body={endingReport?.body ?? FALLBACK_ENDING_BODY}
+            endingType={endingType}
             figureDiagnosis={figureDiagnosis}
             finalMeter={desireAxes ?? FALLBACK_FINAL_METER}
             headline={endingReport?.title ?? FALLBACK_ENDING_HEADLINE}

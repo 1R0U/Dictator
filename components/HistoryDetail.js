@@ -44,6 +44,7 @@ export default function HistoryDetail({ result, onBack }) {
         </View>
         <EndingReveal
           body={getHistoryEndingBody(result)}
+          endingType={result?.endingType}
           figureDiagnosis={result?.figureDiagnosis}
           finalMeter={result?.desireAxes}
           headline={getHistoryTitle(result)}
