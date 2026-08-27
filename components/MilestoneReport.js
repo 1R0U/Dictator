@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
   REPORT_SIDES,
@@ -8,11 +8,17 @@ import {
   getReportStatus,
 } from '../game/milestoneReport';
 
+const NOTEBOOK_RING_COUNT = 12;
+const NOTEBOOK_RINGS = Array.from({ length: NOTEBOOK_RING_COUNT }, (_, i) => i);
+const NOTEBOOK_LINE_COUNT = 11;
+const NOTEBOOK_LINES = Array.from({ length: NOTEBOOK_LINE_COUNT }, (_, i) => i);
+
 /**
  * 節目ごとのニュース（表）と側近メモ（裏）を切り替えて表示する。
  *
  * @param {Object} props
  * @param {string} props.milestoneLabel 節目の表示名。
+ * @param {string} [props.headline] generateBeatが返したニュース見出し。
  * @param {string} props.news generateBeatが返したニュース本文。
  * @param {string} props.memo generateBeatが返した側近メモ本文。
  * @param {Function} [props.onPrevious] 前の節目へ戻る処理。
@@ -25,6 +31,7 @@ import {
  */
 export default function MilestoneReport({
   milestoneLabel,
+  headline,
   news,
   memo,
   onPrevious,
@@ -39,6 +46,15 @@ export default function MilestoneReport({
   const isNews = activeSide === REPORT_SIDES.NEWS;
   const reportContent = getReportContent(activeSide, { news, memo });
   const status = getReportStatus({ isLoading, isFallback });
+  const [scrollMetrics, setScrollMetrics] = useState({ containerHeight: 0, contentHeight: 0, scrollY: 0 });
+  const canScrollBody = scrollMetrics.contentHeight > scrollMetrics.containerHeight + 1;
+  const scrollThumbHeight = canScrollBody
+    ? Math.max(24, (scrollMetrics.containerHeight / scrollMetrics.contentHeight) * scrollMetrics.containerHeight)
+    : 0;
+  const scrollThumbTop = canScrollBody
+    ? (scrollMetrics.scrollY / (scrollMetrics.contentHeight - scrollMetrics.containerHeight)) *
+      (scrollMetrics.containerHeight - scrollThumbHeight)
+    : 0;
 
   useEffect(() => {
     setActiveSide(REPORT_SIDES.NEWS);
@@ -91,17 +107,83 @@ export default function MilestoneReport({
             accessibilityLiveRegion="polite"
             style={[styles.report, isNews ? styles.newsReport : styles.memoReport]}
           >
+            {!isNews ? (
+              <>
+                <View style={styles.notebookLines}>
+                  {NOTEBOOK_LINES.map((i) => (
+                    <View key={i} style={styles.notebookLine} />
+                  ))}
+                </View>
+                <View style={styles.notebookSpine} />
+                <View style={styles.notebookRings}>
+                  {NOTEBOOK_RINGS.map((i) => (
+                    <View key={i} style={styles.notebookRingItem}>
+                      <View style={styles.notebookRingCoil} />
+                      <View style={styles.notebookRingHole} />
+                    </View>
+                  ))}
+                </View>
+                <View style={styles.notebookRibbon}>
+                  <View style={styles.notebookRibbonNotch} />
+                </View>
+              </>
+            ) : null}
             <View style={styles.reportHeader}>
               <Text style={[styles.badge, !isNews && styles.memoBadge]}>
                 {isNews ? 'DICTATOR TIMES' : 'CONFIDENTIAL'}
               </Text>
               <Text style={styles.milestone}>{milestoneLabel}</Text>
             </View>
-            <Text style={[styles.heading, !isNews && styles.memoHeading]}>
-              {isNews ? '国家からの最新報道' : '独裁者だけに届く側近メモ'}
-            </Text>
+            <View style={[styles.headingRule, !isNews && styles.memoHeadingRule]} />
+            <View style={styles.headingRow}>
+              <Text style={[styles.headingOrnament, !isNews && styles.memoHeadingOrnament]}>
+                ◆
+              </Text>
+              <Text style={[styles.heading, !isNews && styles.memoHeading]}>
+                {isNews ? '国家からの最新報道' : '独裁者だけに届く側近メモ'}
+              </Text>
+              <Text style={[styles.headingOrnament, !isNews && styles.memoHeadingOrnament]}>
+                ◆
+              </Text>
+            </View>
+            {isNews && headline ? (
+              <Text style={styles.subheadline}>{headline}</Text>
+            ) : null}
             <View style={styles.rule} />
-            <Text style={[styles.body, !isNews && styles.memoBody]}>{reportContent}</Text>
+            <View style={styles.bodyScrollWrap}>
+              <ScrollView
+                key={activeSide}
+                nestedScrollEnabled
+                onContentSizeChange={(_width, height) => (
+                  setScrollMetrics((current) => ({ ...current, contentHeight: height }))
+                )}
+                onLayout={(e) => {
+                  const height = e.nativeEvent.layout.height;
+                  setScrollMetrics((current) => ({ ...current, containerHeight: height }));
+                }}
+                onScroll={(e) => {
+                  const y = e.nativeEvent.contentOffset.y;
+                  setScrollMetrics((current) => ({ ...current, scrollY: y }));
+                }}
+                scrollEventThrottle={16}
+                showsVerticalScrollIndicator={false}
+                style={styles.bodyScroll}
+                contentContainerStyle={styles.bodyScrollContent}
+              >
+                <Text style={[styles.body, !isNews && styles.memoBody]}>{reportContent}</Text>
+              </ScrollView>
+              {canScrollBody ? (
+                <View style={styles.scrollTrack}>
+                  <View
+                    style={[
+                      styles.scrollThumb,
+                      !isNews && styles.memoScrollThumb,
+                      { height: scrollThumbHeight, top: scrollThumbTop },
+                    ]}
+                  />
+                </View>
+              ) : null}
+            </View>
             <Text style={styles.switchHint}>タブを押して表と裏を切り替え</Text>
           </View>
         </>
@@ -215,6 +297,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1c1315',
   },
   report: {
+    position: 'relative',
     minHeight: 300,
     padding: 24,
     borderWidth: 1,
@@ -224,8 +307,98 @@ const styles = StyleSheet.create({
     backgroundColor: '#eee6d6',
   },
   memoReport: {
+    paddingLeft: 42,
     borderColor: '#7e2024',
     backgroundColor: '#171316',
+    borderRadius: 6,
+    transform: [{ rotate: '-0.6deg' }],
+  },
+  notebookLines: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+    pointerEvents: 'none',
+  },
+  notebookLine: {
+    height: 1,
+    marginTop: 27,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  notebookSpine: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: 30,
+    backgroundColor: '#100c0d',
+    borderTopLeftRadius: 6,
+    borderBottomLeftRadius: 6,
+    pointerEvents: 'none',
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  notebookRings: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    pointerEvents: 'none',
+  },
+  notebookRingItem: {
+    position: 'relative',
+    width: 30,
+    height: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notebookRingCoil: {
+    position: 'absolute',
+    left: -7,
+    top: 0,
+    width: 11,
+    height: 14,
+    borderWidth: 2,
+    borderRightWidth: 0,
+    borderColor: '#9a948a',
+    borderTopLeftRadius: 7,
+    borderBottomLeftRadius: 7,
+  },
+  notebookRingHole: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: '#0b0b0d',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  notebookRibbon: {
+    position: 'absolute',
+    top: -14,
+    right: 32,
+    width: 20,
+    height: 34,
+    backgroundColor: '#b9985a',
+    pointerEvents: 'none',
+  },
+  notebookRibbonNotch: {
+    position: 'absolute',
+    bottom: -8,
+    left: 0,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 10,
+    borderRightWidth: 10,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#171316',
   },
   reportHeader: {
     flexDirection: 'row',
@@ -247,21 +420,88 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+  headingRule: {
+    marginTop: 18,
+    height: 1,
+    backgroundColor: '#b9985a',
+    opacity: 0.6,
+  },
+  memoHeadingRule: {
+    backgroundColor: '#625e58',
+  },
+  headingRow: {
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  headingOrnament: {
+    color: '#b9985a',
+    fontSize: 12,
+  },
+  memoHeadingOrnament: {
+    color: '#7e2024',
+  },
   heading: {
-    marginTop: 22,
+    flexShrink: 1,
     color: '#171316',
-    fontSize: 24,
+    fontSize: 25,
     fontWeight: '900',
+    letterSpacing: 0.5,
     lineHeight: 32,
+    textAlign: 'center',
   },
   memoHeading: {
     color: '#f3eee4',
+  },
+  subheadline: {
+    marginTop: 10,
+    paddingLeft: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: '#7e2024',
+    color: '#3a2422',
+    fontSize: 16,
+    fontWeight: '800',
+    fontStyle: 'italic',
+    letterSpacing: 0.2,
+    lineHeight: 22,
   },
   rule: {
     width: 48,
     height: 3,
     marginVertical: 18,
     backgroundColor: '#7e2024',
+  },
+  bodyScrollWrap: {
+    position: 'relative',
+  },
+  bodyScroll: {
+    maxHeight: 320,
+  },
+  bodyScrollContent: {
+    paddingRight: 14,
+    paddingBottom: 4,
+  },
+  scrollTrack: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    pointerEvents: 'none',
+  },
+  scrollThumb: {
+    position: 'absolute',
+    right: 0,
+    width: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+  memoScrollThumb: {
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
   },
   body: {
     color: '#302d29',

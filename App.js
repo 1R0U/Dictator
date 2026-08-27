@@ -124,6 +124,7 @@ function DayGenerationScreen({
         />
       ) : (
         <MilestoneReport
+          headline={report?.headline ?? ''}
           isFallback={report?.isFallback ?? false}
           isFinal={!nextMilestone}
           isLoading={isReportLoading}
