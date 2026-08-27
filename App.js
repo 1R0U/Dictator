@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -33,7 +33,9 @@ import { createGenerationInput } from './game/declaration';
 import { applyMapping } from './game/meter';
 import { matchFigure } from './game/figureMatch';
 import { shouldTriggerNationCollapse } from './game/milestoneEnding';
+import { isMilestoneReportPending } from './game/milestoneReport';
 import { STAGES } from './game/navigation';
+import { getPreviousMilestoneEvents } from './game/storyContext';
 
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 // desireAxesが未設定（通常発生しない）な場合のみ使うフォールバック値。
@@ -113,11 +115,11 @@ function DayGenerationScreen({
           isFinal={!nextMilestone}
           isLoading={isReportLoading}
           key={milestone.key}
-          memo={report?.memo ?? `側近メモ：${milestone.description} 表向きは平静だが、現場では想定外の影響が広がっている。`}
+          memo={report?.memo ?? ''}
           milestoneLabel={milestone.label}
           previousLabel={previousMilestone ? `${previousMilestone.label}へ戻る` : undefined}
           onPrevious={previousMilestone ? onPrevious : undefined}
-          news={report?.news ?? `【${milestone.label}】${milestone.description} 政府は状況を注視すると発表しています。`}
+          news={report?.news ?? ''}
           nextLabel={
             nextMilestone ? `${nextMilestone.label}へ進む` : (isFinishing ? '結末を生成中…' : '結末を見る')
           }
@@ -155,6 +157,7 @@ export default function App() {
   const [endingType, setEndingType] = useState(DUMMY_ENDING_TYPE);
   const [figureDiagnosis, setFigureDiagnosis] = useState(null);
   const [isEndingLoading, setIsEndingLoading] = useState(false);
+  const generatingMilestonesRef = useRef(new Set());
 
   /**
    * 冒頭宣言を送信する。
@@ -182,6 +185,9 @@ export default function App() {
   /** 現在までの宣言を踏まえたNEWS/MEMOを生成して節目に保存する。 */
   const generateCurrentMilestoneReport = async (declarations, meter = desireAxes) => {
     const milestone = MILESTONES[milestoneIndex];
+    if (generatingMilestonesRef.current.has(milestone.key)) return;
+
+    generatingMilestonesRef.current.add(milestone.key);
     setLoadingMilestoneKey(milestone.key);
     try {
       const report = await generateBeat({
@@ -189,15 +195,46 @@ export default function App() {
         milestoneLabel: milestone.label,
         meter,
         previousDeclarations: getPreviousDeclarationTexts(declarations),
+        previousEvents: getPreviousMilestoneEvents(
+          MILESTONES,
+          milestoneReports,
+          milestoneIndex,
+        ),
         tone: generationInput.tone,
         apiKey: CLAUDE_API_KEY,
       });
 
       setMilestoneReports((current) => ({ ...current, [milestone.key]: report }));
     } finally {
+      generatingMilestonesRef.current.delete(milestone.key);
       setLoadingMilestoneKey((current) => (current === milestone.key ? null : current));
     }
   };
+
+  /** 検診のない節目へ到達した時点で、宣言と過去の流れを使ってレポートを生成する。 */
+  useEffect(() => {
+    if (stage !== STAGES.DAY_GENERATION || !generationInput || !desireAxes) return;
+
+    const milestone = MILESTONES[milestoneIndex];
+    if (
+      shouldShowCheckup(milestone, handledCheckups)
+      || milestoneReports[milestone.key]
+      || loadingMilestoneKey === milestone.key
+    ) return;
+
+    generateCurrentMilestoneReport(additionalDeclarations).catch((err) => {
+      console.warn('generateCurrentMilestoneReport: failed', err.message);
+    });
+  }, [
+    additionalDeclarations,
+    desireAxes,
+    generationInput,
+    handledCheckups,
+    loadingMilestoneKey,
+    milestoneIndex,
+    milestoneReports,
+    stage,
+  ]);
 
   /** 追加宣言せず、これまでの宣言を踏まえた物語へ進む。 */
   const handleSkipCheckup = async () => {
@@ -367,7 +404,11 @@ export default function App() {
           onSkipCheckup={handleSkipCheckup}
           onSubmitAdditionalDeclaration={handleAdditionalDeclaration}
           report={milestoneReports[milestone.key]}
-          isReportLoading={loadingMilestoneKey === milestone.key}
+          isReportLoading={isMilestoneReportPending({
+            isLoading: loadingMilestoneKey === milestone.key,
+            showCheckup,
+            report: milestoneReports[milestone.key],
+          })}
         />
       );
       break;
