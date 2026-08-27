@@ -19,7 +19,7 @@ import DeclarationForm from './components/DeclarationForm';
 import EndingReveal from './components/EndingReveal';
 import History from './components/History';
 import HistoryDetail from './components/HistoryDetail';
-import MilestoneReport from './components/MilestoneReport';
+import MilestoneReport, { MilestoneNavigation } from './components/MilestoneReport';
 import TitleScreen from './components/TitleScreen';
 import { AXES } from './data/axes';
 import { saveResult } from './data/history';
@@ -106,54 +106,82 @@ function DayGenerationScreen({
   report,
   isReportLoading,
 }) {
+  const nextLabel = isFinishing
+    ? '時間を進めています…'
+    : nextMilestone
+    ? `${nextMilestone.label}へ進む`
+    : (isCollapsePending ? '時間を進める' : '結末を見る');
+  const onNextAction = isFinishing
+    ? undefined
+    : (isCollapsePending ? onFinish : (nextMilestone ? onNext : onFinish));
+
   return (
-    <DestinationPlaceholder eyebrow="MILESTONE" title={milestone.label}>
-      <View style={styles.declarationBlock}>
-        <Text style={styles.destinationDeclaration}>「{declaration}」</Text>
-        {additionalDeclarations.map((item, index) => (
-          <Text
-            key={`${item.milestoneKey}-${index}`}
-            style={styles.additionalDeclaration}
+    <SafeAreaView style={styles.destination}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.destinationKeyboardArea}
+      >
+        <View style={styles.destinationBody}>
+          <ScrollView
+            contentContainerStyle={styles.destinationContent}
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            keyboardShouldPersistTaps="always"
+            style={styles.destinationScroll}
           >
-            追加宣言「{item.declaration}」
-          </Text>
-        ))}
-      </View>
-      {showCheckup ? (
-        <CheckupEvent
-          key={milestone.key}
-          milestoneLabel={milestone.label}
-          onSkip={onSkipCheckup}
-          onSubmit={onSubmitAdditionalDeclaration}
-        />
-      ) : (
-        <MilestoneReport
-          headline={report?.headline ?? ''}
-          isFallback={report?.isFallback ?? false}
-          isFinal={!nextMilestone && !isCollapsePending}
-          isLoading={isReportLoading}
-          key={milestone.key}
-          memo={report?.memo ?? ''}
-          milestoneLabel={milestone.label}
-          previousLabel={previousMilestone ? `${previousMilestone.label}へ戻る` : undefined}
-          onPrevious={previousMilestone ? onPrevious : undefined}
-          news={report?.news ?? ''}
-          nextLabel={
-            isFinishing
-              ? '時間を進めています…'
-              : nextMilestone
-              ? `${nextMilestone.label}へ進む`
-              : (isCollapsePending ? '時間を進める' : '結末を見る')
-          }
-          onNext={isFinishing ? undefined : (isCollapsePending ? onFinish : (nextMilestone ? onNext : onFinish))}
-        />
-      )}
-      {desireAxes ? (
-        <Text style={styles.destinationAxes}>
-          {AXES.map((axis) => `${axis.label} ${desireAxes[axis.key]}`).join('　')}
-        </Text>
-      ) : null}
-    </DestinationPlaceholder>
+            <Text style={styles.eyebrow}>MILESTONE</Text>
+            <Text style={styles.destinationTitle}>{milestone.label}</Text>
+            <View style={styles.declarationBlock}>
+              <Text style={styles.destinationDeclaration}>「{declaration}」</Text>
+              {additionalDeclarations.map((item, index) => (
+                <Text
+                  key={`${item.milestoneKey}-${index}`}
+                  style={styles.additionalDeclaration}
+                >
+                  追加宣言「{item.declaration}」
+                </Text>
+              ))}
+            </View>
+            {showCheckup ? (
+              <CheckupEvent
+                key={milestone.key}
+                milestoneLabel={milestone.label}
+                onSkip={onSkipCheckup}
+                onSubmit={onSubmitAdditionalDeclaration}
+              />
+            ) : (
+              <MilestoneReport
+                headline={report?.headline ?? ''}
+                hideNavigation
+                isFallback={report?.isFallback ?? false}
+                isLoading={isReportLoading}
+                key={milestone.key}
+                memo={report?.memo ?? ''}
+                milestoneLabel={milestone.label}
+                news={report?.news ?? ''}
+              />
+            )}
+            {desireAxes ? (
+              <Text style={styles.destinationAxes}>
+                {AXES.map((axis) => `${axis.label} ${desireAxes[axis.key]}`).join('　')}
+              </Text>
+            ) : null}
+          </ScrollView>
+          {!showCheckup ? (
+            <View pointerEvents="box-none" style={styles.stickyNavigationBar}>
+              <View style={styles.stickyNavigationInner}>
+                <MilestoneNavigation
+                  isFinal={!nextMilestone && !isCollapsePending}
+                  nextLabel={nextLabel}
+                  onNext={onNextAction}
+                  onPrevious={previousMilestone ? onPrevious : undefined}
+                  previousLabel={previousMilestone ? `${previousMilestone.label}へ戻る` : undefined}
+                />
+              </View>
+            </View>
+          ) : null}
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -514,11 +542,29 @@ const styles = StyleSheet.create({
   destinationKeyboardArea: {
     flex: 1,
   },
+  destinationBody: {
+    flex: 1,
+    position: 'relative',
+  },
+  stickyNavigationBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingBottom: 20,
+  },
+  stickyNavigationInner: {
+    width: '100%',
+    maxWidth: 520,
+  },
   destinationContent: {
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
+    paddingBottom: 96,
   },
   destinationScroll: {
     flex: 1,

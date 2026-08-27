@@ -28,6 +28,7 @@ const NOTEBOOK_LINES = Array.from({ length: NOTEBOOK_LINE_COUNT }, (_, i) => i);
  * @param {boolean} [props.isFinal] 最後の節目かどうか。
  * @param {boolean} [props.isLoading] generateBeat呼び出し中かどうか。trueの間はローディング表示に差し替える。
  * @param {boolean} [props.isFallback] #11のタイムアウト・フォールバック機構がフォールバック本文を返したかどうか。
+ * @param {boolean} [props.hideNavigation] trueの場合、内蔵の前/次ナビゲーションを描画しない（呼び出し側が別途MilestoneNavigationを表示する場合に使う）。
  */
 export default function MilestoneReport({
   milestoneLabel,
@@ -41,6 +42,7 @@ export default function MilestoneReport({
   isFinal = false,
   isLoading = false,
   isFallback = false,
+  hideNavigation = false,
 }) {
   const [activeSide, setActiveSide] = useState(REPORT_SIDES.NEWS);
   const isNews = activeSide === REPORT_SIDES.NEWS;
@@ -202,6 +204,33 @@ export default function MilestoneReport({
           </View>
         </>
       )}
+      {!hideNavigation ? (
+        <MilestoneNavigation
+          isFinal={isFinal}
+          nextLabel={nextLabel}
+          onNext={onNext}
+          onPrevious={onPrevious}
+          previousLabel={previousLabel}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * 前/次の節目へ移動するナビゲーションボタン。MilestoneReport内蔵の他、
+ * スクロール外の固定バーとしても呼び出せるよう単独で公開する。
+ *
+ * @param {Object} props
+ * @param {Function} [props.onPrevious] 前の節目へ戻る処理。
+ * @param {string} [props.previousLabel] 戻るボタンのラベル。
+ * @param {Function} [props.onNext] 次の節目へ進む処理。
+ * @param {string} [props.nextLabel] 次へボタンのラベル。
+ * @param {boolean} [props.isFinal] 最後の節目かどうか。
+ */
+export function MilestoneNavigation({ onPrevious, previousLabel, onNext, nextLabel, isFinal = false }) {
+  return (
+    <>
       {onPrevious || onNext ? (
         <View style={styles.navigation}>
           {onPrevious ? (
@@ -237,7 +266,7 @@ export default function MilestoneReport({
       {isFinal ? (
         <Text style={styles.finalMilestone}>最後の節目に到達しました</Text>
       ) : null}
-    </View>
+    </>
   );
 }
 
@@ -535,15 +564,21 @@ const styles = StyleSheet.create({
   navigation: {
     marginTop: 16,
     flexDirection: 'row',
+    justifyContent: 'center',
     gap: 10,
   },
   navigationButton: {
-    flex: 1,
-    minHeight: 56,
-    paddingHorizontal: 20,
+    minHeight: 48,
+    paddingHorizontal: 16,
+    borderRadius: 24,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
   },
   previousButton: {
     borderWidth: 1,
