@@ -1,11 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { mapDesire } from './api/mapDesire';
 import DeclarationForm from './components/DeclarationForm';
+import MilestoneReport from './components/MilestoneReport';
 import TitleScreen from './components/TitleScreen';
 import { AXES } from './data/axes';
+import { MILESTONES } from './data/milestones';
 import { createGenerationInput } from './game/declaration';
 import { STAGES } from './game/navigation';
 
@@ -17,22 +19,41 @@ const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
 function DestinationPlaceholder({ eyebrow, title, children }) {
   return (
     <SafeAreaView style={styles.destination}>
-      <View style={styles.destinationContent}>
+      <ScrollView contentContainerStyle={styles.destinationContent} style={styles.destinationScroll}>
         <Text style={styles.eyebrow}>{eyebrow}</Text>
         <Text style={styles.destinationTitle}>{title}</Text>
         {children}
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 /**
- * 初日の宣言内容と欲望軸を表示する。
+ * 節目ごとの宣言内容、表裏レポート、欲望軸を表示する。
  */
-function DayGenerationScreen({ declaration, desireAxes }) {
+function DayGenerationScreen({
+  declaration,
+  desireAxes,
+  milestone,
+  previousMilestone,
+  nextMilestone,
+  onPrevious,
+  onNext,
+}) {
   return (
-    <DestinationPlaceholder eyebrow="DAY 1" title="初日">
+    <DestinationPlaceholder eyebrow="MILESTONE" title={milestone.label}>
       <Text style={styles.destinationDeclaration}>「{declaration}」</Text>
+      <MilestoneReport
+        isFinal={!nextMilestone}
+        key={milestone.key}
+        memo={`側近メモ：${milestone.description} 表向きは平静だが、現場では想定外の影響が広がっている。`}
+        milestoneLabel={milestone.label}
+        previousLabel={previousMilestone ? `${previousMilestone.label}へ戻る` : undefined}
+        onPrevious={previousMilestone ? onPrevious : undefined}
+        news={`【${milestone.label}】${milestone.description} 政府は状況を注視すると発表しています。`}
+        nextLabel={nextMilestone ? `${nextMilestone.label}へ進む` : undefined}
+        onNext={nextMilestone ? onNext : undefined}
+      />
       {desireAxes ? (
         <Text style={styles.destinationAxes}>
           {AXES.map((axis) => `${axis.label} ${desireAxes[axis.key]}`).join('　')}
@@ -48,6 +69,8 @@ function DayGenerationScreen({ declaration, desireAxes }) {
 export default function App() {
   const [stage, setStage] = useState(STAGES.TITLE);
   const [generationInput, setGenerationInput] = useState(null);
+  const [desireAxes, setDesireAxes] = useState(null);
+  const [milestoneIndex, setMilestoneIndex] = useState(0);
 
   /**
    * 冒頭宣言を送信する。
@@ -61,6 +84,7 @@ export default function App() {
   const handleDeclarationSubmit = async (declaration, tone) => {
     const nextGenerationInput = createGenerationInput(declaration, tone);
     setGenerationInput(nextGenerationInput);
+    setMilestoneIndex(0);
 
     const result = await mapDesire(nextGenerationInput.declaration, CLAUDE_API_KEY);
     setDesireAxes(result);
@@ -86,6 +110,15 @@ export default function App() {
         <DayGenerationScreen
           declaration={generationInput?.declaration ?? ''}
           desireAxes={desireAxes}
+          milestone={MILESTONES[milestoneIndex]}
+          previousMilestone={MILESTONES[milestoneIndex - 1]}
+          nextMilestone={MILESTONES[milestoneIndex + 1]}
+          onPrevious={() => (
+            setMilestoneIndex((current) => Math.max(current - 1, 0))
+          )}
+          onNext={() => (
+            setMilestoneIndex((current) => Math.min(current + 1, MILESTONES.length - 1))
+          )}
         />
       );
       break;
@@ -112,10 +145,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#0b0b0d',
   },
   destinationContent: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
+  },
+  destinationScroll: {
+    flex: 1,
   },
   eyebrow: {
     marginBottom: 12,
@@ -131,7 +167,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   destinationDeclaration: {
-    marginTop: 24,
+    marginVertical: 24,
     maxWidth: 320,
     color: '#a9a39a',
     fontSize: 15,
