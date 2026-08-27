@@ -30,7 +30,7 @@ test('normalizeHistoryResults handles empty and malformed stored values', () => 
     ]),
     [{
       declarationSummary: '',
-      desireAxes: { fame: 0, love: 0, pleasure: 0, power: 0, wealth: 0 },
+      desireAxes: { domination: 0, egoism: 0, innovation: 0, madness: 0, prestige: 0 },
       endingBody: '',
       endingTitle: 'ending',
       savedAt: '',

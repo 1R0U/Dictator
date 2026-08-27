@@ -16,6 +16,7 @@ function buildSystemPrompt(tone) {
     'あなたは「欲望国家シム」のエンディング生成AIです。\n' +
     '指定されたエンディング型に合った結末の文章を生成してください。\n' +
     '欲望メーターは各軸0〜100で、50が中立、0ほど弱く100ほど強い値です。\n' +
+    'domination=支配、egoism=我欲、innovation=変革、prestige=威信、madness=狂気です。\n' +
     '\n' +
     '【トーン指定：' + tonePrompt.label + '】\n' +
     tonePrompt.instruction + '\n' +

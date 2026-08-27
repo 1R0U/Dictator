@@ -35,11 +35,11 @@ import { STAGES } from './game/navigation';
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
 // desireAxesが未設定（通常発生しない）な場合のみ使うフォールバック値。
 const FALLBACK_FINAL_METER = Object.freeze({
-  wealth: 72,
-  power: 91,
-  fame: 64,
-  love: 28,
-  pleasure: 57,
+  domination: 91,
+  egoism: 72,
+  innovation: 64,
+  prestige: 57,
+  madness: 72,
 });
 // エンディング型の判定ロジック（#6/#25）が未実装のため、型自体は仮固定。
 const DUMMY_ENDING_TYPE = 'ironic_peace';

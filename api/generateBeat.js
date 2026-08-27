@@ -20,6 +20,7 @@ function buildSystemPrompt(tone) {
     'プレイヤーは独裁者として欲望を法律として宣言しています。\n' +
     '指定された時点での国の状況を、表（ニュース報道）と裏（側近メモ）の二面で生成してください。\n' +
     '欲望メーターは各軸0〜100で、50が中立、0ほど弱く100ほど強い値です。\n' +
+    'domination=支配、egoism=我欲、innovation=変革、prestige=威信、madness=狂気です。\n' +
     '\n' +
     '【トーン指定：' + tonePrompt.label + '】\n' +
     tonePrompt.instruction + '\n' +
@@ -45,7 +46,7 @@ function buildSystemPrompt(tone) {
  * @param {Object} params
  * @param {string} params.declaration   - プレイヤーの宣言テキスト
  * @param {string} params.milestoneLabel - 節目ラベル（「初日」「1週間後」など）
- * @param {Object} params.meter         - 現在の欲望メーター { wealth: 20, power: 90, ... }
+ * @param {Object} params.meter         - 現在の欲望メーター { domination: 90, egoism: 70, ... }
  * @param {string[]} params.previousDeclarations - これまでの追加宣言（検診で追加されたもの）
  * @param {string} params.tone          - トーンキー（pop / horror / real / emo）
  * @param {string} params.apiKey        - Claude APIキー

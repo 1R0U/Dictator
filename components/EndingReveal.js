@@ -9,6 +9,7 @@ import {
   createRevealCompletionNotifier,
   normalizeMeterValue,
 } from '../game/endingReveal';
+import { getDesireTraitSentence } from '../game/desireTraits';
 
 const PHASES = Object.freeze({
   ENDING: 'ending',
@@ -130,12 +131,17 @@ export default function EndingReveal({
                   style={styles.meterRow}
                 >
                   <View style={styles.meterLabels}>
-                    <Text style={styles.axisLabel}>{axis.label}</Text>
+                    <Text style={styles.axisLabel}>
+                      {axis.label} / {axis.englishName.toUpperCase()}
+                    </Text>
                     <Text style={styles.axisValue}>{value}</Text>
                   </View>
                   <View style={styles.meterTrack}>
                     <Animated.View style={[styles.meterFill, { width }]} />
                   </View>
+                  <Text style={styles.axisTrait}>
+                    {getDesireTraitSentence(axis.key, value)}
+                  </Text>
                 </View>
               );
             })}
@@ -265,6 +271,12 @@ const styles = StyleSheet.create({
     color: '#f3eee4',
     fontSize: 14,
     fontWeight: '900',
+  },
+  axisTrait: {
+    marginTop: 3,
+    color: '#8e8982',
+    fontSize: 11,
+    lineHeight: 18,
   },
   meterTrack: {
     height: 10,

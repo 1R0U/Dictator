@@ -24,12 +24,12 @@ test('追加宣言は50を中立として現在値へ反映する', () => {
   assert.equal(applyDesireScore(90, 80), 100);
 });
 
-test('5軸すべてを0〜100へ正規化する', () => {
-  assert.deepEqual(normalizeDesireAxes({ wealth: 120, power: 25 }), {
-    wealth: 100,
-    power: 25,
-    fame: 50,
-    love: 50,
-    pleasure: 50,
+test('新しい5軸すべてを0〜100へ正規化する', () => {
+  assert.deepEqual(normalizeDesireAxes({ domination: 120, egoism: 25 }), {
+    domination: 100,
+    egoism: 25,
+    innovation: 50,
+    prestige: 50,
+    madness: 50,
   });
 });
