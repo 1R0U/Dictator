@@ -165,7 +165,11 @@ export default function App() {
   /** 追加宣言せず、これまでの宣言を踏まえた物語へ進む。 */
   const handleSkipCheckup = async () => {
     completeCurrentCheckup();
-    await generateCurrentMilestoneReport(additionalDeclarations);
+    try {
+      await generateCurrentMilestoneReport(additionalDeclarations);
+    } catch (err) {
+      console.warn('handleSkipCheckup: failed to generate report', err.message);
+    }
   };
 
   /** 現在の節目の検診を処理済みにする。 */
@@ -182,12 +186,18 @@ export default function App() {
 
     setAdditionalDeclarations(nextDeclarations);
     completeCurrentCheckup();
+    setLoadingMilestoneKey(milestoneKey);
 
-    const mapping = await mapDesire(nextDeclaration.declaration, CLAUDE_API_KEY);
-    const nextDesireAxes = applyMapping(desireAxes, mapping);
+    try {
+      const mapping = await mapDesire(nextDeclaration.declaration, CLAUDE_API_KEY);
+      const nextDesireAxes = applyMapping(desireAxes, mapping);
 
-    await generateCurrentMilestoneReport(nextDeclarations, nextDesireAxes);
-    setDesireAxes(nextDesireAxes);
+      await generateCurrentMilestoneReport(nextDeclarations, nextDesireAxes);
+      setDesireAxes(nextDesireAxes);
+    } catch (err) {
+      console.warn('handleAdditionalDeclaration: failed to generate report', err.message);
+      setLoadingMilestoneKey((current) => (current === milestoneKey ? null : current));
+    }
   };
 
   /** エンディング表示後にプレイ状態を初期化してホームへ戻る。 */
