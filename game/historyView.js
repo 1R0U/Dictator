@@ -29,6 +29,27 @@ function getHistoryAdditionalDeclarations(result) {
     }));
 }
 
+/** Build the persisted result shared by the ending screen and history views. */
+function createHistoryResult({
+  declarationSummary,
+  additionalDeclarations,
+  desireAxes,
+  endingBody,
+  endingType,
+  endingTitle,
+  figureDiagnosis,
+}) {
+  return {
+    declarationSummary,
+    additionalDeclarations: getHistoryAdditionalDeclarations({ additionalDeclarations }),
+    desireAxes,
+    endingBody,
+    endingType,
+    endingTitle,
+    figureDiagnosis,
+  };
+}
+
 /**
  * Normalize persisted data so the history screen can render safely.
  *
@@ -111,6 +132,7 @@ module.exports = {
   UNKNOWN_ENDING_TITLE,
   UNKNOWN_DECLARATION,
   UNKNOWN_SAVED_AT,
+  createHistoryResult,
   formatHistoryDate,
   getHistoryAdditionalDeclarations,
   getHistoryDeclarationSummary,

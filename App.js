@@ -38,6 +38,7 @@ import { shouldTriggerNationCollapse } from './game/milestoneEnding';
 import { isMilestoneReportPending } from './game/milestoneReport';
 import { STAGES } from './game/navigation';
 import { getPreviousMilestoneEvents } from './game/storyContext';
+import { createHistoryResult } from './game/historyView';
 
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 // desireAxesが未設定（通常発生しない）な場合のみ使うフォールバック値。
@@ -322,7 +323,7 @@ export default function App() {
 
   /** エンディング二段演出の完了を受けて、結果を履歴へ保存する。 */
   const handleEndingRevealComplete = () => {
-    saveResult({
+    saveResult(createHistoryResult({
       declarationSummary: generationInput?.declaration ?? '',
       additionalDeclarations,
       desireAxes: desireAxes ?? FALLBACK_FINAL_METER,
@@ -330,7 +331,7 @@ export default function App() {
       endingType,
       endingTitle: endingReport?.title ?? FALLBACK_ENDING_HEADLINE,
       figureDiagnosis: figureDiagnosis ?? null,
-    }).catch((err) => {
+    })).catch((err) => {
       console.warn('handleEndingRevealComplete: failed to save result', err.message);
     });
   };

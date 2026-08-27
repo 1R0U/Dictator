@@ -168,6 +168,7 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
                         {additionalDeclarations.map((item, declarationIndex) => (
                           <Text
                             key={`${item.milestoneKey}-${declarationIndex}`}
+                            numberOfLines={2}
                             style={styles.cardAdditionalDeclaration}
                           >
                             追加宣言「{item.declaration}」

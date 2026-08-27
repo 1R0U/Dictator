@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {
   UNKNOWN_ENDING_TITLE,
   UNKNOWN_SAVED_AT,
+  createHistoryResult,
   formatHistoryDate,
   getHistoryAdditionalDeclarations,
   getHistoryDeclarationSummary,
@@ -56,6 +57,27 @@ test('追加宣言を履歴表示向けに正規化する', () => {
     { milestoneKey: '', declaration: '祝日には菓子を配る' },
   ]);
   assert.deepEqual(getHistoryAdditionalDeclarations({}), []);
+});
+
+test('結末の保存形式から履歴の再読込まで追加宣言を保持する', () => {
+  const savedResult = createHistoryResult({
+    declarationSummary: '休日を増やす',
+    additionalDeclarations: [
+      { milestoneKey: 'halfYear', declaration: '  週休三日にする  ' },
+      { milestoneKey: 'year3', declaration: '祝日には菓子を配る' },
+    ],
+    desireAxes: { domination: 10, egoism: 20, innovation: 30, prestige: 40, madness: 50 },
+    endingBody: '国は休日を楽しんだ。',
+    endingType: 'ironic_peace',
+    endingTitle: '休息の国',
+    figureDiagnosis: null,
+  });
+  const [loadedResult] = normalizeHistoryResults([savedResult]);
+
+  assert.deepEqual(loadedResult.additionalDeclarations, [
+    { milestoneKey: 'halfYear', declaration: '週休三日にする' },
+    { milestoneKey: 'year3', declaration: '祝日には菓子を配る' },
+  ]);
 });
 
 test('履歴詳細の本文は保存値または宣言概要から再構成する', () => {
