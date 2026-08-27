@@ -26,7 +26,8 @@ import { applyMapping } from './game/meter';
 import { STAGES } from './game/navigation';
 
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
-const DUMMY_FINAL_METER = Object.freeze({
+// desireAxesが未設定（通常発生しない）な場合のみ使うフォールバック値。
+const FALLBACK_FINAL_METER = Object.freeze({
   wealth: 72,
   power: 91,
   fame: 64,
@@ -225,7 +226,7 @@ export default function App() {
       const ending = await generateEnding({
         declaration: generationInput.declaration,
         endingType: DUMMY_ENDING_TYPE,
-        meter: DUMMY_FINAL_METER,
+        meter: desireAxes ?? FALLBACK_FINAL_METER,
         tone: generationInput.tone,
         apiKey: CLAUDE_API_KEY,
       });
@@ -243,7 +244,7 @@ export default function App() {
   const handleEndingRevealComplete = () => {
     saveResult({
       declarationSummary: generationInput?.declaration ?? '',
-      desireAxes: DUMMY_FINAL_METER,
+      desireAxes: desireAxes ?? FALLBACK_FINAL_METER,
       endingType: DUMMY_ENDING_TYPE,
       endingTitle: endingReport?.title ?? FALLBACK_ENDING_HEADLINE,
     }).catch((err) => {
@@ -343,7 +344,7 @@ export default function App() {
         <DestinationPlaceholder eyebrow="FINAL REPORT" title="世界の結末">
           <EndingReveal
             body={endingReport?.body ?? FALLBACK_ENDING_BODY}
-            finalMeter={DUMMY_FINAL_METER}
+            finalMeter={desireAxes ?? FALLBACK_FINAL_METER}
             headline={endingReport?.title ?? FALLBACK_ENDING_HEADLINE}
             onRevealComplete={handleEndingRevealComplete}
             onReturnHome={handleReturnHome}
