@@ -38,7 +38,7 @@ test('ユークリッド距離を軸ごとの差から算出する', () => {
 test('データセット内の全人物に重複しないkeyと、名前・エピセット・パターンがある', () => {
   const keys = FIGURES.map((figure) => figure.key);
   assert.equal(new Set(keys).size, FIGURES.length);
-  assert.ok(FIGURES.length >= 30);
+  assert.ok(FIGURES.length >= 20);
 
   for (const figure of FIGURES) {
     assert.ok(figure.name);

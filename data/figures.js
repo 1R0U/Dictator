@@ -79,76 +79,16 @@ const FIGURES = Object.freeze([
     pattern: Object.freeze({ domination: 68, egoism: 30, innovation: 55, prestige: 85, madness: 20 }),
   }),
   Object.freeze({
-    key: 'vlad_the_impaler',
-    name: 'ヴラド3世（串刺し公）',
-    epithet: '恐怖で国境を守った公',
-    pattern: Object.freeze({ domination: 78, egoism: 35, innovation: 20, prestige: 45, madness: 92 }),
-  }),
-  Object.freeze({
     key: 'marie_antoinette',
     name: 'マリー・アントワネット',
     epithet: 'ヴェルサイユの浪費王妃',
     pattern: Object.freeze({ domination: 25, egoism: 78, innovation: 15, prestige: 70, madness: 50 }),
   }),
   Object.freeze({
-    key: 'oliver_cromwell',
-    name: 'オリバー・クロムウェル',
-    epithet: '王を処刑した護国卿',
-    pattern: Object.freeze({ domination: 78, egoism: 20, innovation: 70, prestige: 50, madness: 70 }),
-  }),
-  Object.freeze({
-    key: 'toussaint_louverture',
-    name: 'トゥーサン・ルーヴェルテュール',
-    epithet: '奴隷から将軍になった解放者',
-    pattern: Object.freeze({ domination: 60, egoism: 15, innovation: 80, prestige: 55, madness: 30 }),
-  }),
-  Object.freeze({
-    key: 'simon_bolivar',
-    name: 'シモン・ボリバル',
-    epithet: '大陸を独立させた解放者',
-    pattern: Object.freeze({ domination: 75, egoism: 25, innovation: 78, prestige: 70, madness: 45 }),
-  }),
-  Object.freeze({
-    key: 'catherine_de_medici',
-    name: 'カトリーヌ・ド・メディシス',
-    epithet: '毒と謀略の宮廷を操った王太后',
-    pattern: Object.freeze({ domination: 62, egoism: 55, innovation: 50, prestige: 70, madness: 60 }),
-  }),
-  Object.freeze({
-    key: 'timur',
-    name: 'ティムール（タメルラン）',
-    epithet: '髑髏の塔を築いた征服者',
-    pattern: Object.freeze({ domination: 92, egoism: 45, innovation: 50, prestige: 65, madness: 85 }),
-  }),
-  Object.freeze({
     key: 'catherine_the_great',
     name: 'エカチェリーナ2世（大帝）',
     epithet: '啓蒙と拡張を両立させた女帝',
     pattern: Object.freeze({ domination: 80, egoism: 45, innovation: 75, prestige: 80, madness: 25 }),
-  }),
-  Object.freeze({
-    key: 'attila',
-    name: 'アッティラ',
-    epithet: '「神の鞭」と恐れられた大王',
-    pattern: Object.freeze({ domination: 88, egoism: 40, innovation: 30, prestige: 55, madness: 80 }),
-  }),
-  Object.freeze({
-    key: 'harun_al_rashid',
-    name: 'ハールーン・アッ＝ラシード',
-    epithet: '千夜一夜物語の黄金期カリフ',
-    pattern: Object.freeze({ domination: 55, egoism: 30, innovation: 70, prestige: 80, madness: 20 }),
-  }),
-  Object.freeze({
-    key: 'empress_lu',
-    name: '呂后（呂雉）',
-    epithet: '漢を裏から支配した皇太后',
-    pattern: Object.freeze({ domination: 75, egoism: 60, innovation: 40, prestige: 55, madness: 65 }),
-  }),
-  Object.freeze({
-    key: 'suleiman_the_magnificent',
-    name: 'スレイマン1世（壮麗王）',
-    epithet: '最盛期を築いたオスマン皇帝',
-    pattern: Object.freeze({ domination: 82, egoism: 35, innovation: 65, prestige: 90, madness: 20 }),
   }),
   // --- ここからアニメ・漫画キャラクター枠 ---
   Object.freeze({
