@@ -2,22 +2,43 @@ import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
+import { mapDesire } from './api/mapDesire';
 import DeclarationForm from './components/DeclarationForm';
 import TitleScreen from './components/TitleScreen';
+import { AXES } from './data/axes';
 import { createGenerationInput } from './game/declaration';
 import { STAGES } from './game/navigation';
+
+const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
 
 /**
  * 未実装の遷移先に共通のプレースホルダー画面を表示する。
  */
-function DestinationPlaceholder({ eyebrow, title }) {
+function DestinationPlaceholder({ eyebrow, title, children }) {
   return (
     <SafeAreaView style={styles.destination}>
       <View style={styles.destinationContent}>
         <Text style={styles.eyebrow}>{eyebrow}</Text>
         <Text style={styles.destinationTitle}>{title}</Text>
+        {children}
       </View>
     </SafeAreaView>
+  );
+}
+
+/**
+ * 初日の宣言内容と欲望軸を表示する。
+ */
+function DayGenerationScreen({ declaration, desireAxes }) {
+  return (
+    <DestinationPlaceholder eyebrow="DAY 1" title="初日">
+      <Text style={styles.destinationDeclaration}>「{declaration}」</Text>
+      {desireAxes ? (
+        <Text style={styles.destinationAxes}>
+          {AXES.map((axis) => `${axis.label} ${desireAxes[axis.key]}`).join('　')}
+        </Text>
+      ) : null}
+    </DestinationPlaceholder>
   );
 }
 
@@ -34,16 +55,16 @@ export default function App() {
    * @param {string} declaration プレイヤーが入力した宣言文。
    * @param {string} tone 選択されたトーンID。
    * @returns {Promise<void>}
-   * AI連携と次画面への遷移はIssue #28で実装する。
+   * mapDesireは通信失敗時もフォールバック配点を返すため、
+   * 送信は常に初日生成画面への遷移で完了する。
    */
   const handleDeclarationSubmit = async (declaration, tone) => {
     const nextGenerationInput = createGenerationInput(declaration, tone);
-
     setGenerationInput(nextGenerationInput);
 
-    // Future generation calls should receive `nextGenerationInput` here.
-    // State is retained in `generationInput` for subsequent game screens.
-    // Issue #13では入力UIとコールバック呼び出しまでを確認する。
+    const result = await mapDesire(nextGenerationInput.declaration, CLAUDE_API_KEY);
+    setDesireAxes(result);
+    setStage(STAGES.DAY_GENERATION);
   };
 
   let screen;
@@ -59,6 +80,14 @@ export default function App() {
       break;
     case STAGES.HISTORY:
       screen = <DestinationPlaceholder eyebrow="ARCHIVE" title="過去の記録" />;
+      break;
+    case STAGES.DAY_GENERATION:
+      screen = (
+        <DayGenerationScreen
+          declaration={generationInput?.declaration ?? ''}
+          desireAxes={desireAxes}
+        />
+      );
       break;
     default:
       screen = (
@@ -100,5 +129,20 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '700',
     letterSpacing: 2,
+  },
+  destinationDeclaration: {
+    marginTop: 24,
+    maxWidth: 320,
+    color: '#a9a39a',
+    fontSize: 15,
+    lineHeight: 24,
+    textAlign: 'center',
+  },
+  destinationAxes: {
+    marginTop: 16,
+    color: '#625e58',
+    fontSize: 12,
+    letterSpacing: 1,
+    textAlign: 'center',
   },
 });
