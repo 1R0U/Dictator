@@ -6,6 +6,7 @@ const {
   REPORT_STATUS,
   getReportContent,
   getReportStatus,
+  isMilestoneReportPending,
 } = require('../game/milestoneReport');
 
 const report = {
@@ -51,4 +52,25 @@ test('通常時はREADY状態になる', () => {
 
 test('引数省略時もREADY状態になる', () => {
   assert.equal(getReportStatus(), REPORT_STATUS.READY);
+});
+
+test('非検診の未生成レポートは初回描画からローディング扱いにする', () => {
+  assert.equal(isMilestoneReportPending({
+    isLoading: false,
+    showCheckup: false,
+    report: undefined,
+  }), true);
+});
+
+test('生成済みレポートまたは検診画面では未生成ローディングにしない', () => {
+  assert.equal(isMilestoneReportPending({
+    isLoading: false,
+    showCheckup: false,
+    report,
+  }), false);
+  assert.equal(isMilestoneReportPending({
+    isLoading: false,
+    showCheckup: true,
+    report: undefined,
+  }), false);
 });

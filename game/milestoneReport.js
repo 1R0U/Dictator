@@ -35,4 +35,23 @@ function getReportStatus({ isLoading, isFallback } = {}) {
   return REPORT_STATUS.READY;
 }
 
-module.exports = { REPORT_SIDES, REPORT_STATUS, getReportContent, getReportStatus };
+/**
+ * 検診ではない節目でレポートが未生成の場合、初回描画からローディング扱いにする。
+ *
+ * @param {Object} params
+ * @param {boolean} params.isLoading 生成処理が開始済みか。
+ * @param {boolean} params.showCheckup 追加宣言の検診を表示中か。
+ * @param {Object} [params.report] 現在の節目で生成済みのレポート。
+ * @returns {boolean} レポート画面をローディング表示にするか。
+ */
+function isMilestoneReportPending({ isLoading, showCheckup, report }) {
+  return isLoading || (!showCheckup && !report);
+}
+
+module.exports = {
+  REPORT_SIDES,
+  REPORT_STATUS,
+  getReportContent,
+  getReportStatus,
+  isMilestoneReportPending,
+};
