@@ -171,6 +171,8 @@ export default function EndingReveal({
               <Text style={styles.figureName}>{resolvedFigure.name}</Text>
               <Text style={styles.figureEpithet}>{resolvedFigure.epithet}</Text>
               <Text style={styles.figureBlurb}>{resolvedBlurb}</Text>
+              <View style={styles.biasDivider} />
+              <Text style={styles.biasLabel}>あなたの性格は偏見的にこれ！</Text>
               <Text style={styles.biasComment}>{resolvedBiasComment}</Text>
               <Text style={styles.figureDisclaimer}>{FIGURE_DIAGNOSIS_DISCLAIMER}</Text>
             </View>
@@ -362,8 +364,23 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
   },
+  biasDivider: {
+    alignSelf: 'center',
+    width: 32,
+    height: 2,
+    marginTop: 18,
+    backgroundColor: '#3a3640',
+  },
+  biasLabel: {
+    marginTop: 10,
+    color: '#8e8982',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textAlign: 'center',
+  },
   biasComment: {
-    marginTop: 14,
+    marginTop: 6,
     color: '#c8956a',
     fontSize: 13,
     fontWeight: '700',
