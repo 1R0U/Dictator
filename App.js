@@ -11,6 +11,7 @@ import History from './components/History';
 import MilestoneReport from './components/MilestoneReport';
 import TitleScreen from './components/TitleScreen';
 import { AXES } from './data/axes';
+import { saveResult } from './data/history';
 import { MILESTONES } from './data/milestones';
 import {
   completeCheckup,
@@ -31,6 +32,9 @@ const DUMMY_FINAL_METER = Object.freeze({
   love: 28,
   pleasure: 57,
 });
+// エンディング生成（#23等）が未接続のため、接続までの仮のエンディング型・見出し。
+const DUMMY_ENDING_TYPE = 'ironic_peace';
+const DUMMY_ENDING_HEADLINE = '黄金色の静寂';
 
 /**
  * 未実装の遷移先に共通のプレースホルダー画面を表示する。
@@ -203,6 +207,18 @@ export default function App() {
     }
   };
 
+  /** エンディング二段演出の完了を受けて、結果を履歴へ保存する。 */
+  const handleEndingRevealComplete = () => {
+    saveResult({
+      declarationSummary: generationInput?.declaration ?? '',
+      desireAxes: DUMMY_FINAL_METER,
+      endingType: DUMMY_ENDING_TYPE,
+      endingTitle: DUMMY_ENDING_HEADLINE,
+    }).catch((err) => {
+      console.warn('handleEndingRevealComplete: failed to save result', err.message);
+    });
+  };
+
   /** エンディング表示後にプレイ状態を初期化してホームへ戻る。 */
   const handleReturnHome = () => {
     setGenerationInput(null);
@@ -293,10 +309,8 @@ export default function App() {
           <EndingReveal
             body="国はあなたの宣言を忠実に実行し続けた。やがて人々は命令に従うことだけを覚え、静かな繁栄と引き換えに、自ら選ぶ未来を手放した。"
             finalMeter={DUMMY_FINAL_METER}
-            headline="黄金色の静寂"
-            onRevealComplete={() => {
-              // Issue #31で、このタイミングに履歴保存処理を接続する。
-            }}
+            headline={DUMMY_ENDING_HEADLINE}
+            onRevealComplete={handleEndingRevealComplete}
             onReturnHome={handleReturnHome}
           />
         </DestinationPlaceholder>
