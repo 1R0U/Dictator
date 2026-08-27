@@ -10,6 +10,9 @@ import {
   normalizeMeterValue,
 } from '../game/endingReveal';
 import { getDesireTraitSentence } from '../game/desireTraits';
+import { getDesireBiasComment } from '../game/desireBias';
+import { matchFigure } from '../game/figureMatch';
+import { FIGURE_DIAGNOSIS_DISCLAIMER, buildFallbackBlurb } from '../data/figures';
 
 const PHASES = Object.freeze({
   ENDING: 'ending',
@@ -23,6 +26,8 @@ const PHASES = Object.freeze({
  * @param {string} props.headline generateEndingが返すエンディング見出し。
  * @param {string} props.body generateEndingが返すエンディング本文。
  * @param {Object.<string, number>} props.finalMeter 各欲望軸の最終値。
+ * @param {{figure: Object, blurb: string, biasComment: string}} [props.figureDiagnosis]
+ *   事前に選出・生成済みの偉人診断（未指定時はローカルで即時算出する）。
  * @param {Function} [props.onRevealComplete] メーター開示アニメーション完了時の処理。
  * @param {Function} [props.onReturnHome] 表示完了後にホームへ戻る処理。
  * @param {string} [props.returnLabel] 表示完了後の戻るボタン文言。
@@ -31,6 +36,7 @@ export default function EndingReveal({
   headline,
   body,
   finalMeter,
+  figureDiagnosis,
   onRevealComplete,
   onReturnHome,
   returnLabel = 'ホームへ戻る',
@@ -38,6 +44,11 @@ export default function EndingReveal({
   const [phase, setPhase] = useState(PHASES.ENDING);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
   const meterAnimations = useRef(AXES.map(() => new Animated.Value(0))).current;
+  const resolvedFigure = figureDiagnosis?.figure ?? matchFigure(finalMeter)?.figure;
+  const resolvedBlurb = figureDiagnosis?.figure && figureDiagnosis?.blurb
+    ? figureDiagnosis.blurb
+    : (resolvedFigure ? buildFallbackBlurb(resolvedFigure) : null);
+  const resolvedBiasComment = figureDiagnosis?.biasComment ?? getDesireBiasComment(finalMeter);
   const activeAnimation = useRef(null);
   const isRevealing = useRef(false);
   const onRevealCompleteRef = useRef(onRevealComplete);
@@ -153,6 +164,17 @@ export default function EndingReveal({
             <Text style={styles.scaleText}>50</Text>
             <Text style={styles.scaleText}>{METER_MAX}</Text>
           </View>
+          {isRevealComplete && resolvedFigure ? (
+            <View accessibilityLiveRegion="polite" style={styles.figurePanel}>
+              <Text style={styles.figureKicker}>FIGURE DIAGNOSIS</Text>
+              <Text style={styles.figureLead}>あなたに最も近い人物は…</Text>
+              <Text style={styles.figureName}>{resolvedFigure.name}</Text>
+              <Text style={styles.figureEpithet}>{resolvedFigure.epithet}</Text>
+              <Text style={styles.figureBlurb}>{resolvedBlurb}</Text>
+              <Text style={styles.biasComment}>{resolvedBiasComment}</Text>
+              <Text style={styles.figureDisclaimer}>{FIGURE_DIAGNOSIS_DISCLAIMER}</Text>
+            </View>
+          ) : null}
           {isRevealComplete && onReturnHome ? (
             <Pressable
               accessibilityRole="button"
@@ -297,6 +319,63 @@ const styles = StyleSheet.create({
     color: '#625e58',
     fontSize: 10,
     fontWeight: '700',
+  },
+  figurePanel: {
+    marginTop: 30,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#7e2024',
+    backgroundColor: '#151216',
+  },
+  figureKicker: {
+    color: '#b9985a',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 3,
+    textAlign: 'center',
+  },
+  figureLead: {
+    marginTop: 12,
+    color: '#8e8982',
+    fontSize: 12,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  figureName: {
+    marginTop: 10,
+    color: '#f3eee4',
+    fontSize: 24,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  figureEpithet: {
+    marginTop: 4,
+    color: '#d8c9aa',
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  figureBlurb: {
+    marginTop: 14,
+    color: '#c8c0b5',
+    fontSize: 13,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  biasComment: {
+    marginTop: 14,
+    color: '#c8956a',
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  figureDisclaimer: {
+    marginTop: 16,
+    color: '#625e58',
+    fontSize: 10,
+    lineHeight: 16,
+    textAlign: 'center',
   },
   homeButton: {
     minHeight: 56,

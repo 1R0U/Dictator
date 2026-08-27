@@ -4,6 +4,7 @@
 import { FEW_SHOT_ENDING, TONE_PROMPTS } from '../data/prompts';
 import { ENDING_CATALOG } from '../data/endingCatalog';
 import { callClaudeApi } from './claudeClient';
+import { extractMarkedSections } from './markedSections';
 
 const MODEL = 'claude-haiku-4-5-20251001';
 
@@ -78,32 +79,12 @@ export async function generateEnding({ endingType, meter, declaration, tone = 'p
  * AIの出力テキストを ### TITLE / ### BODY / ### STATS で分割する。
  */
 function parseEnding(text, fallback) {
-  const titleMarker = '### TITLE';
-  const bodyMarker = '### BODY';
-  const statsMarker = '### STATS';
-
-  const titleIdx = text.indexOf(titleMarker);
-  const bodyIdx = text.indexOf(bodyMarker);
-  const statsIdx = text.indexOf(statsMarker);
-
   // マーカーが正しい順序で見つからない場合はフォールバック
-  if (titleIdx === -1 || bodyIdx === -1 || statsIdx === -1) {
-    return fallback;
-  }
-  if (!(titleIdx < bodyIdx && bodyIdx < statsIdx)) {
-    return fallback;
-  }
+  const sections = extractMarkedSections(text, ['### TITLE', '### BODY', '### STATS']);
+  if (!sections) return fallback;
 
-  const title = text
-    .substring(titleIdx + titleMarker.length, bodyIdx)
-    .trim()
-    .replace(/^『|』$/g, '');
-  const body = text
-    .substring(bodyIdx + bodyMarker.length, statsIdx)
-    .trim();
-  const statsRaw = text
-    .substring(statsIdx + statsMarker.length)
-    .trim();
+  const [rawTitle, body, statsRaw] = sections;
+  const title = rawTitle.replace(/^『|』$/g, '');
   const stats = statsRaw
     .split('\n')
     .map((line) => line.replace(/^・/, '').trim())
