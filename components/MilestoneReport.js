@@ -60,6 +60,10 @@ export default function MilestoneReport({
     setActiveSide(REPORT_SIDES.NEWS);
   }, [milestoneLabel]);
 
+  useEffect(() => {
+    setScrollMetrics((current) => ({ ...current, scrollY: 0 }));
+  }, [activeSide]);
+
   return (
     <View style={styles.container}>
       {status === REPORT_STATUS.LOADING ? (
