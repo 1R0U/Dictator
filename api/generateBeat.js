@@ -1,7 +1,7 @@
 // 時系列ニュース生成：節目ごとに表（ニュース）と裏（側近メモ）を生成する。
 // Claude API（Haiku）に直接fetch。各節目で計5回呼ばれる。
 
-import { FEW_SHOT_DECLARATION, FEW_SHOT_BEATS } from '../data/prompts';
+import { FEW_SHOT_DECLARATION, FEW_SHOT_BEATS, TONE_PROMPTS } from '../data/prompts';
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-haiku-4-5-20251001';
@@ -13,15 +13,16 @@ const FALLBACK = {
   memo: '側近メモ：通信が不安定で状況を把握できていない。とにかく独裁者の機嫌だけは損ねないように。',
 };
 
-function buildSystemPrompt() {
+function buildSystemPrompt(tone) {
   const example = FEW_SHOT_BEATS[0];
+  const tonePrompt = Object.hasOwn(TONE_PROMPTS, tone) ? TONE_PROMPTS[tone] : TONE_PROMPTS.pop;
   return (
     'あなたは「欲望国家シム」のシナリオAIです。\n' +
     'プレイヤーは独裁者として欲望を法律として宣言しています。\n' +
     '指定された時点での国の状況を、表（ニュース報道）と裏（側近メモ）の二面で生成してください。\n' +
     '\n' +
-    'ニュースはポップで皮肉の効いたトーンにしてください。\n' +
-    '具体的なキャラクター名・数字・会話文を入れると臨場感が出ます。\n' +
+    '【トーン指定：' + tonePrompt.label + '】\n' +
+    tonePrompt.instruction + '\n' +
     '\n' +
     '出力は必ず以下の形式にしてください：\n' +
     '### NEWS\n（ニュース本文）\n### MEMO\n（側近メモ）\n' +
@@ -46,6 +47,7 @@ function buildSystemPrompt() {
  * @param {string} params.milestoneLabel - 節目ラベル（「初日」「1週間後」など）
  * @param {Object} params.meter         - 現在の欲望メーター { wealth: 2, power: 5, ... }
  * @param {string[]} params.previousDeclarations - これまでの追加宣言（検診で追加されたもの）
+ * @param {string} params.tone          - トーンキー（pop / horror / real / emo）
  * @param {string} params.apiKey        - Claude APIキー
  * @returns {Promise<{news: string, memo: string}>}
  */
@@ -54,6 +56,7 @@ export async function generateBeat({
   milestoneLabel,
   meter,
   previousDeclarations = [],
+  tone = 'pop',
   apiKey,
 }) {
   const controller = new AbortController();
@@ -80,7 +83,7 @@ export async function generateBeat({
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 1024,
-        system: buildSystemPrompt(),
+        system: buildSystemPrompt(tone),
         messages: [{ role: 'user', content: userMessage }],
       }),
       signal: controller.signal,
