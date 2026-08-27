@@ -6,10 +6,14 @@ import { mapDesire } from './api/mapDesire';
 import DeclarationForm from './components/DeclarationForm';
 import TitleScreen from './components/TitleScreen';
 import { AXES } from './data/axes';
+import { createGenerationInput } from './game/declaration';
 import { STAGES } from './game/navigation';
 
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
 
+/**
+ * 未実装の遷移先に共通のプレースホルダー画面を表示する。
+ */
 function DestinationPlaceholder({ eyebrow, title, children }) {
   return (
     <SafeAreaView style={styles.destination}>
@@ -22,6 +26,9 @@ function DestinationPlaceholder({ eyebrow, title, children }) {
   );
 }
 
+/**
+ * 初日の宣言内容と欲望軸を表示する。
+ */
 function DayGenerationScreen({ declaration, desireAxes }) {
   return (
     <DestinationPlaceholder eyebrow="DAY 1" title="初日">
@@ -35,19 +42,27 @@ function DayGenerationScreen({ declaration, desireAxes }) {
   );
 }
 
+/**
+ * アプリ全体の画面遷移と、生成処理へ渡す宣言入力を管理する。
+ */
 export default function App() {
   const [stage, setStage] = useState(STAGES.TITLE);
-  const [declaration, setDeclaration] = useState('');
-  const [desireAxes, setDesireAxes] = useState(null);
+  const [generationInput, setGenerationInput] = useState(null);
 
   /**
-   * 冒頭宣言を送信し、mapDesireで欲望軸に変換してから初日生成画面へ遷移する。
-   * mapDesireは通信失敗時も含めて自身のtry/catchでフォールバック配点を返し、
-   * 例外を投げないため、送信は常に初日生成画面への遷移で完了する。
+   * 冒頭宣言を送信する。
+   *
+   * @param {string} declaration プレイヤーが入力した宣言文。
+   * @param {string} tone 選択されたトーンID。
+   * @returns {Promise<void>}
+   * mapDesireは通信失敗時もフォールバック配点を返すため、
+   * 送信は常に初日生成画面への遷移で完了する。
    */
-  const handleDeclarationSubmit = async (text) => {
-    const result = await mapDesire(text, CLAUDE_API_KEY);
-    setDeclaration(text);
+  const handleDeclarationSubmit = async (declaration, tone) => {
+    const nextGenerationInput = createGenerationInput(declaration, tone);
+    setGenerationInput(nextGenerationInput);
+
+    const result = await mapDesire(nextGenerationInput.declaration, CLAUDE_API_KEY);
     setDesireAxes(result);
     setStage(STAGES.DAY_GENERATION);
   };
@@ -67,7 +82,12 @@ export default function App() {
       screen = <DestinationPlaceholder eyebrow="ARCHIVE" title="過去の記録" />;
       break;
     case STAGES.DAY_GENERATION:
-      screen = <DayGenerationScreen declaration={declaration} desireAxes={desireAxes} />;
+      screen = (
+        <DayGenerationScreen
+          declaration={generationInput?.declaration ?? ''}
+          desireAxes={desireAxes}
+        />
+      );
       break;
     default:
       screen = (
