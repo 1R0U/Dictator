@@ -9,7 +9,7 @@ import {
   createRevealCompletionNotifier,
   normalizeMeterValue,
 } from '../game/endingReveal';
-import { getDesireTraitSentence } from '../game/desireTraits';
+import { getDesireTraitKeywords, getDesireTraitSentence } from '../game/desireTraits';
 import { getDesireBiasComment } from '../game/desireBias';
 import { matchFigure } from '../game/figureMatch';
 import { FIGURE_DIAGNOSIS_DISCLAIMER, buildFallbackBlurb } from '../data/figures';
@@ -18,6 +18,23 @@ const PHASES = Object.freeze({
   ENDING: 'ending',
   METER: 'meter',
 });
+
+/** Split a trait sentence into plain/highlighted segments so key words stand out visually. */
+function splitTraitSentenceSegments(sentence, keywords) {
+  const segments = [];
+  let remaining = sentence;
+
+  keywords.forEach((keyword) => {
+    const index = remaining.indexOf(keyword);
+    if (index === -1) return;
+    if (index > 0) segments.push({ text: remaining.slice(0, index), highlight: false });
+    segments.push({ text: keyword, highlight: true });
+    remaining = remaining.slice(index + keyword.length);
+  });
+
+  if (remaining) segments.push({ text: remaining, highlight: false });
+  return segments;
+}
 
 /**
  * エンディング本文を先に見せ、操作後に最終欲望メーターを開示する。
@@ -125,6 +142,8 @@ export default function EndingReveal({
             {AXES.map((axis, index) => {
               const value = clampMeterValue(finalMeter?.[axis.key]);
               const traitSentence = getDesireTraitSentence(axis.key, value);
+              const traitKeywords = getDesireTraitKeywords(axis.key, value);
+              const traitSegments = splitTraitSentenceSegments(traitSentence, traitKeywords);
               const width = meterAnimations[index].interpolate({
                 inputRange: [0, 1],
                 outputRange: ['0%', `${normalizeMeterValue(value)}%`],
@@ -152,7 +171,14 @@ export default function EndingReveal({
                     <Animated.View style={[styles.meterFill, { width }]} />
                   </View>
                   <Text style={styles.axisTrait}>
-                    {traitSentence}
+                    {traitSegments.map((segment, segmentIndex) => (
+                      <Text
+                        key={segmentIndex}
+                        style={segment.highlight ? styles.axisTraitHighlight : null}
+                      >
+                        {segment.text}
+                      </Text>
+                    ))}
                   </Text>
                 </View>
               );
@@ -302,6 +328,10 @@ const styles = StyleSheet.create({
     color: '#8e8982',
     fontSize: 11,
     lineHeight: 18,
+  },
+  axisTraitHighlight: {
+    color: '#d8c9aa',
+    fontWeight: '900',
   },
   meterTrack: {
     height: 10,
