@@ -60,7 +60,7 @@ const FALLBACK_ENDING_BODY =
 /**
  * 未実装の遷移先に共通のプレースホルダー画面を表示する。
  */
-function DestinationPlaceholder({ eyebrow, title, children }) {
+function DestinationPlaceholder({ eyebrow, title, children, scrollViewRef }) {
   return (
     <SafeAreaView style={styles.destination}>
       <KeyboardAvoidingView
@@ -71,6 +71,7 @@ function DestinationPlaceholder({ eyebrow, title, children }) {
           contentContainerStyle={styles.destinationContent}
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           keyboardShouldPersistTaps="always"
+          ref={scrollViewRef}
           style={styles.destinationScroll}
         >
           <Text style={styles.eyebrow}>{eyebrow}</Text>
@@ -166,6 +167,7 @@ export default function App() {
   const [figureDiagnosis, setFigureDiagnosis] = useState(null);
   const [isEndingLoading, setIsEndingLoading] = useState(false);
   const generatingMilestonesRef = useRef(new Set());
+  const endingScrollRef = useRef(null);
 
   /**
    * 冒頭宣言を送信する。
@@ -426,7 +428,11 @@ export default function App() {
     }
     case STAGES.ENDING:
       screen = (
-        <DestinationPlaceholder eyebrow="FINAL REPORT" title="世界の結末">
+        <DestinationPlaceholder
+          eyebrow="FINAL REPORT"
+          scrollViewRef={endingScrollRef}
+          title="世界の結末"
+        >
           <EndingReveal
             body={endingReport?.body ?? FALLBACK_ENDING_BODY}
             figureDiagnosis={figureDiagnosis}
@@ -434,6 +440,7 @@ export default function App() {
             headline={endingReport?.title ?? FALLBACK_ENDING_HEADLINE}
             onRevealComplete={handleEndingRevealComplete}
             onReturnHome={handleReturnHome}
+            scrollViewRef={endingScrollRef}
           />
         </DestinationPlaceholder>
       );
