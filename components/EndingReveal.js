@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AXES } from '../data/axes';
 import {
@@ -13,6 +13,8 @@ import { getDesireTraitKeywords, getDesireTraitSentence } from '../game/desireTr
 import { getDesireBiasComment } from '../game/desireBias';
 import { matchFigure } from '../game/figureMatch';
 import { FIGURE_DIAGNOSIS_DISCLAIMER, buildFallbackBlurb } from '../data/figures';
+import { getCollapseVisual } from '../data/collapseVisuals';
+import { ENDING_CATALOG } from '../data/endingCatalog';
 
 const PHASES = Object.freeze({
   ENDING: 'ending',
@@ -42,6 +44,7 @@ function splitTraitSentenceSegments(sentence, keywords) {
  * @param {Object} props
  * @param {string} props.headline generateEndingが返すエンディング見出し。
  * @param {string} props.body generateEndingが返すエンディング本文。
+ * @param {string} [props.endingType] 決定済みのエンディング型。
  * @param {Object.<string, number>} props.finalMeter 各欲望軸の最終値。
  * @param {{figure: Object, blurb: string, biasComment: string}} [props.figureDiagnosis]
  *   事前に選出・生成済みの偉人診断（未指定時はローカルで即時算出する）。
@@ -53,6 +56,7 @@ function splitTraitSentenceSegments(sentence, keywords) {
 export default function EndingReveal({
   headline,
   body,
+  endingType,
   finalMeter,
   figureDiagnosis,
   onRevealComplete,
@@ -69,6 +73,8 @@ export default function EndingReveal({
     ? figureDiagnosis.blurb
     : (resolvedFigure ? buildFallbackBlurb(resolvedFigure) : null);
   const resolvedBiasComment = figureDiagnosis?.biasComment ?? getDesireBiasComment(finalMeter);
+  const collapseVisual = getCollapseVisual(endingType);
+  const collapseLabel = collapseVisual ? ENDING_CATALOG[endingType]?.label : null;
   const activeAnimation = useRef(null);
   const isRevealing = useRef(false);
   const onRevealCompleteRef = useRef(onRevealComplete);
@@ -101,7 +107,7 @@ export default function EndingReveal({
       }
       isRevealing.current = false;
     };
-  }, [completionNotifier, headline, meterAnimations, panelRevealAnimation]);
+  }, [completionNotifier, endingType, headline, meterAnimations, panelRevealAnimation]);
 
   /** 欲望メーターを順番に開示し、完了を外部へ通知する。 */
   const revealMeter = () => {
@@ -159,11 +165,32 @@ export default function EndingReveal({
       }}
       style={styles.container}
     >
-      <View style={styles.endingPanel}>
-        <Text style={styles.kicker}>THE END OF YOUR NATION</Text>
-        <Text style={styles.headline}>{headline}</Text>
-        <View style={styles.rule} />
-        <Text style={styles.body}>{body}</Text>
+      {collapseVisual ? (
+        <View style={[styles.collapseImageFrame, { aspectRatio: collapseVisual.aspectRatio }]}>
+          <Image
+            accessibilityLabel={collapseVisual.imageLabel}
+            accessible
+            resizeMode="cover"
+            source={collapseVisual.image}
+            style={styles.collapseImage}
+          />
+          <View style={styles.collapseImageShade} />
+          <View style={styles.collapseImageMark}>
+            <Text style={styles.collapseImageNumber}>{collapseVisual.number}</Text>
+            <Text style={styles.collapseImageLabel}>{collapseLabel}</Text>
+          </View>
+        </View>
+      ) : null}
+      <View style={[styles.endingPanel, collapseVisual && styles.collapseEndingPanel]}>
+        <Text style={[styles.kicker, collapseVisual && styles.collapseKicker]}>
+          {collapseVisual?.kicker ?? 'THE END OF YOUR NATION'}
+        </Text>
+        <Text style={[styles.headline, collapseVisual && styles.collapseHeadline]}>
+          {headline}
+        </Text>
+        <View style={[styles.rule, collapseVisual && styles.collapseRule]} />
+        {collapseVisual ? <Text style={styles.collapseReasonLabel}>滅亡理由</Text> : null}
+        <Text style={[styles.body, collapseVisual && styles.collapseBody]}>{body}</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityState={{
@@ -301,6 +328,83 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#7e2024',
     backgroundColor: '#151216',
+  },
+  collapseImageFrame: {
+    position: 'relative',
+    width: '100%',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#5f3025',
+    backgroundColor: '#080707',
+  },
+  collapseImage: {
+    width: '100%',
+    height: '100%',
+  },
+  collapseImageShade: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    left: 0,
+    height: '24%',
+    backgroundColor: 'rgba(8, 5, 5, 0.36)',
+  },
+  collapseImageMark: {
+    position: 'absolute',
+    right: 18,
+    bottom: 12,
+    left: 18,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  collapseImageNumber: {
+    color: '#c28a62',
+    fontSize: 34,
+    fontWeight: '300',
+    letterSpacing: 5,
+  },
+  collapseImageLabel: {
+    color: '#ead8c4',
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 1,
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 5,
+  },
+  collapseEndingPanel: {
+    marginTop: 0,
+    borderTopWidth: 0,
+    borderColor: '#5f3025',
+    backgroundColor: '#100c0c',
+  },
+  collapseKicker: {
+    color: '#b66a4e',
+    letterSpacing: 2,
+  },
+  collapseHeadline: {
+    color: '#ead8c4',
+    textShadowColor: 'rgba(132, 43, 28, 0.7)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+  },
+  collapseRule: {
+    width: 86,
+    height: 1,
+    backgroundColor: '#8c3c2f',
+  },
+  collapseReasonLabel: {
+    marginBottom: 12,
+    color: '#a96b52',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 4,
+    textAlign: 'center',
+  },
+  collapseBody: {
+    color: '#cdb9a4',
   },
   meterPanel: {
     marginTop: 8,

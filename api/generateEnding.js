@@ -40,14 +40,22 @@ function buildSystemPrompt(tone) {
  * エンディング型から見出し・本文・ステータスを生成する。
  *
  * @param {Object} params
- * @param {string} params.endingType       - エンディング型のキー（greed / emptiness / ruin / ironic_peace / chaos）
+ * @param {string} params.endingType       - エンディング型のキー
  * @param {Object} params.meter            - 最終の欲望メーター
  * @param {string} params.declaration      - 最初の宣言テキスト
+ * @param {string[]} [params.previousDeclarations] - これまでの追加宣言
  * @param {string} params.tone             - トーンキー（pop / horror / real / emo）
  * @param {string} params.apiKey           - Claude APIキー
  * @returns {Promise<{title: string, body: string, stats: string[]}>}
  */
-export async function generateEnding({ endingType, meter, declaration, tone = 'pop', apiKey }) {
+export async function generateEnding({
+  endingType,
+  meter,
+  declaration,
+  previousDeclarations = [],
+  tone = 'pop',
+  apiKey,
+}) {
   const template = ENDING_TEMPLATES[endingType] ?? ENDING_TEMPLATES.chaos;
 
   const meterSummary = Object.entries(meter)
@@ -55,8 +63,9 @@ export async function generateEnding({ endingType, meter, declaration, tone = 'p
     .join(' / ');
 
   const userMessage =
-    'エンディング型：' + endingType + '\n' +
-    '最初の宣言：「' + declaration + '」\n' +
+    'エンディング型：' + template.label + '（' + endingType + '）\n' +
+    'この型の基準となる結末：' + template.body + '\n' +
+    'これまでの全宣言：「' + [declaration, ...previousDeclarations].join('」「') + '」\n' +
     '最終メーター：' + meterSummary;
 
   try {
