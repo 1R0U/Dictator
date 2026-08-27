@@ -99,6 +99,18 @@ function getHistoryDeclarationSummary(result) {
     : UNKNOWN_DECLARATION;
 }
 
+/** Build the complete screen-reader label for a history card. */
+function getHistoryAccessibilityLabel(result, title, savedAt) {
+  const declarations = [
+    `冒頭宣言「${getHistoryDeclarationSummary(result)}」`,
+    ...getHistoryAdditionalDeclarations(result).map(
+      (item) => `追加宣言「${item.declaration}」`,
+    ),
+  ];
+
+  return [title, savedAt, ...declarations].join('、');
+}
+
 /** Return a readable label for the saved ending type. */
 function getHistoryEndingTypeLabel(result) {
   return ENDING_CATALOG[result?.endingType]?.label ?? '分類不明';
@@ -134,6 +146,7 @@ module.exports = {
   UNKNOWN_SAVED_AT,
   createHistoryResult,
   formatHistoryDate,
+  getHistoryAccessibilityLabel,
   getHistoryAdditionalDeclarations,
   getHistoryDeclarationSummary,
   getHistoryEndingBody,

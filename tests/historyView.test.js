@@ -6,6 +6,7 @@ const {
   UNKNOWN_SAVED_AT,
   createHistoryResult,
   formatHistoryDate,
+  getHistoryAccessibilityLabel,
   getHistoryAdditionalDeclarations,
   getHistoryDeclarationSummary,
   getHistoryEndingBody,
@@ -78,6 +79,23 @@ test('結末の保存形式から履歴の再読込まで追加宣言を保持�
     { milestoneKey: 'halfYear', declaration: '週休三日にする' },
     { milestoneKey: 'year3', declaration: '祝日には菓子を配る' },
   ]);
+});
+
+test('履歴カードの読み上げに冒頭宣言とすべての追加宣言を含める', () => {
+  assert.equal(
+    getHistoryAccessibilityLabel(
+      {
+        declarationSummary: '休日を増やす',
+        additionalDeclarations: [
+          { milestoneKey: 'halfYear', declaration: '週休三日にする' },
+          { milestoneKey: 'year3', declaration: '祝日には菓子を配る' },
+        ],
+      },
+      '休息の国',
+      '2026/08/27 12:00',
+    ),
+    '休息の国、2026/08/27 12:00、冒頭宣言「休日を増やす」、追加宣言「週休三日にする」、追加宣言「祝日には菓子を配る」',
+  );
 });
 
 test('履歴詳細の本文は保存値または宣言概要から再構成する', () => {

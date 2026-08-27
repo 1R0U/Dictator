@@ -14,6 +14,7 @@ import CornerMessenger from './CornerMessenger';
 import { loadResults } from '../data/history';
 import {
   formatHistoryDate,
+  getHistoryAccessibilityLabel,
   getHistoryAdditionalDeclarations,
   getHistoryTitle,
   normalizeHistoryResults,
@@ -148,7 +149,7 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
 
                   return (
                     <Pressable
-                      accessibilityLabel={`${title}、${savedAt}`}
+                      accessibilityLabel={getHistoryAccessibilityLabel(result, title, savedAt)}
                       accessibilityRole="button"
                       key={`${result.savedAt ?? 'unknown'}-${index}`}
                       onPress={() => onSelect(result)}
