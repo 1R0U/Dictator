@@ -48,6 +48,7 @@ function splitTraitSentenceSegments(sentence, keywords) {
  * @param {Function} [props.onRevealComplete] メーター開示アニメーション完了時の処理。
  * @param {Function} [props.onReturnHome] 表示完了後にホームへ戻る処理。
  * @param {string} [props.returnLabel] 表示完了後の戻るボタン文言。
+ * @param {Object} [props.scrollViewRef] 欲望パネルへ自動スクロールする親ScrollViewのref。
  */
 export default function EndingReveal({
   headline,
@@ -57,10 +58,12 @@ export default function EndingReveal({
   onRevealComplete,
   onReturnHome,
   returnLabel = 'ホームへ戻る',
+  scrollViewRef,
 }) {
   const [phase, setPhase] = useState(PHASES.ENDING);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
   const meterAnimations = useRef(AXES.map(() => new Animated.Value(0))).current;
+  const panelRevealAnimation = useRef(new Animated.Value(0)).current;
   const resolvedFigure = figureDiagnosis?.figure ?? matchFigure(finalMeter)?.figure;
   const resolvedBlurb = figureDiagnosis?.figure && figureDiagnosis?.blurb
     ? figureDiagnosis.blurb
@@ -72,6 +75,9 @@ export default function EndingReveal({
   const completionNotifier = useRef(
     createRevealCompletionNotifier(() => onRevealCompleteRef.current?.()),
   ).current;
+  const containerYRef = useRef(0);
+  const hasScrolledToMeterRef = useRef(false);
+  const scrollAnimationFrameRef = useRef(null);
 
   useEffect(() => {
     onRevealCompleteRef.current = onRevealComplete;
@@ -81,15 +87,21 @@ export default function EndingReveal({
     setPhase(PHASES.ENDING);
     setIsRevealComplete(false);
     isRevealing.current = false;
+    hasScrolledToMeterRef.current = false;
     completionNotifier.reset();
+    panelRevealAnimation.setValue(0);
     meterAnimations.forEach((animation) => animation.setValue(0));
 
     return () => {
       activeAnimation.current?.stop();
       activeAnimation.current = null;
+      if (scrollAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(scrollAnimationFrameRef.current);
+        scrollAnimationFrameRef.current = null;
+      }
       isRevealing.current = false;
     };
-  }, [completionNotifier, headline, meterAnimations]);
+  }, [completionNotifier, headline, meterAnimations, panelRevealAnimation]);
 
   /** 欲望メーターを順番に開示し、完了を外部へ通知する。 */
   const revealMeter = () => {
@@ -97,16 +109,26 @@ export default function EndingReveal({
 
     isRevealing.current = true;
     setPhase(PHASES.METER);
-    activeAnimation.current = Animated.stagger(
-      120,
-      meterAnimations.map((animation) => (
-        Animated.timing(animation, {
-          duration: 500,
-          toValue: 1,
-          useNativeDriver: false,
-        })
-      )),
-    );
+    activeAnimation.current = Animated.parallel([
+      Animated.timing(panelRevealAnimation, {
+        duration: 420,
+        toValue: 1,
+        useNativeDriver: false,
+      }),
+      Animated.sequence([
+        Animated.delay(180),
+        Animated.stagger(
+          120,
+          meterAnimations.map((animation) => (
+            Animated.timing(animation, {
+              duration: 500,
+              toValue: 1,
+              useNativeDriver: false,
+            })
+          )),
+        ),
+      ]),
+    ]);
     activeAnimation.current.start(({ finished }) => {
       activeAnimation.current = null;
       if (completionNotifier.notify(finished)) {
@@ -115,25 +137,76 @@ export default function EndingReveal({
     });
   };
 
+  /** Scroll the parent once so the newly mounted meter starts inside the viewport. */
+  const handleMeterLayout = ({ nativeEvent }) => {
+    if (hasScrolledToMeterRef.current || !scrollViewRef?.current) return;
+
+    hasScrolledToMeterRef.current = true;
+    const meterY = nativeEvent.layout.y;
+    scrollAnimationFrameRef.current = requestAnimationFrame(() => {
+      scrollAnimationFrameRef.current = null;
+      scrollViewRef.current?.scrollTo({
+        animated: true,
+        y: Math.max(containerYRef.current + meterY - 16, 0),
+      });
+    });
+  };
+
   return (
-    <View style={styles.container}>
-      {phase === PHASES.ENDING ? (
-        <View accessibilityLiveRegion="polite" style={styles.endingPanel}>
-          <Text style={styles.kicker}>THE END OF YOUR NATION</Text>
-          <Text style={styles.headline}>{headline}</Text>
-          <View style={styles.rule} />
-          <Text style={styles.body}>{body}</Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={revealMeter}
-            style={({ pressed }) => [styles.revealButton, pressed && styles.pressed]}
+    <View
+      onLayout={({ nativeEvent }) => {
+        containerYRef.current = nativeEvent.layout.y;
+      }}
+      style={styles.container}
+    >
+      <View style={styles.endingPanel}>
+        <Text style={styles.kicker}>THE END OF YOUR NATION</Text>
+        <Text style={styles.headline}>{headline}</Text>
+        <View style={styles.rule} />
+        <Text style={styles.body}>{body}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{
+            disabled: phase === PHASES.METER,
+            expanded: phase === PHASES.METER,
+          }}
+          disabled={phase === PHASES.METER}
+          onPress={revealMeter}
+          style={({ pressed }) => [
+            styles.revealButton,
+            phase === PHASES.METER && styles.revealedButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text
+            accessibilityLiveRegion={phase === PHASES.METER ? 'polite' : 'none'}
+            style={styles.revealButtonText}
           >
-            <Text style={styles.revealButtonText}>欲望の正体を見る</Text>
-            <Text style={styles.revealButtonIcon}>↓</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <View accessibilityLiveRegion="polite" style={styles.meterPanel}>
+            {phase === PHASES.ENDING
+              ? '欲望の正体を見る'
+              : (isRevealComplete ? '欲望の正体を表示しました' : '欲望の正体を表示中…')}
+          </Text>
+          <Text style={styles.revealButtonIcon}>
+            {phase === PHASES.ENDING ? '↓' : (isRevealComplete ? '✓' : '…')}
+          </Text>
+        </Pressable>
+      </View>
+      {phase === PHASES.METER ? (
+        <Animated.View
+          onLayout={handleMeterLayout}
+          style={[
+            styles.meterPanel,
+            {
+              opacity: panelRevealAnimation,
+              transform: [{
+                translateY: panelRevealAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-18, 0],
+                }),
+              }],
+            },
+          ]}
+        >
           <Text style={styles.kicker}>DESIRE REVEALED</Text>
           <Text style={styles.meterTitle}>あなたが本当に望んでいたもの</Text>
           <Text style={styles.meterLead}>宣言の裏に積み重なった欲望の最終値</Text>
@@ -212,8 +285,8 @@ export default function EndingReveal({
               <Text style={styles.homeButtonText}>{returnLabel}</Text>
             </Pressable>
           ) : null}
-        </View>
-      )}
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
@@ -230,6 +303,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#151216',
   },
   meterPanel: {
+    marginTop: 8,
     padding: 28,
     borderWidth: 1,
     borderColor: '#b9985a',
@@ -277,6 +351,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '900',
     letterSpacing: 1,
+  },
+  revealedButton: {
+    opacity: 0.72,
   },
   revealButtonIcon: {
     color: '#111114',
