@@ -52,25 +52,6 @@ export default function CheckupEvent({ milestoneLabel, onSkip, onSubmit }) {
 
   return (
     <View accessibilityLabel={`${milestoneLabel}の欲望検診`} style={styles.container}>
-      <View style={styles.characterColumn}>
-        <View accessibilityLabel="独裁者の側近" accessible style={styles.portrait}>
-          <View style={styles.hair} />
-          <View style={styles.face}>
-            <View style={styles.glasses}>
-              <View style={styles.lens} />
-              <View style={styles.glassesBridge} />
-              <View style={styles.lens} />
-            </View>
-            <View style={styles.mouth} />
-          </View>
-          <View style={styles.suit}>
-            <View style={styles.tie} />
-          </View>
-        </View>
-        <Text style={styles.characterName}>側近</Text>
-        <Text style={styles.characterRole}>欲望監査担当</Text>
-      </View>
-
       <View style={styles.bubbleWrap}>
         <View pointerEvents="none" style={styles.bubbleTail} />
         <View style={styles.bubble}>
@@ -147,6 +128,25 @@ export default function CheckupEvent({ milestoneLabel, onSkip, onSubmit }) {
           ) : null}
         </View>
       </View>
+
+      <View style={styles.characterColumn}>
+        <View accessibilityLabel="独裁者の側近" accessible style={styles.portrait}>
+          <View style={styles.hair} />
+          <View style={styles.face}>
+            <View style={styles.glasses}>
+              <View style={styles.lens} />
+              <View style={styles.glassesBridge} />
+              <View style={styles.lens} />
+            </View>
+            <View style={styles.mouth} />
+          </View>
+          <View style={styles.suit}>
+            <View style={styles.tie} />
+          </View>
+        </View>
+        <Text style={styles.characterName}>側近</Text>
+        <Text style={styles.characterRole}>欲望監査担当</Text>
+      </View>
     </View>
   );
 }
@@ -155,12 +155,12 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     maxWidth: 620,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 14,
+    marginBottom: 10,
+    alignItems: 'center',
   },
   characterColumn: {
-    width: 88,
+    width: 120,
+    marginTop: 18,
     alignItems: 'center',
   },
   portrait: {
@@ -238,22 +238,25 @@ const styles = StyleSheet.create({
   },
   bubbleWrap: {
     position: 'relative',
-    flex: 1,
+    width: '100%',
+    marginBottom: 2,
   },
   bubbleTail: {
     position: 'absolute',
-    left: -9,
-    bottom: 42,
+    left: '50%',
+    bottom: -9,
+    marginLeft: -10,
     zIndex: 1,
     width: 20,
     height: 20,
-    borderLeftWidth: 1,
+    borderRightWidth: 1,
     borderBottomWidth: 1,
     borderColor: '#b9985a',
     backgroundColor: '#eee6d6',
     transform: [{ rotate: '45deg' }],
   },
   bubble: {
+    zIndex: 2,
     padding: 22,
     borderWidth: 1,
     borderColor: '#b9985a',
