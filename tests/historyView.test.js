@@ -5,6 +5,7 @@ const {
   UNKNOWN_ENDING_TITLE,
   UNKNOWN_SAVED_AT,
   formatHistoryDate,
+  getHistoryDeclarationSummary,
   getHistoryEndingBody,
   getHistoryEndingTypeLabel,
   getHistoryTitle,
@@ -50,6 +51,14 @@ test('履歴詳細の本文は保存値または宣言概要から再構成す�
     getHistoryEndingBody({ declarationSummary: 'パンを無料にする' }),
     '「パンを無料にする」から始まった国の、記録された結末。',
   );
+});
+
+test('履歴詳細に冒頭宣言の要約を安全に表示する', () => {
+  assert.equal(
+    getHistoryDeclarationSummary({ declarationSummary: '  パンを無料にする  ' }),
+    'パンを無料にする',
+  );
+  assert.equal(getHistoryDeclarationSummary({ declarationSummary: 18 }), '記録に残されていない宣言');
 });
 
 test('履歴詳細に保存済みのエンディング型を表示する', () => {

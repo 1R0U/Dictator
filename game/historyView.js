@@ -52,11 +52,16 @@ function getHistoryEndingBody(result) {
   const typeBody = ENDING_CATALOG[result?.endingType]?.body;
   if (typeBody) return typeBody;
 
-  const declaration = typeof result?.declarationSummary === 'string'
+  const declaration = getHistoryDeclarationSummary(result);
+  return `「${declaration}」から始まった国の、記録された結末。`;
+}
+
+/** Return the saved opening declaration or a safe fallback. */
+function getHistoryDeclarationSummary(result) {
+  return typeof result?.declarationSummary === 'string'
     && result.declarationSummary.trim()
     ? result.declarationSummary.trim()
     : UNKNOWN_DECLARATION;
-  return `「${declaration}」から始まった国の、記録された結末。`;
 }
 
 /** Return a readable label for the saved ending type. */
@@ -93,6 +98,7 @@ module.exports = {
   UNKNOWN_DECLARATION,
   UNKNOWN_SAVED_AT,
   formatHistoryDate,
+  getHistoryDeclarationSummary,
   getHistoryEndingBody,
   getHistoryEndingTypeLabel,
   getHistoryTitle,

@@ -3,6 +3,7 @@ import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text } from 'react-nat
 import EndingReveal from './EndingReveal';
 import {
   formatHistoryDate,
+  getHistoryDeclarationSummary,
   getHistoryEndingBody,
   getHistoryEndingTypeLabel,
   getHistoryTitle,
@@ -23,6 +24,8 @@ export default function HistoryDetail({ result, onBack }) {
         <Text style={styles.kicker}>ARCHIVE DETAIL</Text>
         <Text style={styles.date}>{formatHistoryDate(result?.savedAt)}</Text>
         <Text style={styles.endingType}>ENDING TYPE / {getHistoryEndingTypeLabel(result)}</Text>
+        <Text style={styles.declarationLabel}>OPENING DECLARATION</Text>
+        <Text style={styles.declaration}>「{getHistoryDeclarationSummary(result)}」</Text>
         <EndingReveal
           body={getHistoryEndingBody(result)}
           finalMeter={result?.desireAxes}
@@ -75,11 +78,27 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   endingType: {
-    marginBottom: 24,
+    marginBottom: 20,
     color: '#d8c9aa',
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1,
+  },
+  declarationLabel: {
+    color: '#625e58',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+  declaration: {
+    width: '100%',
+    maxWidth: 560,
+    marginTop: 8,
+    marginBottom: 24,
+    color: '#c8c0b5',
+    fontSize: 14,
+    lineHeight: 23,
+    textAlign: 'center',
   },
   pressed: {
     opacity: 0.65,
