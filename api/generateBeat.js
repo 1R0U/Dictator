@@ -2,10 +2,9 @@
 // Claude API（Haiku）に直接fetch。各節目で計5回呼ばれる。
 
 import { FEW_SHOT_DECLARATION, FEW_SHOT_BEATS, TONE_PROMPTS } from '../data/prompts';
+import { callClaudeApi } from './claudeClient';
 
-const API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-haiku-4-5-20251001';
-const TIMEOUT_MS = 20000;
 
 // タイムアウト・エラー時のフォールバック
 const FALLBACK = {
@@ -60,9 +59,6 @@ export async function generateBeat({
   tone = 'pop',
   apiKey,
 }) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
   const allDeclarations = [declaration, ...previousDeclarations];
   const meterSummary = Object.entries(meter)
     .map(([key, val]) => key + ':' + val)
@@ -74,36 +70,18 @@ export async function generateBeat({
     '現在の欲望メーター：' + meterSummary;
 
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 1024,
-        system: buildSystemPrompt(tone),
-        messages: [{ role: 'user', content: userMessage }],
-      }),
-      signal: controller.signal,
+    const text = await callClaudeApi({
+      apiKey,
+      model: MODEL,
+      system: buildSystemPrompt(tone),
+      messages: [{ role: 'user', content: userMessage }],
+      maxTokens: 1024,
     });
-
-    if (!response.ok) {
-      console.warn('generateBeat: API error', response.status);
-      return { ...FALLBACK, isFallback: true };
-    }
-
-    const data = await response.json();
-    const text = data.content?.[0]?.text ?? '';
 
     return parseBeat(text);
   } catch (err) {
     console.warn('generateBeat: fallback used', err.message);
     return { ...FALLBACK, isFallback: true };
-  } finally {
-    clearTimeout(timer);
   }
 }
 

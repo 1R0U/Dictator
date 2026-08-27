@@ -3,10 +3,9 @@
 
 import { FEW_SHOT_ENDING, TONE_PROMPTS } from '../data/prompts';
 import { ENDING_CATALOG } from '../data/endingCatalog';
+import { callClaudeApi } from './claudeClient';
 
-const API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-haiku-4-5-20251001';
-const TIMEOUT_MS = 20000;
 
 // 後方互換の公開名。履歴再生と同じ共通カタログを参照する。
 const ENDING_TEMPLATES = ENDING_CATALOG;
@@ -48,8 +47,6 @@ function buildSystemPrompt(tone) {
  */
 export async function generateEnding({ endingType, meter, declaration, tone = 'pop', apiKey }) {
   const template = ENDING_TEMPLATES[endingType] ?? ENDING_TEMPLATES.chaos;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   const meterSummary = Object.entries(meter)
     .map(([key, val]) => key + ':' + val)
@@ -61,36 +58,18 @@ export async function generateEnding({ endingType, meter, declaration, tone = 'p
     '最終メーター：' + meterSummary;
 
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 1024,
-        system: buildSystemPrompt(tone),
-        messages: [{ role: 'user', content: userMessage }],
-      }),
-      signal: controller.signal,
+    const text = await callClaudeApi({
+      apiKey,
+      model: MODEL,
+      system: buildSystemPrompt(tone),
+      messages: [{ role: 'user', content: userMessage }],
+      maxTokens: 1024,
     });
-
-    if (!response.ok) {
-      console.warn('generateEnding: API error', response.status);
-      return template;
-    }
-
-    const data = await response.json();
-    const text = data.content?.[0]?.text ?? '';
 
     return parseEnding(text, template);
   } catch (err) {
     console.warn('generateEnding: fallback used', err.message);
     return template;
-  } finally {
-    clearTimeout(timer);
   }
 }
 
