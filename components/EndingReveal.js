@@ -113,6 +113,7 @@ export default function EndingReveal({
           <View style={styles.meterList}>
             {AXES.map((axis, index) => {
               const value = clampMeterValue(finalMeter?.[axis.key]);
+              const traitSentence = getDesireTraitSentence(axis.key, value);
               const width = meterAnimations[index].interpolate({
                 inputRange: [0, 1],
                 outputRange: ['0%', `${normalizeMeterValue(value)}%`],
@@ -120,7 +121,7 @@ export default function EndingReveal({
 
               return (
                 <View
-                  accessibilityLabel={`${axis.name} ${value}`}
+                  accessibilityLabel={`${axis.name} ${value}。${traitSentence}`}
                   accessibilityValue={{
                     max: METER_MAX,
                     min: METER_MIN,
@@ -140,7 +141,7 @@ export default function EndingReveal({
                     <Animated.View style={[styles.meterFill, { width }]} />
                   </View>
                   <Text style={styles.axisTrait}>
-                    {getDesireTraitSentence(axis.key, value)}
+                    {traitSentence}
                   </Text>
                 </View>
               );
