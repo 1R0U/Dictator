@@ -6,9 +6,11 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
+import CornerMessenger from './CornerMessenger';
 import { loadResults } from '../data/history';
 import {
   formatHistoryDate,
@@ -25,6 +27,8 @@ import {
  * @param {Function} [props.loadHistory] 履歴を取得する非同期処理。
  */
 export default function History({ onBack, onSelect, loadHistory = loadResults }) {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 600;
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -59,7 +63,10 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} style={styles.scrollView}>
+      <ScrollView
+        contentContainerStyle={[styles.content, isCompact && styles.compactContent]}
+        style={styles.scrollView}
+      >
         <View style={styles.header}>
           <Pressable
             accessibilityRole="button"
@@ -68,9 +75,22 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
           >
             <Text style={styles.backButtonText}>← ホームへ戻る</Text>
           </Pressable>
-          <Text style={styles.kicker}>NATIONAL ARCHIVE</Text>
-          <Text style={styles.title}>過去の記録</Text>
-          <Text style={styles.description}>これまでに統治した国々の結末。</Text>
+          <View style={[styles.intro, isCompact && styles.compactIntro]}>
+            <View style={[styles.headingCopy, styles.loweredHeaderContent]}>
+              <Text style={styles.kicker}>NATIONAL ARCHIVE</Text>
+              <Text style={[styles.title, isCompact && styles.compactTitle]}>過去の記録</Text>
+              <Text style={styles.description}>これまでに統治した国々の結末。</Text>
+            </View>
+            <View style={styles.loweredHeaderContent}>
+              <CornerMessenger
+                compact={isCompact}
+                messages={[
+                  '過去の欲望が、まだ光ってる。',
+                  '結末から目をそらさないで。',
+                ]}
+              />
+            </View>
+          </View>
         </View>
 
         <View style={styles.listArea}>
@@ -174,11 +194,14 @@ const styles = StyleSheet.create({
     paddingTop: 54,
     paddingBottom: 32,
   },
+  compactContent: {
+    paddingHorizontal: 16,
+  },
   header: {
-    alignItems: 'flex-start',
+    width: '100%',
   },
   backButton: {
-    marginBottom: 34,
+    marginBottom: 14,
     paddingVertical: 8,
     paddingRight: 12,
   },
@@ -194,12 +217,31 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 4,
   },
+  intro: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 18,
+  },
+  compactIntro: {
+    gap: 10,
+  },
+  headingCopy: {
+    flex: 1,
+  },
+  loweredHeaderContent: {
+    marginTop: 32,
+  },
   title: {
     marginTop: 14,
     color: '#f3eee4',
     fontSize: 38,
     fontWeight: '900',
     letterSpacing: 4,
+  },
+  compactTitle: {
+    fontSize: 26,
+    letterSpacing: 1,
   },
   description: {
     marginTop: 12,

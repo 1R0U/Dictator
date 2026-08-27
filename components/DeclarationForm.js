@@ -9,9 +9,11 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
+import CornerMessenger from './CornerMessenger';
 import { TONES, canStartDeclaration } from '../game/declaration';
 
 const MAX_LENGTH = 500;
@@ -20,6 +22,8 @@ const MAX_LENGTH = 500;
  * 最初の法律を入力し、親コンポーネントへ送信するフォーム。
  */
 export default function DeclarationForm({ onBack, onSubmit }) {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 600;
   const [declaration, setDeclaration] = useState('');
   const [selectedTone, setSelectedTone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,7 +56,7 @@ export default function DeclarationForm({ onBack, onSubmit }) {
       >
         <View pointerEvents="none" style={styles.accent} />
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, isCompact && styles.compactContent]}
           keyboardShouldPersistTaps="handled"
           style={styles.scrollView}
         >
@@ -65,11 +69,22 @@ export default function DeclarationForm({ onBack, onSubmit }) {
             >
               <Text style={styles.backButtonText}>← ホームへ戻る</Text>
             </Pressable>
-            <Text style={styles.kicker}>FIRST DECREE</Text>
-            <Text style={styles.title}>冒頭宣言</Text>
-            <Text style={styles.description}>
-              この国で、あなたが最初に定める法律を宣言してください。
-            </Text>
+            <View style={[styles.intro, isCompact && styles.compactIntro]}>
+              <View style={styles.headingCopy}>
+                <Text style={styles.kicker}>FIRST DECREE</Text>
+                <Text style={[styles.title, isCompact && styles.compactTitle]}>冒頭宣言</Text>
+                <Text style={styles.description}>
+                  この国で、あなたが最初に定める法律を宣言してください。
+                </Text>
+              </View>
+              <CornerMessenger
+                compact={isCompact}
+                messages={[
+                  'あなたの欲望を、ここに刻んで。',
+                  '遠慮はいらない。命令して。',
+                ]}
+              />
+            </View>
           </View>
 
           <View style={styles.form}>
@@ -180,6 +195,9 @@ const styles = StyleSheet.create({
     paddingTop: 64,
     paddingBottom: 28,
   },
+  compactContent: {
+    paddingHorizontal: 16,
+  },
   kicker: {
     marginBottom: 14,
     color: '#b9985a',
@@ -187,9 +205,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 4,
   },
+  intro: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 18,
+  },
+  compactIntro: {
+    gap: 10,
+  },
+  headingCopy: {
+    flex: 1,
+  },
   backButton: {
     alignSelf: 'flex-start',
-    marginBottom: 36,
+    marginBottom: 14,
     paddingVertical: 8,
     paddingRight: 12,
   },
@@ -207,6 +237,10 @@ const styles = StyleSheet.create({
     fontSize: 38,
     fontWeight: '800',
     letterSpacing: 4,
+  },
+  compactTitle: {
+    fontSize: 26,
+    letterSpacing: 1,
   },
   description: {
     maxWidth: 360,
