@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-const SIDES = Object.freeze({
-  NEWS: 'news',
-  MEMO: 'memo',
-});
+import { REPORT_SIDES, getReportContent } from '../game/milestoneReport';
 
 /**
  * 節目ごとのニュース（表）と側近メモ（裏）を切り替えて表示する。
@@ -17,6 +14,7 @@ const SIDES = Object.freeze({
  * @param {string} [props.previousLabel] 戻るボタンのラベル。
  * @param {Function} [props.onNext] 次の節目へ進む処理。
  * @param {string} [props.nextLabel] 次へボタンのラベル。
+ * @param {boolean} [props.isFinal] 最後の節目かどうか。
  */
 export default function MilestoneReport({
   milestoneLabel,
@@ -26,12 +24,14 @@ export default function MilestoneReport({
   previousLabel = '前の節目へ戻る',
   onNext,
   nextLabel = '次の節目へ',
+  isFinal = false,
 }) {
-  const [activeSide, setActiveSide] = useState(SIDES.NEWS);
-  const isNews = activeSide === SIDES.NEWS;
+  const [activeSide, setActiveSide] = useState(REPORT_SIDES.NEWS);
+  const isNews = activeSide === REPORT_SIDES.NEWS;
+  const reportContent = getReportContent(activeSide, { news, memo });
 
   useEffect(() => {
-    setActiveSide(SIDES.NEWS);
+    setActiveSide(REPORT_SIDES.NEWS);
   }, [milestoneLabel]);
 
   return (
@@ -40,7 +40,7 @@ export default function MilestoneReport({
         <Pressable
           accessibilityRole="tab"
           accessibilityState={{ selected: isNews }}
-          onPress={() => setActiveSide(SIDES.NEWS)}
+          onPress={() => setActiveSide(REPORT_SIDES.NEWS)}
           style={({ pressed }) => [
             styles.tab,
             isNews && styles.activeNewsTab,
@@ -52,7 +52,7 @@ export default function MilestoneReport({
         <Pressable
           accessibilityRole="tab"
           accessibilityState={{ selected: !isNews }}
-          onPress={() => setActiveSide(SIDES.MEMO)}
+          onPress={() => setActiveSide(REPORT_SIDES.MEMO)}
           style={({ pressed }) => [
             styles.tab,
             !isNews && styles.activeMemoTab,
@@ -79,9 +79,7 @@ export default function MilestoneReport({
           {isNews ? '国家からの最新報道' : '独裁者だけに届く側近メモ'}
         </Text>
         <View style={styles.rule} />
-        <Text style={[styles.body, !isNews && styles.memoBody]}>
-          {isNews ? news : memo}
-        </Text>
+        <Text style={[styles.body, !isNews && styles.memoBody]}>{reportContent}</Text>
         <Text style={styles.switchHint}>タブを押して表と裏を切り替え</Text>
       </View>
       {onPrevious || onNext ? (
@@ -116,7 +114,7 @@ export default function MilestoneReport({
           ) : null}
         </View>
       ) : null}
-      {!onNext ? (
+      {isFinal ? (
         <Text style={styles.finalMilestone}>最後の節目に到達しました</Text>
       ) : null}
     </View>

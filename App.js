@@ -29,7 +29,7 @@ function DestinationPlaceholder({ eyebrow, title, children }) {
 }
 
 /**
- * 初日の宣言内容と欲望軸を表示する。
+ * 節目ごとの宣言内容、表裏レポート、欲望軸を表示する。
  */
 function DayGenerationScreen({
   declaration,
@@ -44,6 +44,8 @@ function DayGenerationScreen({
     <DestinationPlaceholder eyebrow="MILESTONE" title={milestone.label}>
       <Text style={styles.destinationDeclaration}>「{declaration}」</Text>
       <MilestoneReport
+        isFinal={!nextMilestone}
+        key={milestone.key}
         memo={`側近メモ：${milestone.description} 表向きは平静だが、現場では想定外の影響が広がっている。`}
         milestoneLabel={milestone.label}
         previousLabel={previousMilestone ? `${previousMilestone.label}へ戻る` : undefined}
