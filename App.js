@@ -4,6 +4,7 @@ import { SafeAreaView, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { mapDesire } from './api/mapDesire';
 import DeclarationForm from './components/DeclarationForm';
+import EndingReveal from './components/EndingReveal';
 import MilestoneReport from './components/MilestoneReport';
 import TitleScreen from './components/TitleScreen';
 import { AXES } from './data/axes';
@@ -12,6 +13,13 @@ import { createGenerationInput } from './game/declaration';
 import { STAGES } from './game/navigation';
 
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
+const DUMMY_FINAL_METER = Object.freeze({
+  wealth: 72,
+  power: 91,
+  fame: 64,
+  love: 28,
+  pleasure: 57,
+});
 
 /**
  * 未実装の遷移先に共通のプレースホルダー画面を表示する。
@@ -39,6 +47,7 @@ function DayGenerationScreen({
   nextMilestone,
   onPrevious,
   onNext,
+  onFinish,
 }) {
   return (
     <DestinationPlaceholder eyebrow="MILESTONE" title={milestone.label}>
@@ -51,8 +60,8 @@ function DayGenerationScreen({
         previousLabel={previousMilestone ? `${previousMilestone.label}へ戻る` : undefined}
         onPrevious={previousMilestone ? onPrevious : undefined}
         news={`【${milestone.label}】${milestone.description} 政府は状況を注視すると発表しています。`}
-        nextLabel={nextMilestone ? `${nextMilestone.label}へ進む` : undefined}
-        onNext={nextMilestone ? onNext : undefined}
+        nextLabel={nextMilestone ? `${nextMilestone.label}へ進む` : '結末を見る'}
+        onNext={nextMilestone ? onNext : onFinish}
       />
       {desireAxes ? (
         <Text style={styles.destinationAxes}>
@@ -91,6 +100,14 @@ export default function App() {
     setStage(STAGES.DAY_GENERATION);
   };
 
+  /** エンディング表示後にプレイ状態を初期化してホームへ戻る。 */
+  const handleReturnHome = () => {
+    setGenerationInput(null);
+    setDesireAxes(null);
+    setMilestoneIndex(0);
+    setStage(STAGES.TITLE);
+  };
+
   let screen;
 
   switch (stage) {
@@ -119,7 +136,23 @@ export default function App() {
           onNext={() => (
             setMilestoneIndex((current) => Math.min(current + 1, MILESTONES.length - 1))
           )}
+          onFinish={() => setStage(STAGES.ENDING)}
         />
+      );
+      break;
+    case STAGES.ENDING:
+      screen = (
+        <DestinationPlaceholder eyebrow="FINAL REPORT" title="世界の結末">
+          <EndingReveal
+            body="国はあなたの宣言を忠実に実行し続けた。やがて人々は命令に従うことだけを覚え、静かな繁栄と引き換えに、自ら選ぶ未来を手放した。"
+            finalMeter={DUMMY_FINAL_METER}
+            headline="黄金色の静寂"
+            onRevealComplete={() => {
+              // Issue #31で、このタイミングに履歴保存処理を接続する。
+            }}
+            onReturnHome={handleReturnHome}
+          />
+        </DestinationPlaceholder>
       );
       break;
     default:
