@@ -7,6 +7,7 @@ const {
   completeCheckup,
   createAdditionalDeclaration,
   getPreviousDeclarationTexts,
+  getVisibleAdditionalDeclarations,
   selectRandomIndex,
   shouldShowCheckup,
 } = require('../game/checkup');
@@ -63,6 +64,28 @@ test('それまでの追加宣言を時系列順で生成処理へ渡す', () =>
     '休日を増やす',
     '祝日には菓子を配る',
   ]);
+});
+
+test('現在の節目までの追加宣言だけを表示する', () => {
+  const milestones = [
+    { key: 'month1' },
+    { key: 'halfYear' },
+    { key: 'year1' },
+  ];
+  const declarations = [
+    createAdditionalDeclaration('month1', '休日を増やす'),
+    createAdditionalDeclaration('halfYear', '祝日には菓子を配る'),
+    createAdditionalDeclaration('year1', '国境を開く'),
+  ];
+
+  assert.deepEqual(
+    getVisibleAdditionalDeclarations(declarations, milestones, 1),
+    declarations.slice(0, 2),
+  );
+  assert.deepEqual(
+    getVisibleAdditionalDeclarations([null, {}, ...declarations], milestones, 0),
+    declarations.slice(0, 1),
+  );
 });
 
 test('側近画像を乱数に応じて選択肢の範囲内から選ぶ', () => {

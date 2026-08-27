@@ -16,6 +16,40 @@ function getHistoryTitle(result) {
     : UNKNOWN_ENDING_TITLE;
 }
 
+/** Return safe, trimmed additional declarations from a persisted result. */
+function getHistoryAdditionalDeclarations(result) {
+  if (!Array.isArray(result?.additionalDeclarations)) return [];
+
+  return result.additionalDeclarations
+    .filter((item) => item !== null && typeof item === 'object' && !Array.isArray(item))
+    .filter((item) => typeof item.declaration === 'string' && item.declaration.trim())
+    .map((item) => ({
+      milestoneKey: typeof item.milestoneKey === 'string' ? item.milestoneKey : '',
+      declaration: item.declaration.trim(),
+    }));
+}
+
+/** Build the persisted result shared by the ending screen and history views. */
+function createHistoryResult({
+  declarationSummary,
+  additionalDeclarations,
+  desireAxes,
+  endingBody,
+  endingType,
+  endingTitle,
+  figureDiagnosis,
+}) {
+  return {
+    declarationSummary,
+    additionalDeclarations: getHistoryAdditionalDeclarations({ additionalDeclarations }),
+    desireAxes,
+    endingBody,
+    endingType,
+    endingTitle,
+    figureDiagnosis,
+  };
+}
+
 /**
  * Normalize persisted data so the history screen can render safely.
  *
@@ -39,6 +73,7 @@ function normalizeHistoryResults(results) {
       endingBody: typeof result.endingBody === 'string' ? result.endingBody : '',
       declarationSummary:
         typeof result.declarationSummary === 'string' ? result.declarationSummary : '',
+      additionalDeclarations: getHistoryAdditionalDeclarations(result),
       desireAxes: normalizeDesireAxes(result.desireAxes, 0),
     }));
 }
@@ -62,6 +97,18 @@ function getHistoryDeclarationSummary(result) {
     && result.declarationSummary.trim()
     ? result.declarationSummary.trim()
     : UNKNOWN_DECLARATION;
+}
+
+/** Build the complete screen-reader label for a history card. */
+function getHistoryAccessibilityLabel(result, title, savedAt) {
+  const declarations = [
+    `冒頭宣言「${getHistoryDeclarationSummary(result)}」`,
+    ...getHistoryAdditionalDeclarations(result).map(
+      (item) => `追加宣言「${item.declaration}」`,
+    ),
+  ];
+
+  return [title, savedAt, ...declarations].join('、');
 }
 
 /** Return a readable label for the saved ending type. */
@@ -97,7 +144,10 @@ module.exports = {
   UNKNOWN_ENDING_TITLE,
   UNKNOWN_DECLARATION,
   UNKNOWN_SAVED_AT,
+  createHistoryResult,
   formatHistoryDate,
+  getHistoryAccessibilityLabel,
+  getHistoryAdditionalDeclarations,
   getHistoryDeclarationSummary,
   getHistoryEndingBody,
   getHistoryEndingTypeLabel,
