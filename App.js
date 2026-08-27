@@ -35,7 +35,7 @@ import { matchFigure } from './game/figureMatch';
 import { shouldTriggerNationCollapse } from './game/milestoneEnding';
 import { STAGES } from './game/navigation';
 
-const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
+const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 // desireAxesが未設定（通常発生しない）な場合のみ使うフォールバック値。
 const FALLBACK_FINAL_METER = Object.freeze({
   domination: 91,
