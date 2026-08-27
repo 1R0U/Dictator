@@ -88,7 +88,15 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
                 compact={isCompact}
                 messages={[
                   '過去の欲望が、まだ光ってる。',
+                  'すべての宣言を、私は覚えている。',
+                  'この光、消えたことは一度もない。',
                   '結末から目をそらさないで。',
+                  '記録は、消させない。',
+                  '過去も、裁きの対象だ。',
+                  'どの国も、同じ欲望から始まった。',
+                  '忘れたふりは、許さない。',
+                  'ここに眠るのは、あなたの選択の結果。',
+                  '次はどんな国を、望む？',
                 ]}
               />
             </View>
