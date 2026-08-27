@@ -28,6 +28,7 @@ export default function HistoryDetail({ result, onBack }) {
         <Text style={styles.declaration}>「{getHistoryDeclarationSummary(result)}」</Text>
         <EndingReveal
           body={getHistoryEndingBody(result)}
+          figureDiagnosis={result?.figureDiagnosis}
           finalMeter={result?.desireAxes}
           headline={getHistoryTitle(result)}
           onReturnHome={onBack}
