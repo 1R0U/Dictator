@@ -7,6 +7,9 @@ import TitleScreen from './components/TitleScreen';
 import { createGenerationInput } from './game/declaration';
 import { STAGES } from './game/navigation';
 
+/**
+ * 未実装の遷移先に共通のプレースホルダー画面を表示する。
+ */
 function DestinationPlaceholder({ eyebrow, title }) {
   return (
     <SafeAreaView style={styles.destination}>
@@ -18,12 +21,19 @@ function DestinationPlaceholder({ eyebrow, title }) {
   );
 }
 
+/**
+ * アプリ全体の画面遷移と、生成処理へ渡す宣言入力を管理する。
+ */
 export default function App() {
   const [stage, setStage] = useState(STAGES.TITLE);
   const [generationInput, setGenerationInput] = useState(null);
 
   /**
    * 冒頭宣言を送信する。
+   *
+   * @param {string} declaration プレイヤーが入力した宣言文。
+   * @param {string} tone 選択されたトーンID。
+   * @returns {Promise<void>}
    * AI連携と次画面への遷移はIssue #28で実装する。
    */
   const handleDeclarationSubmit = async (declaration, tone) => {
