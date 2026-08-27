@@ -22,7 +22,7 @@ import MilestoneReport from './components/MilestoneReport';
 import TitleScreen from './components/TitleScreen';
 import { AXES } from './data/axes';
 import { saveResult } from './data/history';
-import { MILESTONES } from './data/milestones';
+import { MILESTONES, NATION_COLLAPSE_CHECK_KEY } from './data/milestones';
 import {
   completeCheckup,
   createAdditionalDeclaration,
@@ -32,6 +32,7 @@ import {
 import { createGenerationInput } from './game/declaration';
 import { applyMapping } from './game/meter';
 import { matchFigure } from './game/figureMatch';
+import { shouldTriggerNationCollapse } from './game/milestoneEnding';
 import { STAGES } from './game/navigation';
 
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
@@ -45,6 +46,8 @@ const FALLBACK_FINAL_METER = Object.freeze({
 });
 // エンディング型の判定ロジック（#6/#25）が未実装のため、型自体は仮固定。
 const DUMMY_ENDING_TYPE = 'ironic_peace';
+// 50年時点で国の滅亡エンドへ分岐する場合に強制する型（ENDING_CATALOG.ruinに対応）。
+const NATION_COLLAPSE_ENDING_TYPE = 'ruin';
 const FALLBACK_ENDING_HEADLINE = '黄金色の静寂';
 const FALLBACK_ENDING_BODY =
   '国はあなたの宣言を忠実に実行し続けた。やがて人々は命令に従うことだけを覚え、静かな繁栄と引き換えに、自ら選ぶ未来を手放した。';
@@ -149,6 +152,7 @@ export default function App() {
   const [selectedHistoryResult, setSelectedHistoryResult] = useState(null);
   const [loadingMilestoneKey, setLoadingMilestoneKey] = useState(null);
   const [endingReport, setEndingReport] = useState(null);
+  const [endingType, setEndingType] = useState(DUMMY_ENDING_TYPE);
   const [figureDiagnosis, setFigureDiagnosis] = useState(null);
   const [isEndingLoading, setIsEndingLoading] = useState(false);
 
@@ -233,10 +237,16 @@ export default function App() {
     }
   };
 
-  /** 選択トーンを反映したエンディングを生成し、結末画面へ進む。 */
-  const handleFinish = async () => {
+  /**
+   * 選択トーンを反映したエンディングを生成し、結末画面へ進む。
+   *
+   * @param {string} [forcedEndingType] 50年時点の国の滅亡分岐など、型を強制する場合に指定する。
+   */
+  const handleFinish = async (forcedEndingType) => {
     if (isEndingLoading) return;
     setIsEndingLoading(true);
+
+    const resolvedEndingType = forcedEndingType ?? DUMMY_ENDING_TYPE;
 
     try {
       const meter = desireAxes ?? FALLBACK_FINAL_METER;
@@ -245,7 +255,7 @@ export default function App() {
       const [ending, diagnosis] = await Promise.all([
         generateEnding({
           declaration: generationInput.declaration,
-          endingType: DUMMY_ENDING_TYPE,
+          endingType: resolvedEndingType,
           meter,
           tone: generationInput.tone,
           apiKey: CLAUDE_API_KEY,
@@ -256,6 +266,7 @@ export default function App() {
       ]);
 
       setEndingReport(ending);
+      setEndingType(resolvedEndingType);
       setFigureDiagnosis(match && diagnosis ? { figure: match.figure, ...diagnosis } : null);
     } catch (err) {
       console.warn('handleFinish: failed to generate ending', err.message);
@@ -271,7 +282,7 @@ export default function App() {
       declarationSummary: generationInput?.declaration ?? '',
       desireAxes: desireAxes ?? FALLBACK_FINAL_METER,
       endingBody: endingReport?.body ?? FALLBACK_ENDING_BODY,
-      endingType: DUMMY_ENDING_TYPE,
+      endingType,
       endingTitle: endingReport?.title ?? FALLBACK_ENDING_HEADLINE,
       figureDiagnosis: figureDiagnosis ?? null,
     }).catch((err) => {
@@ -289,6 +300,7 @@ export default function App() {
     setMilestoneReports({});
     setLoadingMilestoneKey(null);
     setEndingReport(null);
+    setEndingType(DUMMY_ENDING_TYPE);
     setFigureDiagnosis(null);
     setIsEndingLoading(false);
     setStage(STAGES.TITLE);
@@ -330,6 +342,10 @@ export default function App() {
       const additionalDeclaration = additionalDeclarations.find(
         (item) => item.milestoneKey === milestone.key,
       );
+      // 50年時点で欲望が振り切れていれば、2XXX年へ進まずここで国の滅亡エンドへ分岐する。
+      const isNationCollapsePoint = milestone.key === NATION_COLLAPSE_CHECK_KEY
+        && shouldTriggerNationCollapse(desireAxes ?? FALLBACK_FINAL_METER);
+      const nextMilestone = isNationCollapsePoint ? undefined : MILESTONES[milestoneIndex + 1];
 
       screen = (
         <DayGenerationScreen
@@ -337,14 +353,14 @@ export default function App() {
           desireAxes={desireAxes}
           milestone={milestone}
           previousMilestone={MILESTONES[milestoneIndex - 1]}
-          nextMilestone={MILESTONES[milestoneIndex + 1]}
+          nextMilestone={nextMilestone}
           onPrevious={() => (
             setMilestoneIndex((current) => Math.max(current - 1, 0))
           )}
           onNext={() => (
             setMilestoneIndex((current) => Math.min(current + 1, MILESTONES.length - 1))
           )}
-          onFinish={handleFinish}
+          onFinish={() => handleFinish(isNationCollapsePoint ? NATION_COLLAPSE_ENDING_TYPE : undefined)}
           isFinishing={isEndingLoading}
           showCheckup={showCheckup}
           additionalDeclaration={additionalDeclaration}
