@@ -3,12 +3,20 @@ import { useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { mapDesire } from './api/mapDesire';
+import { generateBeat } from './api/generateBeat';
+import CheckupEvent from './components/CheckupEvent';
 import DeclarationForm from './components/DeclarationForm';
 import EndingReveal from './components/EndingReveal';
 import MilestoneReport from './components/MilestoneReport';
 import TitleScreen from './components/TitleScreen';
 import { AXES } from './data/axes';
 import { MILESTONES } from './data/milestones';
+import {
+  completeCheckup,
+  createAdditionalDeclaration,
+  getPreviousDeclarationTexts,
+  shouldShowCheckup,
+} from './game/checkup';
 import { createGenerationInput } from './game/declaration';
 import { STAGES } from './game/navigation';
 
@@ -27,7 +35,11 @@ const DUMMY_FINAL_METER = Object.freeze({
 function DestinationPlaceholder({ eyebrow, title, children }) {
   return (
     <SafeAreaView style={styles.destination}>
-      <ScrollView contentContainerStyle={styles.destinationContent} style={styles.destinationScroll}>
+      <ScrollView
+        contentContainerStyle={styles.destinationContent}
+        keyboardShouldPersistTaps="handled"
+        style={styles.destinationScroll}
+      >
         <Text style={styles.eyebrow}>{eyebrow}</Text>
         <Text style={styles.destinationTitle}>{title}</Text>
         {children}
@@ -48,21 +60,40 @@ function DayGenerationScreen({
   onPrevious,
   onNext,
   onFinish,
+  showCheckup,
+  additionalDeclaration,
+  onSkipCheckup,
+  onSubmitAdditionalDeclaration,
+  report,
 }) {
   return (
     <DestinationPlaceholder eyebrow="MILESTONE" title={milestone.label}>
       <Text style={styles.destinationDeclaration}>「{declaration}」</Text>
-      <MilestoneReport
-        isFinal={!nextMilestone}
-        key={milestone.key}
-        memo={`側近メモ：${milestone.description} 表向きは平静だが、現場では想定外の影響が広がっている。`}
-        milestoneLabel={milestone.label}
-        previousLabel={previousMilestone ? `${previousMilestone.label}へ戻る` : undefined}
-        onPrevious={previousMilestone ? onPrevious : undefined}
-        news={`【${milestone.label}】${milestone.description} 政府は状況を注視すると発表しています。`}
-        nextLabel={nextMilestone ? `${nextMilestone.label}へ進む` : '結末を見る'}
-        onNext={nextMilestone ? onNext : onFinish}
-      />
+      {showCheckup ? (
+        <CheckupEvent
+          key={milestone.key}
+          milestoneLabel={milestone.label}
+          onSkip={onSkipCheckup}
+          onSubmit={onSubmitAdditionalDeclaration}
+        />
+      ) : (
+        <MilestoneReport
+          isFinal={!nextMilestone}
+          key={milestone.key}
+          memo={report?.memo ?? `側近メモ：${milestone.description} 表向きは平静だが、現場では想定外の影響が広がっている。`}
+          milestoneLabel={milestone.label}
+          previousLabel={previousMilestone ? `${previousMilestone.label}へ戻る` : undefined}
+          onPrevious={previousMilestone ? onPrevious : undefined}
+          news={report?.news ?? `【${milestone.label}】${milestone.description} 政府は状況を注視すると発表しています。`}
+          nextLabel={nextMilestone ? `${nextMilestone.label}へ進む` : '結末を見る'}
+          onNext={nextMilestone ? onNext : onFinish}
+        />
+      )}
+      {additionalDeclaration ? (
+        <Text style={styles.additionalDeclaration}>
+          追加宣言「{additionalDeclaration.declaration}」
+        </Text>
+      ) : null}
       {desireAxes ? (
         <Text style={styles.destinationAxes}>
           {AXES.map((axis) => `${axis.label} ${desireAxes[axis.key]}`).join('　')}
@@ -80,6 +111,9 @@ export default function App() {
   const [generationInput, setGenerationInput] = useState(null);
   const [desireAxes, setDesireAxes] = useState(null);
   const [milestoneIndex, setMilestoneIndex] = useState(0);
+  const [handledCheckups, setHandledCheckups] = useState([]);
+  const [additionalDeclarations, setAdditionalDeclarations] = useState([]);
+  const [milestoneReports, setMilestoneReports] = useState({});
 
   /**
    * 冒頭宣言を送信する。
@@ -94,10 +128,50 @@ export default function App() {
     const nextGenerationInput = createGenerationInput(declaration, tone);
     setGenerationInput(nextGenerationInput);
     setMilestoneIndex(0);
+    setHandledCheckups([]);
+    setAdditionalDeclarations([]);
+    setMilestoneReports({});
 
     const result = await mapDesire(nextGenerationInput.declaration, CLAUDE_API_KEY);
     setDesireAxes(result);
     setStage(STAGES.DAY_GENERATION);
+  };
+
+  /** 現在までの宣言を踏まえたNEWS/MEMOを生成して節目に保存する。 */
+  const generateCurrentMilestoneReport = async (declarations) => {
+    const milestone = MILESTONES[milestoneIndex];
+    const report = await generateBeat({
+      declaration: generationInput.declaration,
+      milestoneLabel: milestone.label,
+      meter: desireAxes,
+      previousDeclarations: getPreviousDeclarationTexts(declarations),
+      apiKey: CLAUDE_API_KEY,
+    });
+
+    setMilestoneReports((current) => ({ ...current, [milestone.key]: report }));
+  };
+
+  /** 追加宣言せず、これまでの宣言を踏まえた物語へ進む。 */
+  const handleSkipCheckup = async () => {
+    await generateCurrentMilestoneReport(additionalDeclarations);
+    completeCurrentCheckup();
+  };
+
+  /** 現在の節目の検診を処理済みにする。 */
+  const completeCurrentCheckup = () => {
+    const milestoneKey = MILESTONES[milestoneIndex].key;
+    setHandledCheckups((current) => completeCheckup(current, milestoneKey));
+  };
+
+  /** 追加宣言を保存し、現在の節目の検診を完了する。 */
+  const handleAdditionalDeclaration = async (declaration) => {
+    const milestoneKey = MILESTONES[milestoneIndex].key;
+    const nextDeclaration = createAdditionalDeclaration(milestoneKey, declaration);
+    const nextDeclarations = [...additionalDeclarations, nextDeclaration];
+
+    await generateCurrentMilestoneReport(nextDeclarations);
+    setAdditionalDeclarations(nextDeclarations);
+    completeCurrentCheckup();
   };
 
   /** エンディング表示後にプレイ状態を初期化してホームへ戻る。 */
@@ -105,6 +179,9 @@ export default function App() {
     setGenerationInput(null);
     setDesireAxes(null);
     setMilestoneIndex(0);
+    setHandledCheckups([]);
+    setAdditionalDeclarations([]);
+    setMilestoneReports({});
     setStage(STAGES.TITLE);
   };
 
@@ -122,12 +199,18 @@ export default function App() {
     case STAGES.HISTORY:
       screen = <DestinationPlaceholder eyebrow="ARCHIVE" title="過去の記録" />;
       break;
-    case STAGES.DAY_GENERATION:
+    case STAGES.DAY_GENERATION: {
+      const milestone = MILESTONES[milestoneIndex];
+      const showCheckup = shouldShowCheckup(milestone, handledCheckups);
+      const additionalDeclaration = additionalDeclarations.find(
+        (item) => item.milestoneKey === milestone.key,
+      );
+
       screen = (
         <DayGenerationScreen
           declaration={generationInput?.declaration ?? ''}
           desireAxes={desireAxes}
-          milestone={MILESTONES[milestoneIndex]}
+          milestone={milestone}
           previousMilestone={MILESTONES[milestoneIndex - 1]}
           nextMilestone={MILESTONES[milestoneIndex + 1]}
           onPrevious={() => (
@@ -137,9 +220,15 @@ export default function App() {
             setMilestoneIndex((current) => Math.min(current + 1, MILESTONES.length - 1))
           )}
           onFinish={() => setStage(STAGES.ENDING)}
+          showCheckup={showCheckup}
+          additionalDeclaration={additionalDeclaration}
+          onSkipCheckup={handleSkipCheckup}
+          onSubmitAdditionalDeclaration={handleAdditionalDeclaration}
+          report={milestoneReports[milestone.key]}
         />
       );
       break;
+    }
     case STAGES.ENDING:
       screen = (
         <DestinationPlaceholder eyebrow="FINAL REPORT" title="世界の結末">
@@ -212,6 +301,15 @@ const styles = StyleSheet.create({
     color: '#625e58',
     fontSize: 12,
     letterSpacing: 1,
+    textAlign: 'center',
+  },
+  additionalDeclaration: {
+    marginTop: 18,
+    maxWidth: 520,
+    color: '#d8c9aa',
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 22,
     textAlign: 'center',
   },
 });
