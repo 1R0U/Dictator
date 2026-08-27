@@ -1,8 +1,9 @@
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import EndingReveal from './EndingReveal';
 import {
   formatHistoryDate,
+  getHistoryAdditionalDeclarations,
   getHistoryDeclarationSummary,
   getHistoryEndingBody,
   getHistoryEndingTypeLabel,
@@ -11,6 +12,8 @@ import {
 
 /** Replay a saved ending headline and desire-meter reveal. */
 export default function HistoryDetail({ result, onBack }) {
+  const additionalDeclarations = getHistoryAdditionalDeclarations(result);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} style={styles.scrollView}>
@@ -25,7 +28,14 @@ export default function HistoryDetail({ result, onBack }) {
         <Text style={styles.date}>{formatHistoryDate(result?.savedAt)}</Text>
         <Text style={styles.endingType}>ENDING TYPE / {getHistoryEndingTypeLabel(result)}</Text>
         <Text style={styles.declarationLabel}>OPENING DECLARATION</Text>
-        <Text style={styles.declaration}>「{getHistoryDeclarationSummary(result)}」</Text>
+        <View style={styles.declarationBlock}>
+          <Text style={styles.declaration}>「{getHistoryDeclarationSummary(result)}」</Text>
+          {additionalDeclarations.map((item, index) => (
+            <Text key={`${item.milestoneKey}-${index}`} style={styles.additionalDeclaration}>
+              追加宣言「{item.declaration}」
+            </Text>
+          ))}
+        </View>
         <EndingReveal
           body={getHistoryEndingBody(result)}
           figureDiagnosis={result?.figureDiagnosis}
@@ -91,14 +101,25 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 2,
   },
-  declaration: {
+  declarationBlock: {
     width: '100%',
     maxWidth: 560,
     marginTop: 8,
     marginBottom: 24,
+    alignItems: 'center',
+  },
+  declaration: {
     color: '#c8c0b5',
     fontSize: 14,
     lineHeight: 23,
+    textAlign: 'center',
+  },
+  additionalDeclaration: {
+    marginTop: 6,
+    color: '#d8c9aa',
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 21,
     textAlign: 'center',
   },
   pressed: {

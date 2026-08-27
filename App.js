@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  View,
 } from 'react-native';
 
 import { mapDesire } from './api/mapDesire';
@@ -27,6 +28,7 @@ import {
   completeCheckup,
   createAdditionalDeclaration,
   getPreviousDeclarationTexts,
+  getVisibleAdditionalDeclarations,
   shouldShowCheckup,
 } from './game/checkup';
 import { createGenerationInput } from './game/declaration';
@@ -36,6 +38,7 @@ import { shouldTriggerNationCollapse } from './game/milestoneEnding';
 import { isMilestoneReportPending } from './game/milestoneReport';
 import { STAGES } from './game/navigation';
 import { getPreviousMilestoneEvents } from './game/storyContext';
+import { createHistoryResult } from './game/historyView';
 
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 // desireAxesが未設定（通常発生しない）な場合のみ使うフォールバック値。
@@ -93,7 +96,7 @@ function DayGenerationScreen({
   onFinish,
   isFinishing,
   showCheckup,
-  additionalDeclaration,
+  additionalDeclarations = [],
   onSkipCheckup,
   onSubmitAdditionalDeclaration,
   report,
@@ -101,7 +104,17 @@ function DayGenerationScreen({
 }) {
   return (
     <DestinationPlaceholder eyebrow="MILESTONE" title={milestone.label}>
-      <Text style={styles.destinationDeclaration}>「{declaration}」</Text>
+      <View style={styles.declarationBlock}>
+        <Text style={styles.destinationDeclaration}>「{declaration}」</Text>
+        {additionalDeclarations.map((item, index) => (
+          <Text
+            key={`${item.milestoneKey}-${index}`}
+            style={styles.additionalDeclaration}
+          >
+            追加宣言「{item.declaration}」
+          </Text>
+        ))}
+      </View>
       {showCheckup ? (
         <CheckupEvent
           key={milestone.key}
@@ -126,11 +139,6 @@ function DayGenerationScreen({
           onNext={nextMilestone ? onNext : (isFinishing ? undefined : onFinish)}
         />
       )}
-      {additionalDeclaration ? (
-        <Text style={styles.additionalDeclaration}>
-          追加宣言「{additionalDeclaration.declaration}」
-        </Text>
-      ) : null}
       {desireAxes ? (
         <Text style={styles.destinationAxes}>
           {AXES.map((axis) => `${axis.label} ${desireAxes[axis.key]}`).join('　')}
@@ -315,14 +323,15 @@ export default function App() {
 
   /** エンディング二段演出の完了を受けて、結果を履歴へ保存する。 */
   const handleEndingRevealComplete = () => {
-    saveResult({
+    saveResult(createHistoryResult({
       declarationSummary: generationInput?.declaration ?? '',
+      additionalDeclarations,
       desireAxes: desireAxes ?? FALLBACK_FINAL_METER,
       endingBody: endingReport?.body ?? FALLBACK_ENDING_BODY,
       endingType,
       endingTitle: endingReport?.title ?? FALLBACK_ENDING_HEADLINE,
       figureDiagnosis: figureDiagnosis ?? null,
-    }).catch((err) => {
+    })).catch((err) => {
       console.warn('handleEndingRevealComplete: failed to save result', err.message);
     });
   };
@@ -376,8 +385,10 @@ export default function App() {
     case STAGES.DAY_GENERATION: {
       const milestone = MILESTONES[milestoneIndex];
       const showCheckup = shouldShowCheckup(milestone, handledCheckups);
-      const additionalDeclaration = additionalDeclarations.find(
-        (item) => item.milestoneKey === milestone.key,
+      const visibleAdditionalDeclarations = getVisibleAdditionalDeclarations(
+        additionalDeclarations,
+        MILESTONES,
+        milestoneIndex,
       );
       // 50年時点で欲望が振り切れていれば、2XXX年へ進まずここで国の滅亡エンドへ分岐する。
       const isNationCollapsePoint = milestone.key === NATION_COLLAPSE_CHECK_KEY
@@ -400,7 +411,7 @@ export default function App() {
           onFinish={() => handleFinish(isNationCollapsePoint ? NATION_COLLAPSE_ENDING_TYPE : undefined)}
           isFinishing={isEndingLoading}
           showCheckup={showCheckup}
-          additionalDeclaration={additionalDeclaration}
+          additionalDeclarations={visibleAdditionalDeclarations}
           onSkipCheckup={handleSkipCheckup}
           onSubmitAdditionalDeclaration={handleAdditionalDeclaration}
           report={milestoneReports[milestone.key]}
@@ -477,8 +488,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 2,
   },
-  destinationDeclaration: {
+  declarationBlock: {
     marginVertical: 24,
+    alignItems: 'center',
+  },
+  destinationDeclaration: {
     maxWidth: 320,
     color: '#a9a39a',
     fontSize: 15,
@@ -493,7 +507,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   additionalDeclaration: {
-    marginTop: 18,
+    marginTop: 6,
     maxWidth: 520,
     color: '#d8c9aa',
     fontSize: 13,

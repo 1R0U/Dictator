@@ -14,6 +14,8 @@ import CornerMessenger from './CornerMessenger';
 import { loadResults } from '../data/history';
 import {
   formatHistoryDate,
+  getHistoryAccessibilityLabel,
+  getHistoryAdditionalDeclarations,
   getHistoryTitle,
   normalizeHistoryResults,
 } from '../game/historyView';
@@ -143,10 +145,11 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
                 {results.map((result, index) => {
                   const title = getHistoryTitle(result);
                   const savedAt = formatHistoryDate(result.savedAt);
+                  const additionalDeclarations = getHistoryAdditionalDeclarations(result);
 
                   return (
                     <Pressable
-                      accessibilityLabel={`${title}、${savedAt}`}
+                      accessibilityLabel={getHistoryAccessibilityLabel(result, title, savedAt)}
                       accessibilityRole="button"
                       key={`${result.savedAt ?? 'unknown'}-${index}`}
                       onPress={() => onSelect(result)}
@@ -163,6 +166,15 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
                             「{result.declarationSummary}」
                           </Text>
                         ) : null}
+                        {additionalDeclarations.map((item, declarationIndex) => (
+                          <Text
+                            key={`${item.milestoneKey}-${declarationIndex}`}
+                            numberOfLines={2}
+                            style={styles.cardAdditionalDeclaration}
+                          >
+                            追加宣言「{item.declaration}」
+                          </Text>
+                        ))}
                       </View>
                       <Text style={styles.cardArrow}>→</Text>
                     </Pressable>
@@ -366,6 +378,12 @@ const styles = StyleSheet.create({
     color: '#a9a39a',
     fontSize: 12,
     lineHeight: 18,
+  },
+  cardAdditionalDeclaration: {
+    marginTop: 4,
+    color: '#d8c9aa',
+    fontSize: 11,
+    lineHeight: 17,
   },
   cardArrow: {
     marginLeft: 14,
