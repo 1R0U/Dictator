@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AXES } from '../data/axes';
 import {
@@ -20,6 +20,7 @@ const PHASES = Object.freeze({
   ENDING: 'ending',
   METER: 'meter',
 });
+const FULLSCREEN_IMAGE_DURATION_MS = 2200;
 
 /** Split a trait sentence into plain/highlighted segments so key words stand out visually. */
 function splitTraitSentenceSegments(sentence, keywords) {
@@ -66,6 +67,7 @@ export default function EndingReveal({
 }) {
   const [phase, setPhase] = useState(PHASES.ENDING);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
+  const [isImageFullscreen, setIsImageFullscreen] = useState(false);
   const meterAnimations = useRef(AXES.map(() => new Animated.Value(0))).current;
   const panelRevealAnimation = useRef(new Animated.Value(0)).current;
   const resolvedFigure = figureDiagnosis?.figure ?? matchFigure(finalMeter)?.figure;
@@ -92,6 +94,7 @@ export default function EndingReveal({
   useEffect(() => {
     setPhase(PHASES.ENDING);
     setIsRevealComplete(false);
+    setIsImageFullscreen(Boolean(collapseVisual));
     isRevealing.current = false;
     hasScrolledToMeterRef.current = false;
     completionNotifier.reset();
@@ -107,11 +110,24 @@ export default function EndingReveal({
       }
       isRevealing.current = false;
     };
-  }, [completionNotifier, endingType, headline, meterAnimations, panelRevealAnimation]);
+  }, [collapseVisual, completionNotifier, endingType, headline, meterAnimations, panelRevealAnimation]);
 
-  /** 欲望メーターを順番に開示し、完了を外部へ通知する。 */
-  const revealMeter = () => {
-    if (phase !== PHASES.ENDING || isRevealing.current) return;
+  /** 全画面表示中は一定時間で自動的に閉じる。 */
+  useEffect(() => {
+    if (!isImageFullscreen) return undefined;
+
+    const timer = setTimeout(() => setIsImageFullscreen(false), FULLSCREEN_IMAGE_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [isImageFullscreen]);
+
+  /** 欲望メーターを順番に開示し、完了を外部へ通知する。二度目以降はアニメーションを省略して即再表示する。 */
+  const openMeter = () => {
+    if (phase === PHASES.METER || isRevealing.current) return;
+
+    if (isRevealComplete) {
+      setPhase(PHASES.METER);
+      return;
+    }
 
     isRevealing.current = true;
     setPhase(PHASES.METER);
@@ -137,10 +153,26 @@ export default function EndingReveal({
     ]);
     activeAnimation.current.start(({ finished }) => {
       activeAnimation.current = null;
+      isRevealing.current = false;
       if (completionNotifier.notify(finished)) {
         setIsRevealComplete(true);
       }
     });
+  };
+
+  /** 開示済みの欲望メーターを閉じる。 */
+  const closeMeter = () => {
+    if (phase !== PHASES.METER) return;
+    setPhase(PHASES.ENDING);
+  };
+
+  /** ボタン1つで開示・格納をトグルする。 */
+  const handleToggleMeter = () => {
+    if (phase === PHASES.METER) {
+      closeMeter();
+    } else {
+      openMeter();
+    }
   };
 
   /** Scroll the parent once so the newly mounted meter starts inside the viewport. */
@@ -158,6 +190,34 @@ export default function EndingReveal({
     });
   };
 
+  /** 崩壊光景の再表示・ホームへ戻るボタン。閉じているときは見るボタン直下、開いているときは一番下に置く。 */
+  const extraActions = (
+    <>
+      {collapseVisual ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setIsImageFullscreen(true)}
+          style={({ pressed }) => [styles.replayImageButton, pressed && styles.pressed]}
+        >
+          <Text style={styles.replayImageButtonText}>崩壊の光景をもう一度見る</Text>
+        </Pressable>
+      ) : null}
+      {onReturnHome ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={onReturnHome}
+          style={({ pressed }) => [
+            styles.homeButton,
+            collapseVisual && styles.homeButtonAfterReplay,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.homeButtonText}>{returnLabel}</Text>
+        </Pressable>
+      ) : null}
+    </>
+  );
+
   return (
     <View
       onLayout={({ nativeEvent }) => {
@@ -166,58 +226,69 @@ export default function EndingReveal({
       style={styles.container}
     >
       {collapseVisual ? (
-        <View style={[styles.collapseImageFrame, { aspectRatio: collapseVisual.aspectRatio }]}>
-          <Image
-            accessibilityLabel={collapseVisual.imageLabel}
-            accessible
-            resizeMode="cover"
-            source={collapseVisual.image}
-            style={styles.collapseImage}
-          />
-          <View style={styles.collapseImageShade} />
-          <View style={styles.collapseImageMark}>
-            <Text style={styles.collapseImageNumber}>{collapseVisual.number}</Text>
-            <Text style={styles.collapseImageLabel}>{collapseLabel}</Text>
-          </View>
-        </View>
+        <Modal
+          animationType="fade"
+          onRequestClose={() => setIsImageFullscreen(false)}
+          transparent={false}
+          visible={isImageFullscreen}
+        >
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setIsImageFullscreen(false)}
+            style={styles.fullscreenOverlay}
+          >
+            <Image
+              accessibilityLabel={collapseVisual.imageLabel}
+              accessible
+              resizeMode="cover"
+              source={collapseVisual.image}
+              style={styles.fullscreenImage}
+            />
+            <View style={styles.fullscreenShade} />
+            <View style={styles.fullscreenMark}>
+              <Text style={styles.fullscreenNumber}>{collapseVisual.number}</Text>
+              <Text style={styles.fullscreenLabel}>{collapseLabel}</Text>
+            </View>
+            <Text style={styles.fullscreenHint}>タップして続ける</Text>
+          </Pressable>
+        </Modal>
       ) : null}
       <View style={[styles.endingPanel, collapseVisual && styles.collapseEndingPanel]}>
-        <Text style={[styles.kicker, collapseVisual && styles.collapseKicker]}>
-          {collapseVisual?.kicker ?? 'THE END OF YOUR NATION'}
-        </Text>
+        {!collapseVisual ? <Text style={styles.kicker}>THE END OF YOUR NATION</Text> : null}
         <Text style={[styles.headline, collapseVisual && styles.collapseHeadline]}>
           {headline}
         </Text>
         <View style={[styles.rule, collapseVisual && styles.collapseRule]} />
         {collapseVisual ? <Text style={styles.collapseReasonLabel}>滅亡理由</Text> : null}
         <Text style={[styles.body, collapseVisual && styles.collapseBody]}>{body}</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{
-            disabled: phase === PHASES.METER,
-            expanded: phase === PHASES.METER,
-          }}
-          disabled={phase === PHASES.METER}
-          onPress={revealMeter}
-          style={({ pressed }) => [
-            styles.revealButton,
-            phase === PHASES.METER && styles.revealedButton,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text
-            accessibilityLiveRegion={phase === PHASES.METER ? 'polite' : 'none'}
-            style={styles.revealButtonText}
-          >
-            {phase === PHASES.ENDING
-              ? '欲望の正体を見る'
-              : (isRevealComplete ? '欲望の正体を表示しました' : '欲望の正体を表示中…')}
-          </Text>
-          <Text style={styles.revealButtonIcon}>
-            {phase === PHASES.ENDING ? '↓' : (isRevealComplete ? '✓' : '…')}
-          </Text>
-        </Pressable>
       </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{
+          disabled: phase === PHASES.METER && !isRevealComplete,
+          expanded: phase === PHASES.METER,
+        }}
+        disabled={phase === PHASES.METER && !isRevealComplete}
+        onPress={handleToggleMeter}
+        style={({ pressed }) => [
+          styles.revealButton,
+          phase === PHASES.METER && !isRevealComplete && styles.revealedButton,
+          pressed && styles.pressed,
+        ]}
+      >
+        <Text
+          accessibilityLiveRegion={phase === PHASES.METER ? 'polite' : 'none'}
+          style={styles.revealButtonText}
+        >
+          {phase === PHASES.ENDING
+            ? '欲望の正体を見る'
+            : (isRevealComplete ? '閉じる' : '欲望の正体を表示中…')}
+        </Text>
+        <Text style={styles.revealButtonIcon}>
+          {phase === PHASES.ENDING ? '↓' : (isRevealComplete ? '↑' : '…')}
+        </Text>
+      </Pressable>
+      {phase === PHASES.ENDING ? extraActions : null}
       {phase === PHASES.METER ? (
         <Animated.View
           onLayout={handleMeterLayout}
@@ -303,17 +374,9 @@ export default function EndingReveal({
               <Text style={styles.figureDisclaimer}>{FIGURE_DIAGNOSIS_DISCLAIMER}</Text>
             </View>
           ) : null}
-          {isRevealComplete && onReturnHome ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={onReturnHome}
-              style={({ pressed }) => [styles.homeButton, pressed && styles.pressed]}
-            >
-              <Text style={styles.homeButtonText}>{returnLabel}</Text>
-            </Pressable>
-          ) : null}
         </Animated.View>
       ) : null}
+      {phase === PHASES.METER ? extraActions : null}
     </View>
   );
 }
@@ -329,62 +392,61 @@ const styles = StyleSheet.create({
     borderColor: '#7e2024',
     backgroundColor: '#151216',
   },
-  collapseImageFrame: {
-    position: 'relative',
-    width: '100%',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#5f3025',
+  fullscreenOverlay: {
+    flex: 1,
     backgroundColor: '#080707',
   },
-  collapseImage: {
+  fullscreenImage: {
     width: '100%',
     height: '100%',
   },
-  collapseImageShade: {
+  fullscreenShade: {
     position: 'absolute',
     right: 0,
     bottom: 0,
     left: 0,
-    height: '24%',
-    backgroundColor: 'rgba(8, 5, 5, 0.36)',
+    height: '30%',
+    backgroundColor: 'rgba(8, 5, 5, 0.5)',
   },
-  collapseImageMark: {
+  fullscreenMark: {
     position: 'absolute',
-    right: 18,
-    bottom: 12,
-    left: 18,
+    right: 24,
+    bottom: 40,
+    left: 24,
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'flex-end',
-    gap: 10,
+    gap: 12,
   },
-  collapseImageNumber: {
+  fullscreenNumber: {
     color: '#c28a62',
-    fontSize: 34,
+    fontSize: 44,
     fontWeight: '300',
-    letterSpacing: 5,
+    letterSpacing: 6,
   },
-  collapseImageLabel: {
+  fullscreenLabel: {
     color: '#ead8c4',
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '900',
     letterSpacing: 1,
     textShadowColor: 'rgba(0, 0, 0, 0.9)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 5,
+    textShadowRadius: 6,
+  },
+  fullscreenHint: {
+    position: 'absolute',
+    top: 56,
+    alignSelf: 'center',
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 11,
+    letterSpacing: 2,
   },
   collapseEndingPanel: {
-    marginTop: 0,
-    borderTopWidth: 0,
     borderColor: '#5f3025',
     backgroundColor: '#100c0c',
   },
-  collapseKicker: {
-    color: '#b66a4e',
-    letterSpacing: 2,
-  },
   collapseHeadline: {
+    marginTop: 0,
     color: '#ead8c4',
     textShadowColor: 'rgba(132, 43, 28, 0.7)',
     textShadowOffset: { width: 0, height: 2 },
@@ -605,6 +667,21 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     textAlign: 'center',
   },
+  replayImageButton: {
+    minHeight: 52,
+    marginTop: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#5f3025',
+    backgroundColor: 'transparent',
+  },
+  replayImageButtonText: {
+    color: '#c8956a',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
   homeButton: {
     minHeight: 56,
     marginTop: 30,
@@ -613,6 +690,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#b9985a',
     backgroundColor: '#17171a',
+  },
+  homeButtonAfterReplay: {
+    marginTop: 12,
   },
   homeButtonText: {
     color: '#d8c9aa',
