@@ -1,5 +1,5 @@
 // 欲望マッピング：宣言テキスト → 隠し欲望軸への配点JSON
-// Claude API（Haiku）に直接fetchする。ネイティブ実行前提でCORSなし。
+// Claude API（Haiku）を共通クライアント経由で呼び出す。
 
 import { AXES } from '../data/axes';
 import { FEW_SHOT_DECLARATION, FEW_SHOT_MAPPING } from '../data/prompts';
@@ -7,14 +7,10 @@ import {
   DESIRE_NEUTRAL,
   clampDesireValue,
 } from '../game/desireScale';
+import { createFallbackMapping } from '../game/desireFallback';
 import { callClaudeApi } from './claudeClient';
 
-const MODEL = 'claude-haiku-4-5-20241022';
-
-// パース失敗時のフォールバック（中立より少し高い全軸60）
-const FALLBACK_MAPPING = Object.fromEntries(
-  AXES.map((axis) => [axis.key, 60])
-);
+const MODEL = 'claude-haiku-4-5-20251001';
 
 function buildSystemPrompt() {
   return (
@@ -22,6 +18,8 @@ function buildSystemPrompt() {
     'プレイヤーの宣言テキストを読み、隠し欲望軸への配点をJSON形式で返してください。\n' +
     '軸は wealth / power / fame / love / pleasure の5つ。各軸0〜100の整数。\n' +
     '50を中立とし、欲望が弱いほど0、強いほど100に近づけてください。\n' +
+    'wealth=富や所有、power=支配や統制、fame=承認や名誉、love=愛情や憎悪、pleasure=享楽や刺激として評価してください。\n' +
+    '5軸はそれぞれ独立に根拠を判断し、同じ数値を一律に割り当てないでください。\n' +
     'JSONのみを返し、それ以外のテキストは一切含めないでください。\n' +
     '\n' +
     '例：\n' +
@@ -66,7 +64,7 @@ export async function mapDesire(declaration, apiKey) {
     return result;
   } catch (err) {
     console.warn('mapDesire: fallback used', err.message);
-    return FALLBACK_MAPPING;
+    return createFallbackMapping(declaration);
   }
 }
 

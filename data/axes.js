@@ -32,7 +32,7 @@ export const AXES = [
   },
 ];
 
-// 初期メーター状態を生成するヘルパー（{ wealth: 0, power: 0, ... }）
+// 初期メーター状態を生成するヘルパー（{ wealth: 50, power: 50, ... }）
 export function createInitialMeter() {
   return Object.fromEntries(AXES.map((axis) => [axis.key, axis.initialValue]));
 }
