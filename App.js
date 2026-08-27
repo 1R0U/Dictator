@@ -42,8 +42,8 @@ export default function App() {
 
   /**
    * 冒頭宣言を送信し、mapDesireで欲望軸に変換してから初日生成画面へ遷移する。
-   * mapDesire自体は失敗時にフォールバック配点を返すため、ここで拾う失敗は
-   * その手前（ネットワーク不通など）に限られる。
+   * mapDesireは通信失敗時も含めて自身のtry/catchでフォールバック配点を返し、
+   * 例外を投げないため、送信は常に初日生成画面への遷移で完了する。
    */
   const handleDeclarationSubmit = async (text) => {
     const result = await mapDesire(text, CLAUDE_API_KEY);
