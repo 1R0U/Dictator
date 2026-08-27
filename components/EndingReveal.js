@@ -166,8 +166,8 @@ export default function EndingReveal({
           </View>
           {isRevealComplete && resolvedFigure ? (
             <View accessibilityLiveRegion="polite" style={styles.figurePanel}>
-              <Text style={styles.figureKicker}>DICTATOR DIAGNOSIS</Text>
-              <Text style={styles.figureLead}>あなたに最も近い歴史上の人物は…</Text>
+              <Text style={styles.figureKicker}>FIGURE DIAGNOSIS</Text>
+              <Text style={styles.figureLead}>あなたに最も近い人物は…</Text>
               <Text style={styles.figureName}>{resolvedFigure.name}</Text>
               <Text style={styles.figureEpithet}>{resolvedFigure.epithet}</Text>
               <Text style={styles.figureBlurb}>{resolvedBlurb}</Text>
