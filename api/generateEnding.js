@@ -1,7 +1,7 @@
 // エンディング生成：決定論的に選ばれたエンディング型の文章をAIに書かせる。
 // 型自体はアプリ側ロジックで決まるため、文章生成が失敗しても進行は止まらない。
 
-import { FEW_SHOT_ENDING } from '../data/prompts';
+import { FEW_SHOT_ENDING, TONE_PROMPTS } from '../data/prompts';
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-haiku-4-5-20251001';
@@ -36,11 +36,14 @@ const ENDING_TEMPLATES = {
   },
 };
 
-function buildSystemPrompt() {
+function buildSystemPrompt(tone) {
+  const tonePrompt = Object.hasOwn(TONE_PROMPTS, tone) ? TONE_PROMPTS[tone] : TONE_PROMPTS.pop;
   return (
     'あなたは「欲望国家シム」のエンディング生成AIです。\n' +
     '指定されたエンディング型に合った結末の文章を生成してください。\n' +
-    'ポップで皮肉の効いたトーンを保ってください。\n' +
+    '\n' +
+    '【トーン指定：' + tonePrompt.label + '】\n' +
+    tonePrompt.instruction + '\n' +
     '\n' +
     '出力は必ず以下の形式にしてください：\n' +
     '### TITLE\n（エンディングの見出し。『』で囲んだ短いフレーズ）\n' +
@@ -63,10 +66,11 @@ function buildSystemPrompt() {
  * @param {string} params.endingType       - エンディング型のキー（greed / emptiness / ruin / ironic_peace / chaos）
  * @param {Object} params.meter            - 最終の欲望メーター
  * @param {string} params.declaration      - 最初の宣言テキスト
+ * @param {string} params.tone             - トーンキー（pop / horror / real / emo）
  * @param {string} params.apiKey           - Claude APIキー
  * @returns {Promise<{title: string, body: string, stats: string[]}>}
  */
-export async function generateEnding({ endingType, meter, declaration, apiKey }) {
+export async function generateEnding({ endingType, meter, declaration, tone = 'pop', apiKey }) {
   const template = ENDING_TEMPLATES[endingType] ?? ENDING_TEMPLATES.chaos;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -91,7 +95,7 @@ export async function generateEnding({ endingType, meter, declaration, apiKey })
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 1024,
-        system: buildSystemPrompt(),
+        system: buildSystemPrompt(tone),
         messages: [{ role: 'user', content: userMessage }],
       }),
       signal: controller.signal,
