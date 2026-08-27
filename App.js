@@ -1,6 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+} from 'react-native';
 
 import { mapDesire } from './api/mapDesire';
 import { generateBeat } from './api/generateBeat';
@@ -46,15 +53,21 @@ const FALLBACK_ENDING_BODY =
 function DestinationPlaceholder({ eyebrow, title, children }) {
   return (
     <SafeAreaView style={styles.destination}>
-      <ScrollView
-        contentContainerStyle={styles.destinationContent}
-        keyboardShouldPersistTaps="handled"
-        style={styles.destinationScroll}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.destinationKeyboardArea}
       >
-        <Text style={styles.eyebrow}>{eyebrow}</Text>
-        <Text style={styles.destinationTitle}>{title}</Text>
-        {children}
-      </ScrollView>
+        <ScrollView
+          contentContainerStyle={styles.destinationContent}
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          keyboardShouldPersistTaps="always"
+          style={styles.destinationScroll}
+        >
+          <Text style={styles.eyebrow}>{eyebrow}</Text>
+          <Text style={styles.destinationTitle}>{title}</Text>
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -366,6 +379,9 @@ const styles = StyleSheet.create({
   destination: {
     flex: 1,
     backgroundColor: '#0b0b0d',
+  },
+  destinationKeyboardArea: {
+    flex: 1,
   },
   destinationContent: {
     flexGrow: 1,
