@@ -19,12 +19,12 @@ const CHARACTERS = [
  *
  * @param {Object} props
  * @param {boolean} props.compact 狭い画面向けの表示にするか。
- * @param {string[]} props.messages キャラクターごとの一言。
+ * @param {string[]} props.messages 一言候補（キャラクターとは無関係に抽選する）。
  */
 export default function CornerMessenger({ compact, messages }) {
   const [characterIndex] = useState(() => selectRandomIndex(CHARACTERS.length));
   const character = CHARACTERS[characterIndex];
-  const message = messages[characterIndex];
+  const [message] = useState(() => messages[selectRandomIndex(messages.length)]);
 
   return (
     <View
