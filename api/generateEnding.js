@@ -37,7 +37,7 @@ const ENDING_TEMPLATES = {
 };
 
 function buildSystemPrompt(tone) {
-  const tonePrompt = TONE_PROMPTS[tone] ?? TONE_PROMPTS.pop;
+  const tonePrompt = Object.hasOwn(TONE_PROMPTS, tone) ? TONE_PROMPTS[tone] : TONE_PROMPTS.pop;
   return (
     'あなたは「欲望国家シム」のエンディング生成AIです。\n' +
     '指定されたエンディング型に合った結末の文章を生成してください。\n' +

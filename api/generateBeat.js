@@ -15,7 +15,7 @@ const FALLBACK = {
 
 function buildSystemPrompt(tone) {
   const example = FEW_SHOT_BEATS[0];
-  const tonePrompt = TONE_PROMPTS[tone] ?? TONE_PROMPTS.pop;
+  const tonePrompt = Object.hasOwn(TONE_PROMPTS, tone) ? TONE_PROMPTS[tone] : TONE_PROMPTS.pop;
   return (
     'あなたは「欲望国家シム」のシナリオAIです。\n' +
     'プレイヤーは独裁者として欲望を法律として宣言しています。\n' +
