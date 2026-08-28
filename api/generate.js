@@ -1,8 +1,33 @@
 // Vercelサーバーレス関数：Gemini APIへのプロキシ
+// レート制限付き（IPあたり1分間に10リクエストまで）
+
+const rateLimitMap = new Map();
+const RATE_LIMIT = 10;
+const RATE_WINDOW_MS = 60000;
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip);
+  if (!record) {
+    rateLimitMap.set(ip, { count: 1, start: now });
+    return false;
+  }
+  if (now - record.start > RATE_WINDOW_MS) {
+    rateLimitMap.set(ip, { count: 1, start: now });
+    return false;
+  }
+  record.count++;
+  return record.count > RATE_LIMIT;
+}
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+  if (isRateLimited(ip)) {
+    return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -11,6 +36,10 @@ module.exports = async function handler(req, res) {
   }
 
   const { system, messages, maxTokens, responseSchema } = req.body;
+  if (!messages || !Array.isArray(messages)) {
+    return res.status(400).json({ error: 'Invalid request body' });
+  }
+
   const userText = messages.map((m) => m.content).join('\n');
   const generationConfig = { maxOutputTokens: maxTokens || 1024 };
   if (responseSchema) {
