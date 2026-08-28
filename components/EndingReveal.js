@@ -17,6 +17,7 @@ import { matchFigure } from '../game/figureMatch';
 import { FIGURE_DIAGNOSIS_DISCLAIMER, buildFallbackBlurb } from '../data/figures';
 import { getCollapseVisual } from '../data/collapseVisuals';
 import { ENDING_CATALOG } from '../data/endingCatalog';
+import { playCollapseSoundEffects, playSoundEffect } from '../utils/sound';
 import { shouldStartCollapseIntro } from '../game/collapseIntro';
 
 const PHASES = Object.freeze({
@@ -125,6 +126,12 @@ export default function EndingReveal({
     completionNotifier.reset();
     panelRevealAnimation.setValue(0);
     meterAnimations.forEach((animation) => animation.setValue(0));
+
+    if (collapseVisual) {
+      playCollapseSoundEffects();
+    } else {
+      playSoundEffect('happyEnd');
+    }
 
     return () => {
       activeAnimation.current?.stop();
@@ -275,7 +282,10 @@ export default function EndingReveal({
         <PressableScale
           accessibilityRole="button"
           glowColor="#b9985a"
-          onPress={onReturnHome}
+          onPress={() => {
+            playSoundEffect('returnHome');
+            onReturnHome();
+          }}
           style={({ pressed }) => [
             styles.homeButton,
             collapseVisual && styles.homeButtonAfterReplay,

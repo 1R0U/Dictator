@@ -45,6 +45,7 @@ import { isMilestoneReportPending } from './game/milestoneReport';
 import { STAGES } from './game/navigation';
 import { getPreviousMilestoneEvents } from './game/storyContext';
 import { createHistoryResult } from './game/historyView';
+import { playSoundEffect } from './utils/sound';
 import {
   buildEndingNarrationText,
   createEndingNewsScenes,
@@ -532,9 +533,10 @@ export default function App() {
           onPrevious={() => (
             setMilestoneIndex((current) => Math.max(current - 1, 0))
           )}
-          onNext={() => (
-            setMilestoneIndex((current) => Math.min(current + 1, MILESTONES.length - 1))
-          )}
+          onNext={() => {
+            playSoundEffect('advance');
+            setMilestoneIndex((current) => Math.min(current + 1, MILESTONES.length - 1));
+          }}
           onFinish={() => {
             if (isFinalMilestone && hasEndingPreparationStarted && !isEndingLoading) {
               setStage(endingNewsScenes.length ? STAGES.ENDING_NEWS : STAGES.ENDING);

@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 
 import PressableScale from './PressableScale';
+import { playSoundEffect } from '../utils/sound';
 
 const HOME_BACKGROUND = require('../assets/home-background.png');
 
@@ -103,8 +104,23 @@ export default function TitleScreen({ onStart, onOpenHistory }) {
               玉座は、あなたの宣言を待っている
             </Text>
             <View style={styles.menu}>
-              <MenuButton index="01" label="統治を始める" onPress={onStart} />
-              <MenuButton index="02" label="記録庫を開く" onPress={onOpenHistory} secondary />
+              <MenuButton
+                index="01"
+                label="統治を始める"
+                onPress={() => {
+                  playSoundEffect('advance');
+                  onStart();
+                }}
+              />
+              <MenuButton
+                index="02"
+                label="記録庫を開く"
+                onPress={() => {
+                  playSoundEffect('advance');
+                  onOpenHistory();
+                }}
+                secondary
+              />
             </View>
           </View>
 

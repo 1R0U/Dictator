@@ -12,6 +12,7 @@ import {
 import CornerMessenger from './CornerMessenger';
 import PressableScale from './PressableScale';
 import { loadResults } from '../data/history';
+import { playSoundEffect } from '../utils/sound';
 import {
   HISTORY_PAGE_SIZE,
   formatHistoryDate,
@@ -81,7 +82,10 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
           <PressableScale
             accessibilityRole="button"
             glowColor="#a9a39a"
-            onPress={onBack}
+            onPress={() => {
+              playSoundEffect('returnHome');
+              onBack();
+            }}
             style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
           >
             <Text style={styles.backButtonText}>← ホームへ戻る</Text>
