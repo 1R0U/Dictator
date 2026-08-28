@@ -44,6 +44,7 @@ import { isMilestoneReportPending } from './game/milestoneReport';
 import { STAGES } from './game/navigation';
 import { getPreviousMilestoneEvents } from './game/storyContext';
 import { createHistoryResult } from './game/historyView';
+import { playSoundEffect } from './utils/sound';
 
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 // desireAxesが未設定（通常発生しない）な場合のみ使うフォールバック値。
@@ -475,9 +476,10 @@ export default function App() {
           onPrevious={() => (
             setMilestoneIndex((current) => Math.max(current - 1, 0))
           )}
-          onNext={() => (
-            setMilestoneIndex((current) => Math.min(current + 1, MILESTONES.length - 1))
-          )}
+          onNext={() => {
+            playSoundEffect('advance');
+            setMilestoneIndex((current) => Math.min(current + 1, MILESTONES.length - 1));
+          }}
           onFinish={() => handleFinish(collapseRoute ?? undefined)}
           isFinishing={isEndingLoading}
           isCollapsePending={Boolean(collapseRoute)}

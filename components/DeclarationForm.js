@@ -15,6 +15,7 @@ import {
 import CornerMessenger from './CornerMessenger';
 import PressableScale from './PressableScale';
 import { TONES, canStartDeclaration } from '../game/declaration';
+import { playSoundEffect } from '../utils/sound';
 
 const MAX_LENGTH = 500;
 
@@ -44,6 +45,7 @@ export default function DeclarationForm({ onBack, onSubmit }) {
   const handleSubmit = async () => {
     if (!canSubmit) return;
 
+    playSoundEffect('declare');
     setSubmitError('');
     setIsSubmitting(true);
 
@@ -73,7 +75,10 @@ export default function DeclarationForm({ onBack, onSubmit }) {
               accessibilityRole="button"
               disabled={isSubmitting}
               glowColor="#a9a39a"
-              onPress={onBack}
+              onPress={() => {
+                playSoundEffect('returnHome');
+                onBack();
+              }}
               style={({ pressed }) => [styles.backButton, pressed && styles.pressedBackButton]}
             >
               <Text style={styles.backButtonText}>← ホームへ戻る</Text>
