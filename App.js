@@ -21,7 +21,6 @@ import History from './components/History';
 import HistoryDetail from './components/HistoryDetail';
 import MilestoneReport, { MilestoneNavigation } from './components/MilestoneReport';
 import TitleScreen from './components/TitleScreen';
-import { AXES } from './data/axes';
 import { saveResult } from './data/history';
 import { MILESTONES } from './data/milestones';
 import {
@@ -91,7 +90,6 @@ function DestinationPlaceholder({ eyebrow, title, children, scrollViewRef }) {
  */
 function DayGenerationScreen({
   declaration,
-  desireAxes,
   milestone,
   previousMilestone,
   nextMilestone,
@@ -161,11 +159,6 @@ function DayGenerationScreen({
                 news={report?.news ?? ''}
               />
             )}
-            {desireAxes ? (
-              <Text style={styles.destinationAxes}>
-                {AXES.map((axis) => `${axis.label} ${desireAxes[axis.key]}`).join('　')}
-              </Text>
-            ) : null}
           </ScrollView>
           {!showCheckup ? (
             <View pointerEvents="box-none" style={styles.stickyNavigationBar}>
@@ -468,7 +461,6 @@ export default function App() {
       screen = (
         <DayGenerationScreen
           declaration={generationInput?.declaration ?? ''}
-          desireAxes={desireAxes}
           milestone={milestone}
           previousMilestone={MILESTONES[milestoneIndex - 1]}
           nextMilestone={nextMilestone}
@@ -592,13 +584,6 @@ const styles = StyleSheet.create({
     color: '#a9a39a',
     fontSize: 15,
     lineHeight: 24,
-    textAlign: 'center',
-  },
-  destinationAxes: {
-    marginTop: 16,
-    color: '#625e58',
-    fontSize: 12,
-    letterSpacing: 1,
     textAlign: 'center',
   },
   additionalDeclaration: {
