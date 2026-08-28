@@ -6,6 +6,7 @@ const STAGES = Object.freeze({
   ENDING: 4,
   HISTORY_DETAIL: 5,
   ENDING_NEWS: 6,
+  CODEX: 7,
 });
 
 module.exports = { STAGES };
