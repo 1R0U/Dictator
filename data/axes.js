@@ -19,7 +19,7 @@ export const AXES = [
     name: '変革',
     englishName: 'Innovation',
     label: '⚡ 変革',
-    initialValue: 50,
+    initialValue: 0,
   },
   {
     key: 'prestige',

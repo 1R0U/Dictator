@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 
 import PressableScale from './PressableScale';
 import { AXES } from '../data/axes';
@@ -17,12 +18,18 @@ import { FIGURE_DIAGNOSIS_DISCLAIMER, buildFallbackBlurb } from '../data/figures
 import { getCollapseVisual } from '../data/collapseVisuals';
 import { ENDING_CATALOG } from '../data/endingCatalog';
 import { playCollapseSoundEffects, playSoundEffect } from '../utils/sound';
+import { shouldStartCollapseIntro } from '../game/collapseIntro';
 
 const PHASES = Object.freeze({
   ENDING: 'ending',
   METER: 'meter',
 });
-const FULLSCREEN_IMAGE_DURATION_MS = 2200;
+const COLLAPSE_CHARACTERS = Object.freeze(['国', '家', '滅', '亡']);
+const COLLAPSE_CHARACTER_INTERVAL_MS = 900;
+const FULLSCREEN_IMAGE_DURATION_MS = 4300;
+const COLLAPSE_SOUND = require('../assets/collapse-impact.wav');
+
+setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
 
 /** Split a trait sentence into plain/highlighted segments so key words stand out visually. */
 function splitTraitSentenceSegments(sentence, keywords) {
@@ -55,6 +62,7 @@ function splitTraitSentenceSegments(sentence, keywords) {
  * @param {Function} [props.onReturnHome] 表示完了後にホームへ戻る処理。
  * @param {string} [props.returnLabel] 表示完了後の戻るボタン文言。
  * @param {Object} [props.scrollViewRef] 欲望パネルへ自動スクロールする親ScrollViewのref。
+ * @param {boolean} [props.enableCollapseIntro] ライブの国家滅亡時だけ初回演出を有効にする。
  */
 export default function EndingReveal({
   headline,
@@ -66,10 +74,18 @@ export default function EndingReveal({
   onReturnHome,
   returnLabel = 'ホームへ戻る',
   scrollViewRef,
+  enableCollapseIntro = false,
 }) {
   const [phase, setPhase] = useState(PHASES.ENDING);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
   const [isImageFullscreen, setIsImageFullscreen] = useState(false);
+  const [visibleCollapseCharacterCount, setVisibleCollapseCharacterCount] = useState(0);
+  const collapseVisual = getCollapseVisual(endingType);
+  const collapseAudioSource = enableCollapseIntro && collapseVisual ? COLLAPSE_SOUND : null;
+  const collapseHitOne = useAudioPlayer(collapseAudioSource);
+  const collapseHitTwo = useAudioPlayer(collapseAudioSource);
+  const collapseHitThree = useAudioPlayer(collapseAudioSource);
+  const collapseHitFour = useAudioPlayer(collapseAudioSource);
   const meterAnimations = useRef(AXES.map(() => new Animated.Value(0))).current;
   const panelRevealAnimation = useRef(new Animated.Value(0)).current;
   const resolvedFigure = figureDiagnosis?.figure ?? matchFigure(finalMeter)?.figure;
@@ -77,7 +93,6 @@ export default function EndingReveal({
     ? figureDiagnosis.blurb
     : (resolvedFigure ? buildFallbackBlurb(resolvedFigure) : null);
   const resolvedBiasComment = figureDiagnosis?.biasComment ?? getDesireBiasComment(finalMeter);
-  const collapseVisual = getCollapseVisual(endingType);
   const collapseLabel = collapseVisual ? ENDING_CATALOG[endingType]?.label : null;
   const activeAnimation = useRef(null);
   const isRevealing = useRef(false);
@@ -88,6 +103,15 @@ export default function EndingReveal({
   const containerYRef = useRef(0);
   const hasScrolledToMeterRef = useRef(false);
   const scrollAnimationFrameRef = useRef(null);
+  const playedCollapseTypeRef = useRef(null);
+  const collapseSequenceTimeoutsRef = useRef([]);
+  const collapseHitPlayersRef = useRef([]);
+  collapseHitPlayersRef.current = [
+    collapseHitOne,
+    collapseHitTwo,
+    collapseHitThree,
+    collapseHitFour,
+  ];
 
   useEffect(() => {
     onRevealCompleteRef.current = onRevealComplete;
@@ -120,13 +144,56 @@ export default function EndingReveal({
     };
   }, [collapseVisual, completionNotifier, endingType, headline, meterAnimations, panelRevealAnimation]);
 
+  /** Cancel pending character hits and stop any sound that is still playing. */
+  const stopCollapseSequence = () => {
+    collapseSequenceTimeoutsRef.current.forEach(clearTimeout);
+    collapseSequenceTimeoutsRef.current = [];
+    collapseHitPlayersRef.current.forEach((player) => player.pause());
+  };
+
+  /** ライブの滅亡直後だけ、四文字と四打の効果音を一度だけ開始する。 */
+  useEffect(() => {
+    if (!enableCollapseIntro || !collapseVisual) {
+      setVisibleCollapseCharacterCount(0);
+      return;
+    }
+    if (!shouldStartCollapseIntro({
+      enabled: enableCollapseIntro,
+      endingType,
+      hasCollapseVisual: Boolean(collapseVisual),
+      playedEndingType: playedCollapseTypeRef.current,
+    })) return;
+
+    setVisibleCollapseCharacterCount(0);
+    stopCollapseSequence();
+    collapseSequenceTimeoutsRef.current = collapseHitPlayersRef.current.map((player, index) => (
+      setTimeout(() => {
+        if (index === 0) playedCollapseTypeRef.current = endingType;
+        player.volume = 0.6;
+        player.play();
+        setVisibleCollapseCharacterCount(index + 1);
+      }, index * COLLAPSE_CHARACTER_INTERVAL_MS)
+    ));
+
+    return stopCollapseSequence;
+  }, [collapseVisual, enableCollapseIntro, endingType]);
+
   /** 全画面表示中は一定時間で自動的に閉じる。 */
   useEffect(() => {
     if (!isImageFullscreen) return undefined;
 
-    const timer = setTimeout(() => setIsImageFullscreen(false), FULLSCREEN_IMAGE_DURATION_MS);
+    const timer = setTimeout(() => {
+      setIsImageFullscreen(false);
+      setVisibleCollapseCharacterCount(0);
+    }, FULLSCREEN_IMAGE_DURATION_MS);
     return () => clearTimeout(timer);
   }, [isImageFullscreen]);
+
+  const closeFullscreenImage = () => {
+    stopCollapseSequence();
+    setIsImageFullscreen(false);
+    setVisibleCollapseCharacterCount(0);
+  };
 
   /** 欲望メーターを順番に開示し、完了を外部へ通知する。二度目以降はアニメーションを省略して即再表示する。 */
   const openMeter = () => {
@@ -241,13 +308,13 @@ export default function EndingReveal({
       {collapseVisual ? (
         <Modal
           animationType="fade"
-          onRequestClose={() => setIsImageFullscreen(false)}
+          onRequestClose={closeFullscreenImage}
           transparent={false}
           visible={isImageFullscreen}
         >
           <Pressable
             accessibilityRole="button"
-            onPress={() => setIsImageFullscreen(false)}
+            onPress={closeFullscreenImage}
             style={styles.fullscreenOverlay}
           >
             <Image
@@ -258,6 +325,32 @@ export default function EndingReveal({
               style={styles.fullscreenImage}
             />
             <View style={styles.fullscreenShade} />
+            {visibleCollapseCharacterCount > 0 ? (
+              <View
+                accessibilityLabel={COLLAPSE_CHARACTERS
+                  .slice(0, visibleCollapseCharacterCount)
+                  .join('')}
+                accessibilityLiveRegion="assertive"
+                accessible
+                pointerEvents="none"
+                style={styles.collapseAnnouncement}
+              >
+                <View style={styles.collapseCharacterRow}>
+                  {COLLAPSE_CHARACTERS.map((character, index) => (
+                    <Text
+                      key={character}
+                      style={[
+                        styles.collapseAnnouncementText,
+                        index >= visibleCollapseCharacterCount && styles.hiddenCollapseCharacter,
+                      ]}
+                    >
+                      {character}
+                    </Text>
+                  ))}
+                </View>
+                <View style={styles.collapseAnnouncementRule} />
+              </View>
+            ) : null}
             <View style={styles.fullscreenMark}>
               <Text style={styles.fullscreenNumber}>{collapseVisual.number}</Text>
               <Text style={styles.fullscreenLabel}>{collapseLabel}</Text>
@@ -432,6 +525,37 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     justifyContent: 'flex-end',
     gap: 12,
+  },
+  collapseAnnouncement: {
+    position: 'absolute',
+    top: '42%',
+    right: 20,
+    left: 20,
+    alignItems: 'center',
+  },
+  collapseAnnouncementText: {
+    color: '#f4e8d7',
+    fontSize: 58,
+    fontWeight: '900',
+    letterSpacing: 2,
+    textAlign: 'center',
+    textShadowColor: 'rgba(112, 12, 8, 1)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 14,
+  },
+  collapseCharacterRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  hiddenCollapseCharacter: {
+    opacity: 0,
+  },
+  collapseAnnouncementRule: {
+    width: 180,
+    height: 2,
+    marginTop: 14,
+    backgroundColor: '#a64234',
   },
   fullscreenNumber: {
     color: '#c28a62',
