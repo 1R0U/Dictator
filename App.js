@@ -36,7 +36,7 @@ import {
   shouldShowCheckup,
 } from './game/checkup';
 import { createGenerationInput } from './game/declaration';
-import { applyMapping } from './game/meter';
+import { applyMapping, createInitialMeter } from './game/meter';
 import { matchFigure } from './game/figureMatch';
 import {
   advanceCollapseState,
