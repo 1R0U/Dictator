@@ -17,6 +17,7 @@ import { generateEnding } from './api/generateEnding';
 import { generateFigureDiagnosis } from './api/generateFigureDiagnosis';
 import { generateNarration } from './api/generateNarration';
 import CheckupEvent from './components/CheckupEvent';
+import Codex from './components/Codex';
 import DeclarationForm from './components/DeclarationForm';
 import EndingReveal from './components/EndingReveal';
 import EndingNews from './components/EndingNews';
@@ -24,6 +25,7 @@ import History from './components/History';
 import HistoryDetail from './components/HistoryDetail';
 import MilestoneReport, { MilestoneNavigation } from './components/MilestoneReport';
 import TitleScreen from './components/TitleScreen';
+import { unlockCodexEntry } from './data/codex';
 import { saveResult } from './data/history';
 import { MILESTONES } from './data/milestones';
 import {
@@ -461,6 +463,17 @@ export default function App() {
     })).catch((err) => {
       console.warn('handleEndingRevealComplete: failed to save result', err.message);
     });
+
+    if (endingType?.startsWith('collapse')) {
+      unlockCodexEntry('collapse', endingType).catch((err) => {
+        console.warn('handleEndingRevealComplete: failed to unlock collapse codex entry', err.message);
+      });
+    }
+    if (figureDiagnosis?.figure?.key) {
+      unlockCodexEntry('figure', figureDiagnosis.figure.key).catch((err) => {
+        console.warn('handleEndingRevealComplete: failed to unlock figure codex entry', err.message);
+      });
+    }
   };
 
   /** エンディング表示後にプレイ状態を初期化してホームへ戻る。 */
@@ -596,9 +609,15 @@ export default function App() {
         />
       );
       break;
+    case STAGES.CODEX:
+      screen = (
+        <Codex onBack={() => setStage(STAGES.TITLE)} />
+      );
+      break;
     default:
       screen = (
         <TitleScreen
+          onOpenCodex={() => setStage(STAGES.CODEX)}
           onStart={() => setStage(STAGES.DECLARATION)}
           onOpenHistory={() => {
             setSelectedHistoryResult(null);
