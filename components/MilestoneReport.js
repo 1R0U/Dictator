@@ -162,7 +162,6 @@ export default function MilestoneReport({
               accessibilityState={{ selected: isNews }}
               glowColor="#d8c9aa"
               onPress={() => setActiveSide(REPORT_SIDES.NEWS)}
-              ripple
               style={({ pressed }) => [
                 styles.tab,
                 isNews && styles.activeNewsTab,
@@ -176,7 +175,6 @@ export default function MilestoneReport({
               accessibilityState={{ selected: !isNews }}
               glowColor="#7e2024"
               onPress={() => setActiveSide(REPORT_SIDES.MEMO)}
-              ripple
               style={({ pressed }) => [
                 styles.tab,
                 !isNews && styles.activeMemoTab,
@@ -324,7 +322,6 @@ export function MilestoneNavigation({ onPrevious, previousLabel, onNext, nextLab
               accessibilityRole="button"
               glowColor="#8e8982"
               onPress={onPrevious}
-              ripple
               style={({ pressed }) => [
                 styles.navigationButton,
                 styles.previousButton,

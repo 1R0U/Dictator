@@ -74,7 +74,6 @@ export default function DeclarationForm({ onBack, onSubmit }) {
               disabled={isSubmitting}
               glowColor="#a9a39a"
               onPress={onBack}
-              ripple
               style={({ pressed }) => [styles.backButton, pressed && styles.pressedBackButton]}
             >
               <Text style={styles.backButtonText}>← ホームへ戻る</Text>
@@ -147,7 +146,6 @@ export default function DeclarationForm({ onBack, onSubmit }) {
                       glowColor={toneColor}
                       onPress={() => setSelectedTone(tone.id)}
                       key={tone.id}
-                      ripple
                       style={({ pressed }) => [
                         styles.toneButton,
                         isSelected && {

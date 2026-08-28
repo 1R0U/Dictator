@@ -100,7 +100,6 @@ export default function CheckupEvent({ milestoneLabel, onSkip, onSubmit }) {
               disabled={isSubmitting}
               glowColor="#8e8982"
               onPress={handleSkip}
-              ripple
               style={({ pressed }) => [
                 styles.actionButton,
                 styles.skipButton,
