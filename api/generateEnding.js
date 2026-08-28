@@ -61,11 +61,13 @@ export async function generateEnding({
 }) {
   const template = ENDING_TEMPLATES[endingType] ?? ENDING_TEMPLATES.chaos;
 
-  const meterSummary = Object.entries(meter)
-    .map(([key, val]) => {
-      const axis = AXES.find((item) => item.key === key);
-      const direction = val < 0 ? axis?.leftLabel : val > 0 ? axis?.rightLabel : '中立';
-      return `${key}:${direction}(${Math.abs(val)})`;
+  const meterSummary = AXES
+    .map((axis) => {
+      const value = Number.isFinite(meter?.[axis.key]) ? meter[axis.key] : 0;
+      const direction = value < 0
+        ? axis.leftLabel
+        : value > 0 ? axis.rightLabel : '中立';
+      return `${axis.key}:${direction}(${Math.abs(value)})`;
     })
     .join(' / ');
 

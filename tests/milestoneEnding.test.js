@@ -9,7 +9,8 @@ const {
 } = require('../game/milestoneEnding');
 const { ENDING_CATALOG } = require('../data/endingCatalog');
 
-test('欲望5軸は国家滅亡リスクを増加させない', () => {
+// 専用滅亡軸の導入まではpreviousRiskも引き継がず、常に0へリセットする。
+test('専用滅亡軸の導入まで欲望5軸はリスクへ影響せずリスクは0のままとなる', () => {
   const extremeDesires = {
     domination: -100,
     egoism: 100,
