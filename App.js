@@ -39,6 +39,7 @@ import {
   determineCollapseRoute,
   shouldTriggerNationCollapse,
 } from './game/milestoneEnding';
+import { decideEnding } from './game/decideEnding';
 import { isMilestoneReportPending } from './game/milestoneReport';
 import { STAGES } from './game/navigation';
 import { getPreviousMilestoneEvents } from './game/storyContext';
@@ -54,7 +55,7 @@ const FALLBACK_FINAL_METER = Object.freeze({
   madness: 72,
 });
 // エンディング型の判定ロジック（#6/#25）が未実装のため、型自体は仮固定。
-const DUMMY_ENDING_TYPE = 'ironic_peace';
+
 const FALLBACK_ENDING_HEADLINE = '黄金色の静寂';
 const FALLBACK_ENDING_BODY =
   '国はあなたの宣言を忠実に実行し続けた。やがて人々は命令に従うことだけを覚え、静かな繁栄と引き換えに、自ら選ぶ未来を手放した。';
@@ -199,7 +200,7 @@ export default function App() {
   const [selectedHistoryResult, setSelectedHistoryResult] = useState(null);
   const [loadingMilestoneKey, setLoadingMilestoneKey] = useState(null);
   const [endingReport, setEndingReport] = useState(null);
-  const [endingType, setEndingType] = useState(DUMMY_ENDING_TYPE);
+  const [endingType, setEndingType] = useState(null);
   const [figureDiagnosis, setFigureDiagnosis] = useState(null);
   const [isEndingLoading, setIsEndingLoading] = useState(false);
   const generatingMilestonesRef = useRef(new Set());
@@ -354,7 +355,7 @@ export default function App() {
     if (isEndingLoading) return;
     setIsEndingLoading(true);
 
-    const resolvedEndingType = forcedEndingType ?? DUMMY_ENDING_TYPE;
+    const resolvedEndingType = forcedEndingType ?? decideEnding(desireAxes);
 
     try {
       const meter = desireAxes ?? FALLBACK_FINAL_METER;
@@ -417,7 +418,7 @@ export default function App() {
     setMilestoneReports({});
     setLoadingMilestoneKey(null);
     setEndingReport(null);
-    setEndingType(DUMMY_ENDING_TYPE);
+    setEndingType(null);
     setFigureDiagnosis(null);
     setIsEndingLoading(false);
     setStage(STAGES.TITLE);
