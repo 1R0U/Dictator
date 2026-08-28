@@ -1,18 +1,39 @@
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+
+import PressableScale from './PressableScale';
 
 function MenuButton({ label, onPress, secondary = false }) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
+      flashy={!secondary}
+      glowColor="#b9985a"
       onPress={onPress}
       style={({ pressed }) => [styles.button, secondary && styles.secondaryButton, pressed && styles.pressedButton]}
     >
       <Text style={[styles.buttonText, secondary && styles.secondaryButtonText]}>{label}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
 export default function TitleScreen({ onStart, onOpenHistory }) {
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 1600, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 1600, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+
+  const haloScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.22] });
+  const haloOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0] });
+
   return (
     <SafeAreaView style={styles.container}>
       <View pointerEvents="none" style={styles.sun} />
@@ -20,15 +41,24 @@ export default function TitleScreen({ onStart, onOpenHistory }) {
       <View style={styles.content}>
         <View style={styles.brand}>
           <Text style={styles.kicker}>DESIRE NATION SIM</Text>
-          <View style={styles.emblem}>
-            <Text style={styles.emblemText}>欲</Text>
+          <View style={styles.emblemWrap}>
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.emblemHalo,
+                { opacity: haloOpacity, transform: [{ scale: haloScale }] },
+              ]}
+            />
+            <View style={styles.emblem}>
+              <Text style={styles.emblemText}>欲</Text>
+            </View>
           </View>
           <Text style={styles.title}>欲望国家</Text>
-          <Text style={styles.subtitle}>あなたの欲望が、法律になる。</Text>
+          <Text style={styles.subtitle}>あなたの欲望を法律へ、</Text>
         </View>
         <View style={styles.menu}>
-          <MenuButton label="新規プレイ" onPress={onStart} />
-          <MenuButton label="過去の記録" onPress={onOpenHistory} secondary />
+          <MenuButton label="統治を始める" onPress={onStart} />
+          <MenuButton label="記録庫を開く" onPress={onOpenHistory} secondary />
         </View>
         <Text style={styles.footer}>THE NATION IS WAITING FOR YOUR DECREE</Text>
       </View>
@@ -54,8 +84,15 @@ const styles = StyleSheet.create({
   kicker: {
     marginBottom: 30, color: '#b9985a', fontSize: 11, fontWeight: '700', letterSpacing: 4,
   },
+  emblemWrap: {
+    marginBottom: 22, alignItems: 'center', justifyContent: 'center',
+  },
+  emblemHalo: {
+    position: 'absolute', width: 82, height: 82,
+    borderWidth: 1, borderColor: '#b9985a', transform: [{ rotate: '45deg' }],
+  },
   emblem: {
-    width: 82, height: 82, marginBottom: 22, alignItems: 'center', justifyContent: 'center',
+    width: 82, height: 82, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: '#b9985a', transform: [{ rotate: '45deg' }],
   },
   emblemText: {

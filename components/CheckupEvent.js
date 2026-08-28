@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import PressableScale from './PressableScale';
 import {
   MAX_ADDITIONAL_DECLARATION_LENGTH,
   canSubmitAdditionalDeclaration,
@@ -94,10 +95,12 @@ export default function CheckupEvent({ milestoneLabel, onSkip, onSubmit }) {
           </View>
 
           <View style={styles.actions}>
-            <Pressable
+            <PressableScale
               accessibilityRole="button"
               disabled={isSubmitting}
+              glowColor="#8e8982"
               onPress={handleSkip}
+              ripple
               style={({ pressed }) => [
                 styles.actionButton,
                 styles.skipButton,
@@ -113,10 +116,12 @@ export default function CheckupEvent({ milestoneLabel, onSkip, onSubmit }) {
               ) : (
                 <Text style={styles.skipButtonText}>今回はスキップ</Text>
               )}
-            </Pressable>
-            <Pressable
+            </PressableScale>
+            <PressableScale
               accessibilityRole="button"
               disabled={!canSubmit}
+              flashy
+              glowColor="#7e2024"
               onPress={handleSubmit}
               style={({ pressed }) => [
                 styles.actionButton,
@@ -133,7 +138,7 @@ export default function CheckupEvent({ milestoneLabel, onSkip, onSubmit }) {
               ) : (
                 <Text style={styles.declareButtonText}>追加宣言する</Text>
               )}
-            </Pressable>
+            </PressableScale>
           </View>
           {submitError ? (
             <Text accessibilityLiveRegion="polite" style={styles.errorText}>{submitError}</Text>
