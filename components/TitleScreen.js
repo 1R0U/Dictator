@@ -3,11 +3,11 @@ import {
   SafeAreaView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 
 import PressableScale from './PressableScale';
+import { useResponsiveLayout } from './ScreenContainer';
 import { playSoundEffect } from '../utils/sound';
 
 const HOME_BACKGROUND = require('../assets/home-background.png');
@@ -59,8 +59,7 @@ function MenuButton({ index, label, onPress, secondary = false }) {
  * @returns {React.ReactElement} The illustrated title screen.
  */
 export default function TitleScreen({ onStart, onOpenHistory, onOpenCodex }) {
-  const { height } = useWindowDimensions();
-  const isCompact = height < 720;
+  const { isCompactHeight: isCompact } = useResponsiveLayout();
 
   return (
     <ImageBackground
@@ -69,9 +68,9 @@ export default function TitleScreen({ onStart, onOpenHistory, onOpenCodex }) {
       source={HOME_BACKGROUND}
       style={styles.background}
     >
-      <View pointerEvents="none" style={styles.imageShade} />
-      <View pointerEvents="none" style={styles.edgeShadeLeft} />
-      <View pointerEvents="none" style={styles.edgeShadeRight} />
+      <View style={[styles.imageShade, { pointerEvents: 'none' }]} />
+      <View style={[styles.edgeShadeLeft, { pointerEvents: 'none' }]} />
+      <View style={[styles.edgeShadeRight, { pointerEvents: 'none' }]} />
 
       <SafeAreaView style={styles.safeArea}>
         <View style={[styles.content, isCompact && styles.compactContent]}>
@@ -157,7 +156,8 @@ const styles = StyleSheet.create({
   },
   safeArea: { flex: 1 },
   content: {
-    flex: 1, paddingHorizontal: 24, paddingTop: 30, paddingBottom: 18,
+    flex: 1, width: '100%', maxWidth: 640, alignSelf: 'center',
+    paddingHorizontal: 24, paddingTop: 30, paddingBottom: 18,
   },
   compactContent: { paddingTop: 18, paddingBottom: 12 },
   brand: { alignItems: 'center', paddingTop: 6 },
