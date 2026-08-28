@@ -199,7 +199,6 @@ export default function EndingReveal({
           accessibilityRole="button"
           glowColor="#8c3c2f"
           onPress={() => setIsImageFullscreen(true)}
-          ripple
           style={({ pressed }) => [styles.replayImageButton, pressed && styles.pressed]}
         >
           <Text style={styles.replayImageButtonText}>崩壊の光景をもう一度見る</Text>
@@ -210,7 +209,6 @@ export default function EndingReveal({
           accessibilityRole="button"
           glowColor="#b9985a"
           onPress={onReturnHome}
-          ripple
           style={({ pressed }) => [
             styles.homeButton,
             collapseVisual && styles.homeButtonAfterReplay,
@@ -277,7 +275,6 @@ export default function EndingReveal({
         flashy={phase === PHASES.ENDING}
         glowColor="#b9985a"
         onPress={handleToggleMeter}
-        ripple
         style={({ pressed }) => [
           styles.revealButton,
           phase === PHASES.METER && !isRevealComplete && styles.revealedButton,

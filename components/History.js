@@ -82,7 +82,6 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
             accessibilityRole="button"
             glowColor="#a9a39a"
             onPress={onBack}
-            ripple
             style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
           >
             <Text style={styles.backButtonText}>← ホームへ戻る</Text>
@@ -129,7 +128,6 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
                 accessibilityRole="button"
                 glowColor="#b9985a"
                 onPress={fetchHistory}
-                ripple
                 style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}
               >
                 <Text style={styles.retryButtonText}>もう一度読み込む</Text>
@@ -148,7 +146,6 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
                 accessibilityRole="button"
                 glowColor="#b9985a"
                 onPress={onBack}
-                ripple
                 style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}
               >
                 <Text style={styles.retryButtonText}>最初の国をつくる</Text>
@@ -176,7 +173,6 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
                       glowColor="#b9985a"
                       key={`${result.savedAt ?? 'unknown'}-${overallIndex}`}
                       onPress={() => onSelect(result)}
-                      ripple
                       style={({ pressed }) => [styles.card, pressed && styles.pressedCard]}
                     >
                       <View style={styles.cardIndex}>
@@ -214,7 +210,6 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
                     disabled={currentPage === 0}
                     glowColor="#d8c9aa"
                     onPress={() => setPage((current) => Math.max(current - 1, 0))}
-                    ripple
                     style={({ pressed }) => [
                       styles.pageButton,
                       currentPage === 0 && styles.disabledPageButton,
@@ -231,7 +226,6 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
                     disabled={currentPage >= pageCount - 1}
                     glowColor="#d8c9aa"
                     onPress={() => setPage((current) => Math.min(current + 1, pageCount - 1))}
-                    ripple
                     style={({ pressed }) => [
                       styles.pageButton,
                       currentPage >= pageCount - 1 && styles.disabledPageButton,
