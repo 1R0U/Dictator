@@ -1,13 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { setAudioModeAsync } from 'expo-audio';
+import * as Speech from 'expo-speech';
 
 import PressableScale from './PressableScale';
 import {
   REPORT_SIDES,
   REPORT_STATUS,
+  SPEECH_MODE_OFF,
   getReportContent,
   getReportStatus,
+  getNextSpeechMode,
 } from '../game/milestoneReport';
+
+// iOSは本体のサイレントスイッチがONだと既定で読み上げも無音になるため、
+// サイレント時でも再生されるようアプリ読み込み時に一度だけ設定する。
+setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
+
+// Chromeはcancel()直後にspeak()すると発話が無音のまま失われることがあるため、一拍空けて再開する。
+const SPEECH_RESTART_DELAY_MS = 50;
 
 const NOTEBOOK_RING_COUNT = 12;
 const NOTEBOOK_RINGS = Array.from({ length: NOTEBOOK_RING_COUNT }, (_, i) => i);
@@ -49,6 +60,9 @@ export default function MilestoneReport({
   const isNews = activeSide === REPORT_SIDES.NEWS;
   const reportContent = getReportContent(activeSide, { news, memo });
   const status = getReportStatus({ isLoading, isFallback });
+  const [speechMode, setSpeechMode] = useState(SPEECH_MODE_OFF);
+  const speechRestartTimeoutRef = useRef(null);
+  const speechSessionRef = useRef(0);
   const [scrollMetrics, setScrollMetrics] = useState({ containerHeight: 0, contentHeight: 0, scrollY: 0 });
   const canScrollBody = scrollMetrics.contentHeight > scrollMetrics.containerHeight + 1;
   const scrollThumbHeight = canScrollBody
@@ -76,6 +90,56 @@ export default function MilestoneReport({
   useEffect(() => {
     setScrollMetrics((current) => ({ ...current, scrollY: 0 }));
   }, [activeSide]);
+
+  const stopSpeaking = () => {
+    speechSessionRef.current += 1; // 発話中に途中で切り替えた場合、古い発話のコールバックが後から状態を上書きしないようにする
+    if (speechRestartTimeoutRef.current) {
+      clearTimeout(speechRestartTimeoutRef.current);
+      speechRestartTimeoutRef.current = null;
+    }
+    Speech.stop();
+    setSpeechMode(SPEECH_MODE_OFF);
+  };
+
+  useEffect(() => {
+    stopSpeaking();
+  }, [activeSide, milestoneLabel]);
+
+  useEffect(() => () => stopSpeaking(), []);
+
+  const speak = (rate) => {
+    stopSpeaking();
+    const session = ++speechSessionRef.current;
+    setSpeechMode(rate);
+    speechRestartTimeoutRef.current = setTimeout(() => {
+      speechRestartTimeoutRef.current = null;
+      Speech.speak(reportContent, {
+        language: 'ja-JP',
+        rate,
+        onDone: () => {
+          if (speechSessionRef.current === session) setSpeechMode(SPEECH_MODE_OFF);
+        },
+        onStopped: () => {
+          if (speechSessionRef.current === session) setSpeechMode(SPEECH_MODE_OFF);
+        },
+        onError: (error) => {
+          console.warn('MilestoneReport speech error:', error);
+          if (speechSessionRef.current === session) setSpeechMode(SPEECH_MODE_OFF);
+        },
+      });
+    }, SPEECH_RESTART_DELAY_MS);
+  };
+
+  const handleCycleSpeech = () => {
+    const nextMode = getNextSpeechMode(speechMode);
+    if (nextMode === SPEECH_MODE_OFF) {
+      stopSpeaking();
+    } else {
+      speak(nextMode);
+    }
+  };
+
+  const speechLabel = speechMode === SPEECH_MODE_OFF ? '読み上げなし' : `×${speechMode}`;
 
   return (
     <View style={styles.container}>
@@ -120,6 +184,22 @@ export default function MilestoneReport({
             >
               <Text style={[styles.tabText, !isNews && styles.activeMemoTabText]}>
                 裏・側近メモ
+              </Text>
+            </PressableScale>
+          </View>
+
+          <View style={styles.speechControls}>
+            <PressableScale
+              accessibilityLabel={`読み上げ: ${speechLabel}。タップで切り替え`}
+              accessibilityRole="button"
+              glowColor="#d8c9aa"
+              onPress={handleCycleSpeech}
+              ripple
+              style={({ pressed }) => [styles.speechButton, pressed && styles.pressed]}
+            >
+              <Text style={styles.speechButtonText}>
+                {speechMode === SPEECH_MODE_OFF ? '' : '▶ '}
+                {speechLabel}
               </Text>
             </PressableScale>
           </View>
@@ -347,6 +427,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#7e2024',
     backgroundColor: '#1c1315',
+  },
+  speechControls: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 18,
+    marginBottom: 10,
+  },
+  speechButton: {
+    minHeight: 32,
+    paddingHorizontal: 4,
+    justifyContent: 'center',
+  },
+  speechButtonText: {
+    color: '#d8c9aa',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   report: {
     position: 'relative',
