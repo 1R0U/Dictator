@@ -52,9 +52,68 @@ function getCompoundProminenceFactor(values, pairKeys) {
 
 /** Reward a compound route only when both relevant axes stand out from the rest. */
 function calculateCompoundPressure(values, axisContributions, pairKeys) {
-  return Math.min(...pairKeys.map((key) => axisContributions[key]))
-    * 1.8
+  return Math.max(...pairKeys.map((key) => axisContributions[key]))
+    * 1.25
     * getCompoundProminenceFactor(values, pairKeys);
+}
+
+/** Add compound-route pressure from the same normalized scoring rule. */
+function addCompoundRoutePressure(pressure, values, axisContributions) {
+  if (values.domination >= 75 && values.madness >= 75) {
+    pressure.bloodyRevolution += calculateCompoundPressure(
+      values,
+      axisContributions,
+      ['domination', 'madness'],
+    );
+  }
+  if (values.egoism >= 75 && values.prestige >= 75) {
+    pressure.goldenPalace += calculateCompoundPressure(
+      values,
+      axisContributions,
+      ['egoism', 'prestige'],
+    );
+  }
+  if (values.innovation >= 75 && values.madness >= 75) {
+    pressure.forbiddenCreation += calculateCompoundPressure(
+      values,
+      axisContributions,
+      ['innovation', 'madness'],
+    );
+  }
+}
+
+/** Select the strongest route from accumulated or current pressure. */
+function selectPressureRoute(pressure) {
+  const routeScores = [
+    [COLLAPSE_ROUTES.bloodyRevolution, pressure.bloodyRevolution],
+    [COLLAPSE_ROUTES.goldenPalace, pressure.goldenPalace],
+    [COLLAPSE_ROUTES.forbiddenCreation, pressure.forbiddenCreation],
+    [COLLAPSE_ROUTES.oppression, pressure.domination],
+    [COLLAPSE_ROUTES.privatization, pressure.egoism],
+    [COLLAPSE_ROUTES.runawayReform, pressure.innovation],
+    [COLLAPSE_ROUTES.prestigeWar, pressure.prestige],
+    [COLLAPSE_ROUTES.fanaticism, pressure.madness],
+    [COLLAPSE_ROUTES.quiet, pressure.quiet],
+    [COLLAPSE_ROUTES.void, pressure.void],
+  ];
+  const [topRoute, topScore] = routeScores.sort((a, b) => b[1] - a[1])[0];
+  return topScore > 0 ? topRoute : null;
+}
+
+/** Build a one-step pressure snapshot for callers without historical pressure. */
+function buildCurrentRoutePressure(values) {
+  const pressure = normalizeCollapsePressure();
+  const axisContributions = Object.fromEntries(
+    Object.entries(AXIS_RISK_WEIGHTS).map(([key, weight]) => [
+      key,
+      Math.max(values[key] - 65, 0) * weight,
+    ]),
+  );
+  Object.entries(axisContributions).forEach(([key, contribution]) => {
+    pressure[key] = contribution;
+  });
+  addCompoundRoutePressure(pressure, values, axisContributions);
+  return pressure;
 }
 
 /** Calculate hidden total risk and preserve which pressures accumulated it. */
@@ -97,27 +156,7 @@ function advanceCollapseState({
   pressure.void += lowDesireRisk;
   // Time alone raises the total risk, but must not overwrite the actual route cause.
   pressure.quiet += balancedStagnationRisk;
-  if (current.domination >= 75 && current.madness >= 75) {
-    pressure.bloodyRevolution += calculateCompoundPressure(
-      current,
-      axisContributions,
-      ['domination', 'madness'],
-    );
-  }
-  if (current.egoism >= 75 && current.prestige >= 75) {
-    pressure.goldenPalace += calculateCompoundPressure(
-      current,
-      axisContributions,
-      ['egoism', 'prestige'],
-    );
-  }
-  if (current.innovation >= 75 && current.madness >= 75) {
-    pressure.forbiddenCreation += calculateCompoundPressure(
-      current,
-      axisContributions,
-      ['innovation', 'madness'],
-    );
-  }
+  addCompoundRoutePressure(pressure, current, axisContributions);
 
   return {
     pressure,
@@ -149,39 +188,14 @@ function determineCollapseRoute(axes, accumulatedPressure) {
 
   if (accumulatedPressure) {
     const pressure = normalizeCollapsePressure(accumulatedPressure);
-    const routeScores = [
-      [COLLAPSE_ROUTES.bloodyRevolution, pressure.bloodyRevolution],
-      [COLLAPSE_ROUTES.goldenPalace, pressure.goldenPalace],
-      [COLLAPSE_ROUTES.forbiddenCreation, pressure.forbiddenCreation],
-      [COLLAPSE_ROUTES.oppression, pressure.domination],
-      [COLLAPSE_ROUTES.privatization, pressure.egoism],
-      [COLLAPSE_ROUTES.runawayReform, pressure.innovation],
-      [COLLAPSE_ROUTES.prestigeWar, pressure.prestige],
-      [COLLAPSE_ROUTES.fanaticism, pressure.madness],
-      [COLLAPSE_ROUTES.quiet, pressure.quiet],
-      [COLLAPSE_ROUTES.void, pressure.void],
-    ];
-    const [topRoute, topScore] = routeScores.sort((a, b) => b[1] - a[1])[0];
-    return topScore > 0 ? topRoute : determineCollapseRoute(values);
+    return selectPressureRoute(pressure) ?? determineCollapseRoute(values);
   }
 
-  if (
-    values.domination >= 75
-    && values.madness >= 75
-    && getCompoundProminenceFactor(values, ['domination', 'madness']) >= 0.5
-  ) return COLLAPSE_ROUTES.bloodyRevolution;
-  if (
-    values.egoism >= 75
-    && values.prestige >= 75
-    && getCompoundProminenceFactor(values, ['egoism', 'prestige']) >= 0.5
-  ) return COLLAPSE_ROUTES.goldenPalace;
-  if (
-    values.innovation >= 75
-    && values.madness >= 75
-    && getCompoundProminenceFactor(values, ['innovation', 'madness']) >= 0.5
-  ) return COLLAPSE_ROUTES.forbiddenCreation;
   if (average <= 32) return COLLAPSE_ROUTES.void;
   if (Math.max(...allValues) <= 72) return COLLAPSE_ROUTES.quiet;
+
+  const pressureRoute = selectPressureRoute(buildCurrentRoutePressure(values));
+  if (pressureRoute) return pressureRoute;
 
   return {
     domination: COLLAPSE_ROUTES.oppression,

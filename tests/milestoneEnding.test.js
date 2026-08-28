@@ -218,3 +218,57 @@ test('支配と狂気が他軸より突出した場合は6番の血の革命を�
     COLLAPSE_ROUTES.bloodyRevolution,
   );
 });
+
+test('複合ルート6・7・8は同じ突出度で基本ルートから切り替わる', () => {
+  const cases = [
+    {
+      keys: ['domination', 'madness'],
+      basicRoute: COLLAPSE_ROUTES.fanaticism,
+      compoundRoute: COLLAPSE_ROUTES.bloodyRevolution,
+    },
+    {
+      keys: ['egoism', 'prestige'],
+      basicRoute: COLLAPSE_ROUTES.privatization,
+      compoundRoute: COLLAPSE_ROUTES.goldenPalace,
+    },
+    {
+      keys: ['innovation', 'madness'],
+      basicRoute: COLLAPSE_ROUTES.fanaticism,
+      compoundRoute: COLLAPSE_ROUTES.forbiddenCreation,
+    },
+  ];
+
+  cases.forEach(({ keys, basicRoute, compoundRoute }) => {
+    const base = { domination: 70, egoism: 70, innovation: 70, prestige: 70, madness: 70 };
+    const belowBoundary = { ...base, [keys[0]]: 84, [keys[1]]: 84 };
+    const atBoundary = { ...base, [keys[0]]: 86, [keys[1]]: 86 };
+
+    assert.equal(determineCollapseRoute(belowBoundary), basicRoute);
+    assert.equal(determineCollapseRoute(atBoundary), compoundRoute);
+  });
+});
+
+test('一定の欲望値では累積判定と直接判定が一致する', () => {
+  const profiles = [
+    { domination: 82, egoism: 70, innovation: 70, prestige: 70, madness: 82 },
+    { domination: 70, egoism: 88, innovation: 70, prestige: 88, madness: 70 },
+    { domination: 70, egoism: 70, innovation: 90, prestige: 70, madness: 90 },
+  ];
+
+  profiles.forEach((axes) => {
+    let state = { risk: 0, pressure: {} };
+    for (let milestoneIndex = 0; milestoneIndex < 10; milestoneIndex += 1) {
+      state = advanceCollapseState({
+        previousRisk: state.risk,
+        previousPressure: state.pressure,
+        axes,
+        previousAxes: axes,
+        milestoneIndex,
+      });
+    }
+    assert.equal(
+      determineCollapseRoute(axes, state.pressure),
+      determineCollapseRoute(axes),
+    );
+  });
+});
