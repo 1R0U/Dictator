@@ -336,8 +336,7 @@ export default function EndingReveal({
                   .join('')}
                 accessibilityLiveRegion="assertive"
                 accessible
-                pointerEvents="none"
-                style={styles.collapseAnnouncement}
+                style={[styles.collapseAnnouncement, { pointerEvents: 'none' }]}
               >
                 <View style={styles.collapseCharacterRow}>
                   {COLLAPSE_CHARACTERS.map((character, index) => (

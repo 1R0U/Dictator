@@ -68,9 +68,9 @@ export default function TitleScreen({ onStart, onOpenHistory, onOpenCodex }) {
       source={HOME_BACKGROUND}
       style={styles.background}
     >
-      <View pointerEvents="none" style={styles.imageShade} />
-      <View pointerEvents="none" style={styles.edgeShadeLeft} />
-      <View pointerEvents="none" style={styles.edgeShadeRight} />
+      <View style={[styles.imageShade, { pointerEvents: 'none' }]} />
+      <View style={[styles.edgeShadeLeft, { pointerEvents: 'none' }]} />
+      <View style={[styles.edgeShadeRight, { pointerEvents: 'none' }]} />
 
       <SafeAreaView style={styles.safeArea}>
         <View style={[styles.content, isCompact && styles.compactContent]}>

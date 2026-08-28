@@ -128,7 +128,7 @@ function DayGenerationScreen({
         keyboardShouldPersistTaps: 'always',
       }}
       stickyFooter={!showCheckup ? (
-        <View pointerEvents="box-none" style={styles.stickyNavigationBar}>
+        <View style={[styles.stickyNavigationBar, { pointerEvents: 'box-none' }]}>
           <View style={styles.stickyNavigationInner}>
             <MilestoneNavigation
               isFinal={!nextMilestone && !isCollapsePending}

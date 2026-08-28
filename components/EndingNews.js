@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 
 import { getSceneAtTime } from '../game/endingNews';
 
 const FALLBACK_DURATION_SECONDS = 25;
 const ACCENTS = ['#8f2431', '#9a6a2d', '#496378', '#62527b', '#7d3531'];
+// Web版はnative animation moduleが存在せず、useNativeDriver:trueだと
+// 警告が出た上でJSフォールバックになるだけなので、Webでは最初からfalseにする。
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 function NewsTicker({ text, durationSeconds }) {
   const translateX = useRef(new Animated.Value(0)).current;
@@ -19,7 +22,7 @@ function NewsTicker({ text, durationSeconds }) {
       toValue: -textWidth,
       duration: Math.max(1000, durationSeconds * 900),
       easing: (value) => value,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
     }));
     animation.start();
     return () => animation.stop();
@@ -100,7 +103,7 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
 
   useEffect(() => {
     fade.setValue(0);
-    Animated.timing(fade, { toValue: 1, duration: 450, useNativeDriver: true }).start();
+    Animated.timing(fade, { toValue: 1, duration: 450, useNativeDriver: USE_NATIVE_DRIVER }).start();
   }, [fade, sceneIndex]);
 
   useEffect(() => {
