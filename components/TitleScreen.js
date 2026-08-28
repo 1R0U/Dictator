@@ -1,115 +1,209 @@
-import { useEffect, useRef } from 'react';
-import { Animated, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import {
+  ImageBackground,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import PressableScale from './PressableScale';
 
-function MenuButton({ label, onPress, secondary = false }) {
+const HOME_BACKGROUND = require('../assets/home-background.png');
+
+/**
+ * Renders a numbered title-screen action with visual press feedback.
+ *
+ * @param {Object} props
+ * @param {string} props.index - Two-digit menu position displayed beside the label.
+ * @param {string} props.label - Visible and accessible action label.
+ * @param {Function} props.onPress - Callback invoked when the action is selected.
+ * @param {boolean} [props.secondary=false] - Whether to use the subdued secondary style.
+ * @returns {React.ReactElement} The interactive menu button.
+ */
+function MenuButton({ index, label, onPress, secondary = false }) {
   return (
     <PressableScale
+      accessibilityLabel={label}
       accessibilityRole="button"
       flashy={!secondary}
-      glowColor="#b9985a"
+      glowColor="#a94b42"
       onPress={onPress}
-      style={({ pressed }) => [styles.button, secondary && styles.secondaryButton, pressed && styles.pressedButton]}
+      style={({ pressed }) => [
+        styles.button,
+        secondary && styles.secondaryButton,
+        pressed && styles.pressedButton,
+      ]}
     >
-      <Text style={[styles.buttonText, secondary && styles.secondaryButtonText]}>{label}</Text>
+      <Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.buttonIndex, secondary && styles.secondaryButtonText]}>
+        {index}
+      </Text>
+      <Text maxFontSizeMultiplier={1.25} style={[styles.buttonText, secondary && styles.secondaryButtonText]}>
+        {label}
+      </Text>
+      <Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.buttonArrow, secondary && styles.secondaryButtonText]}>
+        ›
+      </Text>
     </PressableScale>
   );
 }
 
+/**
+ * Renders the responsive home screen and its primary navigation actions.
+ *
+ * @param {Object} props
+ * @param {Function} props.onStart - Opens a new simulation.
+ * @param {Function} props.onOpenHistory - Opens the saved simulation archive.
+ * @returns {React.ReactElement} The illustrated title screen.
+ */
 export default function TitleScreen({ onStart, onOpenHistory }) {
-  const pulse = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 1600, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 1600, useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [pulse]);
-
-  const haloScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.22] });
-  const haloOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0] });
+  const { height } = useWindowDimensions();
+  const isCompact = height < 720;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View pointerEvents="none" style={styles.sun} />
-      <View pointerEvents="none" style={styles.rule} />
-      <View style={styles.content}>
-        <View style={styles.brand}>
-          <Text style={styles.kicker}>DESIRE NATION SIM</Text>
-          <View style={styles.emblemWrap}>
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.emblemHalo,
-                { opacity: haloOpacity, transform: [{ scale: haloScale }] },
-              ]}
-            />
-            <View style={styles.emblem}>
-              <Text style={styles.emblemText}>欲</Text>
+    <ImageBackground
+      accessible={false}
+      resizeMode="cover"
+      source={HOME_BACKGROUND}
+      style={styles.background}
+    >
+      <View pointerEvents="none" style={styles.imageShade} />
+      <View pointerEvents="none" style={styles.edgeShadeLeft} />
+      <View pointerEvents="none" style={styles.edgeShadeRight} />
+
+      <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.content, isCompact && styles.compactContent]}>
+          <View style={[styles.brand, isCompact && styles.compactBrand]}>
+            <View style={styles.kickerRow}>
+              <View style={styles.kickerRule} />
+              <Text maxFontSizeMultiplier={1.2} style={styles.kicker}>DESIRE NATION SIM</Text>
+              <View style={styles.kickerRule} />
+            </View>
+            <View style={styles.titlePlate}>
+              <Text
+                accessibilityRole="header"
+                maxFontSizeMultiplier={1.2}
+                style={[styles.title, isCompact && styles.compactTitle]}
+              >
+                欲望国家
+              </Text>
+            </View>
+            <Text maxFontSizeMultiplier={1.25} style={styles.subtitle}>
+              あなたの欲望を法律へ、
+            </Text>
+          </View>
+
+          <View style={[styles.bottomContent, isCompact && styles.compactBottomContent]}>
+            <View style={styles.commandHeader}>
+              <View style={styles.commandRule} />
+              <Text style={styles.invitation}>DECREE</Text>
+              <View style={styles.commandRule} />
+            </View>
+            <Text maxFontSizeMultiplier={1.25} style={styles.commandCopy}>
+              玉座は、あなたの宣言を待っている
+            </Text>
+            <View style={styles.menu}>
+              <MenuButton index="01" label="統治を始める" onPress={onStart} />
+              <MenuButton index="02" label="記録庫を開く" onPress={onOpenHistory} secondary />
             </View>
           </View>
-          <Text style={styles.title}>欲望国家</Text>
-          <Text style={styles.subtitle}>あなたの欲望を法律へ、</Text>
+
+          <Text style={styles.footer}>THE NATION IS WAITING FOR YOUR DECREE</Text>
         </View>
-        <View style={styles.menu}>
-          <MenuButton label="統治を始める" onPress={onStart} />
-          <MenuButton label="記録庫を開く" onPress={onOpenHistory} secondary />
-        </View>
-        <Text style={styles.footer}>THE NATION IS WAITING FOR YOUR DECREE</Text>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0b0b0d', overflow: 'hidden' },
-  sun: {
-    position: 'absolute', top: -150, left: '50%', width: 340, height: 340,
-    marginLeft: -170, borderRadius: 170, backgroundColor: '#7e2024', opacity: 0.42,
+  background: { flex: 1, backgroundColor: '#172127' },
+  imageShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(4, 9, 12, 0.08)',
   },
-  rule: {
-    position: 'absolute', top: '54%', right: 0, left: 0, height: 1,
-    backgroundColor: '#b9985a', opacity: 0.22,
+  edgeShadeLeft: {
+    position: 'absolute', top: 0, bottom: 0, left: 0, width: '12%',
+    backgroundColor: 'rgba(3, 8, 11, 0.2)',
   },
+  edgeShadeRight: {
+    position: 'absolute', top: 0, right: 0, bottom: 0, width: '12%',
+    backgroundColor: 'rgba(3, 8, 11, 0.2)',
+  },
+  safeArea: { flex: 1 },
   content: {
-    flex: 1, justifyContent: 'space-between', paddingHorizontal: 28,
-    paddingTop: 72, paddingBottom: 28,
+    flex: 1, paddingHorizontal: 24, paddingTop: 30, paddingBottom: 18,
   },
-  brand: { alignItems: 'center' },
+  compactContent: { paddingTop: 18, paddingBottom: 12 },
+  brand: { alignItems: 'center', paddingTop: 6 },
+  compactBrand: { paddingTop: 0 },
+  kickerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  kickerRule: { width: 28, height: 1, backgroundColor: 'rgba(96, 41, 36, 0.8)' },
   kicker: {
-    marginBottom: 30, color: '#b9985a', fontSize: 11, fontWeight: '700', letterSpacing: 4,
+    color: '#efe4d1', fontSize: 9, fontWeight: '800', letterSpacing: 3.2,
+    textShadowColor: 'rgba(0, 0, 0, 0.9)', textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
-  emblemWrap: {
-    marginBottom: 22, alignItems: 'center', justifyContent: 'center',
-  },
-  emblemHalo: {
-    position: 'absolute', width: 82, height: 82,
-    borderWidth: 1, borderColor: '#b9985a', transform: [{ rotate: '45deg' }],
-  },
-  emblem: {
-    width: 82, height: 82, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#b9985a', transform: [{ rotate: '45deg' }],
-  },
-  emblemText: {
-    color: '#f3eee4', fontSize: 36, fontWeight: '800', transform: [{ rotate: '-45deg' }],
+  titlePlate: {
+    marginTop: 11, paddingHorizontal: 20, paddingVertical: 3,
+    borderTopWidth: 1, borderBottomWidth: 1,
+    borderColor: 'rgba(224, 209, 182, 0.42)',
+    backgroundColor: 'rgba(12, 18, 21, 0.2)',
   },
   title: {
-    color: '#f3eee4', fontSize: 44, fontWeight: '800', letterSpacing: 7, textAlign: 'center',
+    color: '#fff8eb', fontSize: 42, fontWeight: '900',
+    letterSpacing: 9, textAlign: 'center', textShadowColor: 'rgba(0, 0, 0, 0.95)',
+    textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 7,
   },
-  subtitle: { marginTop: 14, color: '#a9a39a', fontSize: 14, letterSpacing: 1.5 },
-  menu: { gap: 14 },
+  compactTitle: { fontSize: 35 },
+  subtitle: {
+    marginTop: 10, color: '#eee4d4', fontSize: 12, fontWeight: '600',
+    letterSpacing: 2, textShadowColor: 'rgba(0, 0, 0, 0.95)',
+    textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
+  },
+  bottomContent: {
+    position: 'absolute', right: 24, bottom: 64, left: 24, alignItems: 'center',
+    paddingHorizontal: 14, paddingTop: 12, paddingBottom: 14,
+    borderTopWidth: 1, borderBottomWidth: 1,
+    borderColor: 'rgba(201, 181, 149, 0.38)',
+    backgroundColor: 'rgba(8, 14, 18, 0.62)',
+  },
+  compactBottomContent: { bottom: 42, paddingTop: 8, paddingBottom: 10 },
+  commandHeader: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  commandRule: { width: 30, height: 1, backgroundColor: '#8c3933' },
+  invitation: {
+    color: '#b96358', fontSize: 9, fontWeight: '800', letterSpacing: 3,
+  },
+  commandCopy: {
+    marginTop: 6, marginBottom: 11, color: '#d8ccba', fontSize: 11, letterSpacing: 1.2,
+    textShadowColor: 'rgba(0, 0, 0, 0.95)', textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  menu: { width: '100%', maxWidth: 380, gap: 8 },
   button: {
-    minHeight: 58, alignItems: 'center', justifyContent: 'center', borderWidth: 1,
-    borderColor: '#b9985a', backgroundColor: '#b9985a',
+    minHeight: 52, flexDirection: 'row', alignItems: 'center', borderWidth: 1,
+    borderColor: '#a04a41', backgroundColor: 'rgba(103, 30, 27, 0.92)',
   },
-  secondaryButton: { backgroundColor: 'transparent' },
-  pressedButton: { opacity: 0.72 },
-  buttonText: { color: '#111114', fontSize: 16, fontWeight: '800', letterSpacing: 2 },
-  secondaryButtonText: { color: '#d8c9aa' },
-  footer: { color: '#625e58', fontSize: 8, letterSpacing: 2, textAlign: 'center' },
+  secondaryButton: {
+    borderColor: 'rgba(211, 195, 166, 0.7)',
+    backgroundColor: 'rgba(10, 17, 21, 0.72)',
+  },
+  pressedButton: { opacity: 0.7 },
+  buttonIndex: {
+    width: 48, color: '#d69a8e', fontSize: 9, fontWeight: '800',
+    letterSpacing: 1, textAlign: 'center',
+  },
+  buttonText: {
+    flex: 1, color: '#fff8ea', fontSize: 14, fontWeight: '800',
+    letterSpacing: 3, textAlign: 'center',
+  },
+  buttonArrow: {
+    width: 48, color: '#e4b7aa', fontSize: 24, fontWeight: '300', textAlign: 'center',
+  },
+  secondaryButtonText: { color: '#e6dac4' },
+  footer: {
+    position: 'absolute', right: 0, bottom: 4, left: 0,
+    color: 'rgba(209, 197, 177, 0.58)', fontSize: 7, letterSpacing: 1.8,
+    textAlign: 'center', textShadowColor: 'rgba(0, 0, 0, 0.9)',
+    textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3,
+  },
 });
