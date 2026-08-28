@@ -7,7 +7,7 @@ import { getSceneAtTime } from '../game/endingNews';
 const FALLBACK_DURATION_SECONDS = 25;
 const ACCENTS = ['#8f2431', '#9a6a2d', '#496378', '#62527b', '#7d3531'];
 
-function NewsTicker({ text }) {
+function NewsTicker({ text, durationSeconds }) {
   const translateX = useRef(new Animated.Value(0)).current;
   const [containerWidth, setContainerWidth] = useState(0);
   const textWidth = Math.max(1, Array.from(text).length * 15);
@@ -17,13 +17,13 @@ function NewsTicker({ text }) {
     translateX.setValue(containerWidth);
     const animation = Animated.loop(Animated.timing(translateX, {
       toValue: -textWidth,
-      duration: Math.max(5000, ((containerWidth + textWidth) / 45) * 1000),
+      duration: Math.max(1000, durationSeconds * 900),
       easing: (value) => value,
       useNativeDriver: true,
     }));
     animation.start();
     return () => animation.stop();
-  }, [containerWidth, textWidth, translateX]);
+  }, [containerWidth, durationSeconds, textWidth, translateX]);
 
   return (
     <View
@@ -58,6 +58,13 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
   const currentSeconds = hasAudio ? status.currentTime : fallbackSeconds;
   const sceneIndex = getSceneAtTime(scenes, currentSeconds, totalSeconds);
   const scene = scenes[sceneIndex] ?? scenes[0];
+  const totalNarrationWeight = scenes.reduce(
+    (sum, item) => sum + Math.max(String(item.narration ?? '').length, 1),
+    0,
+  );
+  const sceneDuration = scene
+    ? totalSeconds * (Math.max(String(scene.narration ?? '').length, 1) / totalNarrationWeight)
+    : totalSeconds;
 
   const finish = () => {
     if (completedRef.current) return;
@@ -118,7 +125,11 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
 
       <View style={styles.captionPanel}>
         <Text style={styles.headline}>{scene.headline}</Text>
-        <NewsTicker key={scene.key} text={scene.narration} />
+        <NewsTicker
+          durationSeconds={sceneDuration}
+          key={scene.key}
+          text={scene.narration}
+        />
       </View>
 
       <View style={styles.progressTrack}>

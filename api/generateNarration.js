@@ -4,7 +4,7 @@ import { createWaveBytes, decodeBase64 } from '../game/wavAudio';
 
 const TTS_URL = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 const TTS_MODEL = 'gemini-3.1-flash-tts-preview';
-const TTS_TIMEOUT_MS = 30000;
+const TTS_TIMEOUT_MS = 60000;
 
 function findAudioContent(value) {
   if (!value || typeof value !== 'object') return null;
