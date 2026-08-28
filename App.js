@@ -118,10 +118,9 @@ function DayGenerationScreen({
     ? '時間を進めています…'
     : nextMilestone
     ? `${nextMilestone.label}へ進む`
-    : (isCollapsePending ? '時間を進める' : '結末を見る');
-  const onNextAction = (isFinishing || isPreparingEnding)
-    ? undefined
-    : (isCollapsePending ? onFinish : (nextMilestone ? onNext : onFinish));
+    : '\u30cb\u30e5\u30fc\u30b9\u3092\u59cb\u3081\u308b';
+  const isNextDisabled = isFinishing || isPreparingEnding;
+  const onNextAction = isCollapsePending ? onFinish : (nextMilestone ? onNext : onFinish);
 
   return (
     <SafeAreaView style={styles.destination}>
@@ -175,6 +174,7 @@ function DayGenerationScreen({
                 <MilestoneNavigation
                   isFinal={!nextMilestone && !isCollapsePending}
                   nextLabel={nextLabel}
+                  nextDisabled={isNextDisabled}
                   onNext={onNextAction}
                   onPrevious={previousMilestone ? onPrevious : undefined}
                   previousLabel={previousMilestone ? `${previousMilestone.label}へ戻る` : undefined}

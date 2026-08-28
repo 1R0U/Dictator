@@ -311,7 +311,14 @@ export default function MilestoneReport({
  * @param {string} [props.nextLabel] 次へボタンのラベル。
  * @param {boolean} [props.isFinal] 最後の節目かどうか。
  */
-export function MilestoneNavigation({ onPrevious, previousLabel, onNext, nextLabel, isFinal = false }) {
+export function MilestoneNavigation({
+  onPrevious,
+  previousLabel,
+  onNext,
+  nextLabel,
+  nextDisabled = false,
+  isFinal = false,
+}) {
   return (
     <>
       {onPrevious || onNext ? (
@@ -319,6 +326,8 @@ export function MilestoneNavigation({ onPrevious, previousLabel, onNext, nextLab
           {onPrevious ? (
             <PressableScale
               accessibilityRole="button"
+              accessibilityState={{ disabled: nextDisabled }}
+              disabled={nextDisabled}
               glowColor="#8e8982"
               onPress={onPrevious}
               style={({ pressed }) => [
@@ -340,6 +349,7 @@ export function MilestoneNavigation({ onPrevious, previousLabel, onNext, nextLab
               style={({ pressed }) => [
                 styles.navigationButton,
                 styles.nextButton,
+                nextDisabled && styles.disabledNavigationButton,
                 pressed && styles.pressed,
               ]}
             >
@@ -700,6 +710,9 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     backgroundColor: '#b9985a',
+  },
+  disabledNavigationButton: {
+    opacity: 0.42,
   },
   nextButtonText: {
     color: '#111114',

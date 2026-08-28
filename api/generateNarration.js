@@ -73,7 +73,7 @@ export async function generateNarration({ apiKey, text, fetchImpl }) {
       const bytes = audio.mimeType.toLowerCase().includes('wav')
         ? decodeBase64(audio.base64Audio)
         : createWaveBytes(audio.base64Audio, audio.sampleRate);
-      return { uri: saveAudio(bytes), durationLimitSeconds: 30 };
+      return { uri: saveAudio(bytes) };
     } catch (error) { lastError = error; }
   }
   throw lastError;

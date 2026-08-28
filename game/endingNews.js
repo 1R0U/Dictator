@@ -1,15 +1,7 @@
 const MAX_NEWS_SCENES = 5;
-const MAX_NARRATION_CHARACTERS = 145;
 
 function cleanText(value) {
   return String(value ?? '').replace(/[「」『』]/g, '').replace(/\s+/g, ' ').trim();
-}
-
-function truncateAtSentence(value, maxLength) {
-  const text = cleanText(value);
-  const firstSentence = text.match(/^.*?[。！？]/)?.[0] ?? text;
-  if (firstSentence.length <= maxLength) return firstSentence;
-  return `${firstSentence.slice(0, Math.max(1, maxLength - 1))}…`;
 }
 
 function selectEvenly(items, limit) {
@@ -24,8 +16,8 @@ function createEndingNewsScenes(milestones, reports, limit = MAX_NEWS_SCENES) {
   const candidates = milestones.flatMap((milestone) => {
     const report = reports?.[milestone.key];
     if (!report) return [];
-    const headline = truncateAtSentence(report.headline || report.news, 28);
-    const narration = truncateAtSentence(report.news || report.headline, 27);
+    const headline = cleanText(report.headline || report.news);
+    const narration = cleanText(report.news || report.headline);
     if (!headline || !narration) return [];
     return [{ key: milestone.key, label: milestone.label, headline, narration }];
   });
@@ -33,8 +25,7 @@ function createEndingNewsScenes(milestones, reports, limit = MAX_NEWS_SCENES) {
 }
 
 function buildEndingNarrationText(scenes) {
-  return scenes.map((scene) => cleanText(scene.narration)).filter(Boolean).join(' ')
-    .slice(0, MAX_NARRATION_CHARACTERS);
+  return scenes.map((scene) => cleanText(scene.narration)).filter(Boolean).join(' ');
 }
 
 function getSceneAtTime(scenes, currentSeconds, totalSeconds) {
@@ -53,7 +44,6 @@ function getSceneAtTime(scenes, currentSeconds, totalSeconds) {
 }
 
 module.exports = {
-  MAX_NARRATION_CHARACTERS,
   MAX_NEWS_SCENES,
   buildEndingNarrationText,
   createEndingNewsScenes,

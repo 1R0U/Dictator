@@ -2,7 +2,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
-  MAX_NARRATION_CHARACTERS,
   buildEndingNarrationText,
   createEndingNewsScenes,
   getSceneAtTime,
@@ -23,15 +22,14 @@ test('ending news samples at most five reports while preserving first and last',
   assert.equal(scenes.at(-1).key, 'm9');
 });
 
-test('narration stays within the short-form budget', () => {
+test('narration keeps the complete report text', () => {
   const milestones = Array.from({ length: 5 }, (_, index) => ({ key: `m${index}`, label: '' }));
   const reports = Object.fromEntries(milestones.map((milestone) => [
     milestone.key,
     { headline: '見出し', news: 'これはとても長いニュース文章です。続きは読みません。' },
   ]));
   const text = buildEndingNarrationText(createEndingNewsScenes(milestones, reports));
-  assert.ok(text.length <= MAX_NARRATION_CHARACTERS);
-  assert.equal(text.includes('続きは読みません'), false);
+  assert.equal(text.includes('続きは読みません'), true);
 });
 
 test('scene timing follows narration length', () => {

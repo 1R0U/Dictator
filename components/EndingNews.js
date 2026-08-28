@@ -5,8 +5,41 @@ import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-au
 import { getSceneAtTime } from '../game/endingNews';
 
 const FALLBACK_DURATION_SECONDS = 25;
-const MAX_DURATION_SECONDS = 30;
 const ACCENTS = ['#8f2431', '#9a6a2d', '#496378', '#62527b', '#7d3531'];
+
+function NewsTicker({ text }) {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const [containerWidth, setContainerWidth] = useState(0);
+  const textWidth = Math.max(1, Array.from(text).length * 15);
+
+  useEffect(() => {
+    if (!containerWidth || !textWidth) return undefined;
+    translateX.setValue(containerWidth);
+    const animation = Animated.loop(Animated.timing(translateX, {
+      toValue: -textWidth,
+      duration: Math.max(5000, ((containerWidth + textWidth) / 45) * 1000),
+      easing: (value) => value,
+      useNativeDriver: true,
+    }));
+    animation.start();
+    return () => animation.stop();
+  }, [containerWidth, textWidth, translateX]);
+
+  return (
+    <View
+      accessibilityLabel={text}
+      onLayout={(event) => setContainerWidth(event.nativeEvent.layout.width)}
+      style={styles.tickerViewport}
+    >
+      <Animated.Text
+        numberOfLines={1}
+        style={[styles.narration, { width: textWidth, transform: [{ translateX }] }]}
+      >
+        {text}
+      </Animated.Text>
+    </View>
+  );
+}
 
 export default function EndingNews({ scenes, audioUri, narrationError, onComplete }) {
   const player = useAudioPlayer(audioUri || null, { updateInterval: 100 });
@@ -15,9 +48,13 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
   const fade = useRef(new Animated.Value(1)).current;
   const completedRef = useRef(false);
   const hasAudio = Boolean(audioUri);
+  const fallbackDuration = Math.max(
+    FALLBACK_DURATION_SECONDS,
+    scenes.reduce((sum, item) => sum + String(item.narration ?? '').length, 0) / 6,
+  );
   const totalSeconds = hasAudio
-    ? Math.min(status.duration || FALLBACK_DURATION_SECONDS, MAX_DURATION_SECONDS)
-    : FALLBACK_DURATION_SECONDS;
+    ? (status.duration || fallbackDuration)
+    : fallbackDuration;
   const currentSeconds = hasAudio ? status.currentTime : fallbackSeconds;
   const sceneIndex = getSceneAtTime(scenes, currentSeconds, totalSeconds);
   const scene = scenes[sceneIndex] ?? scenes[0];
@@ -49,8 +86,8 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
   }, [fade, sceneIndex]);
 
   useEffect(() => {
-    if ((hasAudio && (status.didJustFinish || currentSeconds >= MAX_DURATION_SECONDS))
-      || (!hasAudio && currentSeconds >= FALLBACK_DURATION_SECONDS)) finish();
+    if ((hasAudio && status.didJustFinish)
+      || (!hasAudio && currentSeconds >= fallbackDuration)) finish();
   }, [currentSeconds, hasAudio, status.didJustFinish]);
 
   useEffect(() => {
@@ -81,7 +118,7 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
 
       <View style={styles.captionPanel}>
         <Text style={styles.headline}>{scene.headline}</Text>
-        <Text style={styles.narration}>{scene.narration}</Text>
+        <NewsTicker key={scene.key} text={scene.narration} />
       </View>
 
       <View style={styles.progressTrack}>
@@ -123,7 +160,8 @@ const styles = StyleSheet.create({
   dateText: { color: '#111317', fontWeight: '900', fontSize: 13 },
   captionPanel: { backgroundColor: '#e9e3d8', paddingHorizontal: 18, paddingVertical: 16, borderBottomWidth: 5, borderBottomColor: '#8f2431' },
   headline: { color: '#13161a', fontSize: 21, lineHeight: 29, fontWeight: '900' },
-  narration: { color: '#3b3c3d', fontSize: 14, lineHeight: 22, marginTop: 8 },
+  tickerViewport: { height: 29, marginTop: 8, overflow: 'hidden', justifyContent: 'center' },
+  narration: { color: '#3b3c3d', fontSize: 14, lineHeight: 22, position: 'absolute' },
   progressTrack: { height: 3, backgroundColor: '#35383c', marginTop: 17 },
   progressFill: { height: '100%', backgroundColor: '#b7a074' },
   controls: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
