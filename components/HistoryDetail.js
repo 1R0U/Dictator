@@ -27,7 +27,6 @@ export default function HistoryDetail({ result, onBack }) {
           accessibilityRole="button"
           glowColor="#a9a39a"
           onPress={onBack}
-          ripple
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
         >
           <Text style={styles.backButtonText}>← 履歴一覧へ戻る</Text>

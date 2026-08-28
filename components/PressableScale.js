@@ -1,12 +1,10 @@
 import { useRef, useState } from 'react';
 import { Animated, Pressable } from 'react-native';
 
-import RippleRing from './RippleRing';
 import SparkBurst from './SparkBurst';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const FLASHY_DURATION_MS = 550;
-const RIPPLE_DURATION_MS = 320;
 
 /**
  * Pressableへタップエフェクトを足したラッパー。
@@ -16,8 +14,7 @@ const RIPPLE_DURATION_MS = 320;
  * @param {Function|Object|Array} [props.style] Pressableと同じstyle（関数形式も可）。
  * @param {number} [props.scaleTo] 押下時に縮小する倍率。
  * @param {boolean} [props.flashy] trueの場合、より大きく縮み、押した瞬間に火花と衝撃波が広がる演出を足す（重要な決定ボタン向け）。
- * @param {boolean} [props.ripple] trueの場合、押した瞬間に控えめな輪が一瞬広がる演出を足す（日常的な操作向け）。
- * @param {string} [props.glowColor] flashy/ripple時の色。
+ * @param {string} [props.glowColor] flashy時の色。
  */
 export default function PressableScale({
   style,
@@ -26,14 +23,13 @@ export default function PressableScale({
   onPressOut,
   scaleTo,
   flashy = false,
-  ripple = false,
   glowColor = '#f2c14e',
   ...rest
 }) {
   const scale = useRef(new Animated.Value(1)).current;
   const burst = useRef(new Animated.Value(0)).current;
   const [pressed, setPressed] = useState(false);
-  const effectiveScaleTo = scaleTo ?? (flashy ? 0.9 : ripple ? 0.94 : 0.96);
+  const effectiveScaleTo = scaleTo ?? (flashy ? 0.9 : 0.96);
 
   const animateTo = (toValue) => {
     Animated.spring(scale, {
@@ -63,7 +59,6 @@ export default function PressableScale({
         setPressed(true);
         animateTo(effectiveScaleTo);
         if (flashy) triggerBurst(FLASHY_DURATION_MS);
-        else if (ripple) triggerBurst(RIPPLE_DURATION_MS);
         onPressIn?.(event);
       }}
       onPressOut={(event) => {
@@ -75,7 +70,6 @@ export default function PressableScale({
     >
       {children}
       {flashy ? <SparkBurst color={glowColor} progress={burst} /> : null}
-      {!flashy && ripple ? <RippleRing color={glowColor} progress={burst} /> : null}
     </AnimatedPressable>
   );
 }
