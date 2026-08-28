@@ -167,3 +167,54 @@ test('特殊ルートは到達可能で、中立的な国家は自動滅亡し�
   assert.equal(determineCollapseRoute(low), COLLAPSE_ROUTES.void);
   assert.ok(simulateAllMilestones(neutral) < COLLAPSE_RISK_THRESHOLD);
 });
+
+test('全軸が高いだけでは6番の血の革命へ固定されない', () => {
+  const axes = {
+    domination: 90,
+    egoism: 88,
+    innovation: 86,
+    prestige: 87,
+    madness: 91,
+  };
+  let state = { risk: 0, pressure: {} };
+
+  for (let milestoneIndex = 0; milestoneIndex < 10; milestoneIndex += 1) {
+    state = advanceCollapseState({
+      previousRisk: state.risk,
+      previousPressure: state.pressure,
+      axes,
+      previousAxes: axes,
+      milestoneIndex,
+    });
+  }
+
+  assert.equal(determineCollapseRoute(axes, state.pressure), COLLAPSE_ROUTES.fanaticism);
+  assert.equal(determineCollapseRoute(axes), COLLAPSE_ROUTES.fanaticism);
+  assert.equal(determineCollapseRoute(axes, {}), COLLAPSE_ROUTES.fanaticism);
+});
+
+test('支配と狂気が他軸より突出した場合は6番の血の革命を維持する', () => {
+  const axes = {
+    domination: 92,
+    egoism: 50,
+    innovation: 48,
+    prestige: 52,
+    madness: 94,
+  };
+  let state = { risk: 0, pressure: {} };
+
+  for (let milestoneIndex = 0; milestoneIndex < 10; milestoneIndex += 1) {
+    state = advanceCollapseState({
+      previousRisk: state.risk,
+      previousPressure: state.pressure,
+      axes,
+      previousAxes: axes,
+      milestoneIndex,
+    });
+  }
+
+  assert.equal(
+    determineCollapseRoute(axes, state.pressure),
+    COLLAPSE_ROUTES.bloodyRevolution,
+  );
+});

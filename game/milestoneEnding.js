@@ -39,6 +39,24 @@ function normalizeCollapsePressure(pressure) {
   ]));
 }
 
+/** Measure how clearly both axes in a compound route stand out from all others. */
+function getCompoundProminenceFactor(values, pairKeys) {
+  const pairFloor = Math.min(...pairKeys.map((key) => values[key]));
+  const otherCeiling = Math.max(
+    ...Object.entries(values)
+      .filter(([key]) => !pairKeys.includes(key))
+      .map(([, value]) => value),
+  );
+  return Math.min(Math.max(pairFloor - otherCeiling, 0) / 20, 1);
+}
+
+/** Reward a compound route only when both relevant axes stand out from the rest. */
+function calculateCompoundPressure(values, axisContributions, pairKeys) {
+  return Math.min(...pairKeys.map((key) => axisContributions[key]))
+    * 1.8
+    * getCompoundProminenceFactor(values, pairKeys);
+}
+
 /** Calculate hidden total risk and preserve which pressures accumulated it. */
 function advanceCollapseState({
   previousRisk = 0,
@@ -80,22 +98,25 @@ function advanceCollapseState({
   // Time alone raises the total risk, but must not overwrite the actual route cause.
   pressure.quiet += balancedStagnationRisk;
   if (current.domination >= 75 && current.madness >= 75) {
-    pressure.bloodyRevolution += Math.min(
-      axisContributions.domination,
-      axisContributions.madness,
-    ) * 1.8;
+    pressure.bloodyRevolution += calculateCompoundPressure(
+      current,
+      axisContributions,
+      ['domination', 'madness'],
+    );
   }
   if (current.egoism >= 75 && current.prestige >= 75) {
-    pressure.goldenPalace += Math.min(
-      axisContributions.egoism,
-      axisContributions.prestige,
-    ) * 1.8;
+    pressure.goldenPalace += calculateCompoundPressure(
+      current,
+      axisContributions,
+      ['egoism', 'prestige'],
+    );
   }
   if (current.innovation >= 75 && current.madness >= 75) {
-    pressure.forbiddenCreation += Math.min(
-      axisContributions.innovation,
-      axisContributions.madness,
-    ) * 1.8;
+    pressure.forbiddenCreation += calculateCompoundPressure(
+      current,
+      axisContributions,
+      ['innovation', 'madness'],
+    );
   }
 
   return {
@@ -140,12 +161,25 @@ function determineCollapseRoute(axes, accumulatedPressure) {
       [COLLAPSE_ROUTES.quiet, pressure.quiet],
       [COLLAPSE_ROUTES.void, pressure.void],
     ];
-    return routeScores.sort((a, b) => b[1] - a[1])[0][0];
+    const [topRoute, topScore] = routeScores.sort((a, b) => b[1] - a[1])[0];
+    return topScore > 0 ? topRoute : determineCollapseRoute(values);
   }
 
-  if (values.domination >= 75 && values.madness >= 75) return COLLAPSE_ROUTES.bloodyRevolution;
-  if (values.egoism >= 75 && values.prestige >= 75) return COLLAPSE_ROUTES.goldenPalace;
-  if (values.innovation >= 75 && values.madness >= 75) return COLLAPSE_ROUTES.forbiddenCreation;
+  if (
+    values.domination >= 75
+    && values.madness >= 75
+    && getCompoundProminenceFactor(values, ['domination', 'madness']) >= 0.5
+  ) return COLLAPSE_ROUTES.bloodyRevolution;
+  if (
+    values.egoism >= 75
+    && values.prestige >= 75
+    && getCompoundProminenceFactor(values, ['egoism', 'prestige']) >= 0.5
+  ) return COLLAPSE_ROUTES.goldenPalace;
+  if (
+    values.innovation >= 75
+    && values.madness >= 75
+    && getCompoundProminenceFactor(values, ['innovation', 'madness']) >= 0.5
+  ) return COLLAPSE_ROUTES.forbiddenCreation;
   if (average <= 32) return COLLAPSE_ROUTES.void;
   if (Math.max(...allValues) <= 72) return COLLAPSE_ROUTES.quiet;
 
