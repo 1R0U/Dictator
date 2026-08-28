@@ -28,7 +28,7 @@ export default function SparkBurst({ progress, color = '#f2c14e', ringColor }) {
   const ringOpacity = progress.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 0.85, 0] });
 
   return (
-    <Animated.View pointerEvents="none" style={styles.wrap}>
+    <Animated.View style={[styles.wrap, { pointerEvents: 'none' }]}>
       <Animated.View
         style={[
           styles.ring,

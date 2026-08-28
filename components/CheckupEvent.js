@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import PressableScale from './PressableScale';
@@ -7,6 +7,7 @@ import {
   canSubmitAdditionalDeclaration,
   selectRandomIndex,
 } from '../game/checkup';
+import { playSoundEffect } from '../utils/sound';
 
 const AIDE_PORTRAITS = [
   require('../assets/aide-presenting.png'),
@@ -34,10 +35,16 @@ export default function CheckupEvent({ milestoneLabel, onSkip, onSubmit }) {
   const isSubmitting = pendingAction !== '';
   const canSubmit = canSubmitAdditionalDeclaration(declaration) && !isSubmitting;
 
+  /** 欲望の招待（検診イベント）が画面に現れた瞬間にSEを鳴らす。 */
+  useEffect(() => {
+    playSoundEffect('invite');
+  }, [milestoneLabel]);
+
   /** 入力を整形して追加宣言を親画面へ渡す。 */
   const handleSubmit = async () => {
     if (!canSubmit) return;
 
+    playSoundEffect('declare');
     setSubmitError('');
     setPendingAction('declare');
     try {
@@ -66,7 +73,7 @@ export default function CheckupEvent({ milestoneLabel, onSkip, onSubmit }) {
   return (
     <View accessibilityLabel={`${milestoneLabel}の欲望検診`} style={styles.container}>
       <View style={styles.bubbleWrap}>
-        <View pointerEvents="none" style={styles.bubbleTail} />
+        <View style={[styles.bubbleTail, { pointerEvents: 'none' }]} />
         <View style={styles.bubble}>
           <Text style={styles.checkupLabel}>DESIRE CHECKUP · {milestoneLabel}</Text>
           <Text style={styles.dialogue}>

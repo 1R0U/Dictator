@@ -3,7 +3,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { selectRandomIndex } from '../game/checkup';
 
-const CHARACTERS = [
+const DEFAULT_CHARACTERS = [
   {
     image: require('../assets/corner-oracle.png'),
     name: '欲望の神託',
@@ -20,10 +20,11 @@ const CHARACTERS = [
  * @param {Object} props
  * @param {boolean} props.compact 狭い画面向けの表示にするか。
  * @param {string[]} props.messages 一言候補（キャラクターとは無関係に抽選する）。
+ * @param {{image: number, name: string}[]} [props.characters] 抽選対象のキャラクター一覧。省略時は既定の2体。
  */
-export default function CornerMessenger({ compact, messages }) {
-  const [characterIndex] = useState(() => selectRandomIndex(CHARACTERS.length));
-  const character = CHARACTERS[characterIndex];
+export default function CornerMessenger({ compact, messages, characters = DEFAULT_CHARACTERS }) {
+  const [characterIndex] = useState(() => selectRandomIndex(characters.length));
+  const character = characters[characterIndex];
   const [message] = useState(() => messages[selectRandomIndex(messages.length)]);
 
   return (
@@ -32,9 +33,9 @@ export default function CornerMessenger({ compact, messages }) {
       accessible
       style={[styles.container, compact && styles.compactContainer]}
     >
-      <View pointerEvents="none" style={[styles.bubble, compact && styles.compactBubble]}>
+      <View style={[styles.bubble, compact && styles.compactBubble, { pointerEvents: 'none' }]}>
         <Text style={styles.message}>{message}</Text>
-        <View pointerEvents="none" style={styles.tail} />
+        <View style={[styles.tail, { pointerEvents: 'none' }]} />
       </View>
       <Image
         accessible={false}

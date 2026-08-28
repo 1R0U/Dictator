@@ -1,93 +1,63 @@
 const { clampDesireValue } = require('./desireScale');
 
 const DESIRE_LEVELS = Object.freeze({
-  LOW: 'low',
-  MEDIUM: 'medium',
-  HIGH: 'high',
+  EXTREME_LEFT: 'extremeLeft', LEFT: 'left', CENTER: 'center',
+  RIGHT: 'right', EXTREME_RIGHT: 'extremeRight',
 });
-
+const POLE_LABELS = Object.freeze({
+  domination: Object.freeze({ left: '排除', right: '征服' }),
+  egoism: Object.freeze({ left: '享楽', right: '独占' }),
+  innovation: Object.freeze({ left: '破壊', right: '改造' }),
+  prestige: Object.freeze({ left: '畏怖', right: '崇拝' }),
+  madness: Object.freeze({ left: '狂信', right: '混沌' }),
+});
 const TRAIT_SENTENCES = Object.freeze({
-  domination: Object.freeze({
-    low: 'あなたの欲望は放任的で、混沌さえ受け入れます。',
-    medium: 'あなたの欲望は秩序と均衡を求めています。',
-    high: 'あなたの欲望は独裁的で、圧政へ傾いています。',
-  }),
-  egoism: Object.freeze({
-    low: 'あなたの欲望は献身的で、自己犠牲をいといません。',
-    medium: 'あなたの欲望は実利的で、合理性を重んじます。',
-    high: 'あなたの欲望は貪欲で、暴君の気質を帯びています。',
-  }),
-  innovation: Object.freeze({
-    low: 'あなたの欲望は停滞を選び、古い価値へ固執しています。',
-    medium: 'あなたの欲望は保守的で、安定を望んでいます。',
-    high: 'あなたの欲望は創世を志し、異端の変革へ進みます。',
-  }),
-  prestige: Object.freeze({
-    low: 'あなたの欲望は迎合的で、軽蔑を招きかねません。',
-    medium: 'あなたの欲望は威厳を保ち、尊敬を求めています。',
-    high: 'あなたの欲望は畏怖をまとい、恐怖で人を従えます。',
-  }),
-  madness: Object.freeze({
-    low: 'あなたの欲望は理性的で、平穏を保っています。',
-    medium: 'あなたの欲望は偏執的で、妄信に近づいています。',
-    high: 'あなたの欲望は破滅的で、狂信に支配されています。',
-  }),
+  domination: Object.freeze({ left: '異物を排除し、内側の純度を守ろうとします。', center: '排除にも征服にも偏らず、支配の形を定めかねています。', right: '境界を越えて征服し、影響圏を広げようとします。' }),
+  egoism: Object.freeze({ left: '今この瞬間の享楽を求め、欲望を消費します。', center: '享楽にも独占にも偏らず、欲望の行き先を探しています。', right: '富や権利を独占し、自分だけのものにしようとします。' }),
+  innovation: Object.freeze({ left: '既存の仕組みを破壊し、白紙へ戻そうとします。', center: '破壊にも改造にも偏らず、現状を見定めています。', right: '仕組みを作り替え、国家を意図した形へ改造します。' }),
+  prestige: Object.freeze({ left: '人々に畏怖を刻み、逆らえない威信を求めます。', center: '畏怖にも崇拝にも偏らず、評価との距離を保っています。', right: '人々から崇拝され、象徴として仰がれることを求めます。' }),
+  madness: Object.freeze({ left: '一つの信念へ狂信し、他の可能性を閉ざします。', center: '狂信にも混沌にも偏らず、理性の境界に留まっています。', right: '秩序そのものを拒み、予測不能な混沌へ傾きます。' }),
 });
-
-/** Each level's single best-fitting word within TRAIT_SENTENCES, used to highlight the sentence for display. */
 const TRAIT_KEYWORDS = Object.freeze({
-  domination: Object.freeze({
-    low: Object.freeze(['放任的']),
-    medium: Object.freeze(['秩序']),
-    high: Object.freeze(['独裁的']),
-  }),
-  egoism: Object.freeze({
-    low: Object.freeze(['献身的']),
-    medium: Object.freeze(['実利的']),
-    high: Object.freeze(['貪欲']),
-  }),
-  innovation: Object.freeze({
-    low: Object.freeze(['停滞']),
-    medium: Object.freeze(['保守的']),
-    high: Object.freeze(['創世']),
-  }),
-  prestige: Object.freeze({
-    low: Object.freeze(['迎合的']),
-    medium: Object.freeze(['威厳']),
-    high: Object.freeze(['畏怖']),
-  }),
-  madness: Object.freeze({
-    low: Object.freeze(['理性的']),
-    medium: Object.freeze(['偏執的']),
-    high: Object.freeze(['破滅的']),
-  }),
+  domination: Object.freeze({ left: Object.freeze(['排除']), center: Object.freeze(['偏らず']), right: Object.freeze(['征服']) }),
+  egoism: Object.freeze({ left: Object.freeze(['享楽']), center: Object.freeze(['偏らず']), right: Object.freeze(['独占']) }),
+  innovation: Object.freeze({ left: Object.freeze(['破壊']), center: Object.freeze(['偏らず']), right: Object.freeze(['改造']) }),
+  prestige: Object.freeze({ left: Object.freeze(['畏怖']), center: Object.freeze(['偏らず']), right: Object.freeze(['崇拝']) }),
+  madness: Object.freeze({ left: Object.freeze(['狂信']), center: Object.freeze(['偏らず']), right: Object.freeze(['混沌']) }),
 });
 
-/** Return low (0–33), medium (34–66), or high (67–100). */
 function getDesireLevel(value) {
-  const normalized = clampDesireValue(value, 0);
-  if (normalized <= 33) return DESIRE_LEVELS.LOW;
-  if (normalized <= 66) return DESIRE_LEVELS.MEDIUM;
-  return DESIRE_LEVELS.HIGH;
+  const normalized = clampDesireValue(value);
+  if (normalized <= -70) return DESIRE_LEVELS.EXTREME_LEFT;
+  if (normalized <= -30) return DESIRE_LEVELS.LEFT;
+  if (normalized >= 70) return DESIRE_LEVELS.EXTREME_RIGHT;
+  if (normalized >= 30) return DESIRE_LEVELS.RIGHT;
+  return DESIRE_LEVELS.CENTER;
 }
 
-/** Return the concrete tendency sentence for an axis and value. */
+function getBaseDirection(level) {
+  if (level === DESIRE_LEVELS.EXTREME_LEFT) return DESIRE_LEVELS.LEFT;
+  if (level === DESIRE_LEVELS.EXTREME_RIGHT) return DESIRE_LEVELS.RIGHT;
+  return level;
+}
+
+function getDesireTendencyLabel(axisKey, value) {
+  const poles = POLE_LABELS[axisKey];
+  if (!poles) return '判定不能';
+  const level = getDesireLevel(value);
+  if (level === DESIRE_LEVELS.EXTREME_LEFT) return `非常に強い${poles.left}傾向`;
+  if (level === DESIRE_LEVELS.LEFT) return `${poles.left}寄り`;
+  if (level === DESIRE_LEVELS.EXTREME_RIGHT) return `非常に強い${poles.right}傾向`;
+  if (level === DESIRE_LEVELS.RIGHT) return `${poles.right}寄り`;
+  return '中立・混在';
+}
+
 function getDesireTraitSentence(axisKey, value) {
-  const traits = TRAIT_SENTENCES[axisKey];
-  return traits?.[getDesireLevel(value)] ?? 'この欲望の傾向は判定できません。';
+  return TRAIT_SENTENCES[axisKey]?.[getBaseDirection(getDesireLevel(value))] ?? 'この欲望の方向は判定できません。';
 }
 
-/** Return the key word(s) to highlight within the trait sentence for an axis and value. */
 function getDesireTraitKeywords(axisKey, value) {
-  const keywords = TRAIT_KEYWORDS[axisKey];
-  return keywords?.[getDesireLevel(value)] ?? [];
+  return TRAIT_KEYWORDS[axisKey]?.[getBaseDirection(getDesireLevel(value))] ?? [];
 }
 
-module.exports = {
-  DESIRE_LEVELS,
-  TRAIT_SENTENCES,
-  TRAIT_KEYWORDS,
-  getDesireLevel,
-  getDesireTraitSentence,
-  getDesireTraitKeywords,
-};
+module.exports = { DESIRE_LEVELS, TRAIT_KEYWORDS, TRAIT_SENTENCES, getDesireLevel, getDesireTendencyLabel, getDesireTraitKeywords, getDesireTraitSentence };
