@@ -4,6 +4,7 @@
 import { FEW_SHOT_DECLARATION, FEW_SHOT_BEATS, TONE_PROMPTS } from '../data/prompts';
 import { ENDING_CATALOG } from '../data/endingCatalog';
 import { callClaudeApi } from './claudeClient';
+import { redactDesireDisclosure } from '../game/desireDisclosure';
 
 const MODEL = 'claude-haiku-4-5-20251001';
 
@@ -172,9 +173,9 @@ function parseBeat(text, fallback) {
     if (newsIdx === -1 || memoIdx === -1 || memoIdx < newsIdx)  {
     // マーカーが見つからない場合、全文をニュースとして扱う
     return {
-      headline: fallback.headline,
-      news: text.trim() || fallback.news,
-      memo: fallback.memo,
+      headline: redactDesireDisclosure(fallback.headline),
+      news: redactDesireDisclosure(text.trim() || fallback.news),
+      memo: redactDesireDisclosure(fallback.memo),
       isFallback: true,
     };
   }
@@ -190,9 +191,9 @@ function parseBeat(text, fallback) {
     .trim();
 
   return {
-    headline: headline || fallback.headline,
-    news: news || fallback.news,
-    memo: memo || fallback.memo,
+    headline: redactDesireDisclosure(headline || fallback.headline),
+    news: redactDesireDisclosure(news || fallback.news),
+    memo: redactDesireDisclosure(memo || fallback.memo),
     isFallback: !news || !memo,
   };
 }
