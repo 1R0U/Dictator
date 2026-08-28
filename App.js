@@ -496,6 +496,7 @@ export default function App() {
         >
           <EndingReveal
             body={endingReport?.body ?? FALLBACK_ENDING_BODY}
+            enableCollapseIntro
             endingType={endingType}
             figureDiagnosis={figureDiagnosis}
             finalMeter={desireAxes ?? FALLBACK_FINAL_METER}
