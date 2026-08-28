@@ -1,77 +1,56 @@
-// 欲望マッピング：宣言テキスト → 隠し欲望軸への配点JSON
-// Claude API（Haiku）を共通クライアント経由で呼び出す。
-
+// Convert a free-form declaration into five hidden bipolar desire axes.
 import { AXES } from '../data/axes';
-import { FEW_SHOT_DECLARATION, FEW_SHOT_MAPPING } from '../data/prompts';
-import {
-  DESIRE_NEUTRAL,
-  clampDesireValue,
-} from '../game/desireScale';
+import { DESIRE_NEUTRAL, clampDesireValue } from '../game/desireScale';
 import { createFallbackMapping } from '../game/desireFallback';
 import { callClaudeApi } from './claudeClient';
 
 const MODEL = 'claude-haiku-4-5-20251001';
 
 function buildSystemPrompt() {
-  return (
-    'あなたは「欲望国家シム」の欲望分析AIです。\n' +
-    'プレイヤーの宣言テキストを読み、隠し欲望軸への配点をJSON形式で返してください。\n' +
-    '軸は domination / egoism / innovation / prestige / madness の5つ。各軸0〜100の整数。\n' +
-    '50を中立とし、5軸の合計が常に250前後になるように相対評価してください。\n' +
-    'ある軸が上がれば、別の軸は下がります。すべてが同時に上がることはありません。\n' +
-    '宣言に最も関係する軸を60〜80程度に上げ、関係の薄い軸や抑制される軸を20〜40程度に下げてバランスを取ってください。\n' +
-    'domination（支配）：独裁的な内容なら加点、民主的・社会的な内容なら減点。\n' +
-    'egoism（我欲）：自己利益を追求する内容なら加点、献身的・自己犠牲的な内容なら減点。\n' +
-    'innovation（変革）：変化の度合いが大きいほど加点。過去の宣言と似た内容であれば加点を抑える。この軸は0始まり。\n' +
-    'prestige（威信）：攻撃的な内容なら加点、友好的な内容なら減点。\n' +
-    'madness（狂気）：道徳的でない内容なら加点、慈悲・平和的な内容なら減点。\n' +
-    '5軸はそれぞれ独立に根拠を判断し、同じ数値を一律に割り当てないでください。\n' +
-    'JSONのみを返し、それ以外のテキストは一切含めないでください。\n' +
-    '\n' +
-    '例：\n' +
-    '宣言：「' + FEW_SHOT_DECLARATION + '」\n' +
-    '回答：' + JSON.stringify(FEW_SHOT_MAPPING)
-  );
+  return [
+    'あなたは「欲望国家シム」の欲望分析AIです。',
+    'プレイヤーの宣言を、互いに独立した5つの双極軸で評価してください。',
+    '各値は-100〜100の整数で、0は中立です。負は左側、正は右側を表します。',
+    '宣言に根拠がない軸は必ず0にしてください。5軸の合計を揃える必要はありません。',
+    'domination（支配）：-100=排除、100=征服。',
+    'egoism（我欲）：-100=享楽、100=独占。',
+    'innovation（変革）：-100=破壊、100=改造。',
+    'prestige（威信）：-100=畏怖、100=崇拝。',
+    'madness（狂気）：-100=狂信、100=混沌。',
+    '方向だけでなく強さも評価し、弱い示唆は±20〜40、明確なら±50〜75、極端なら±80〜100にしてください。',
+    'JSONだけを返してください。キーは domination / egoism / innovation / prestige / madness です。',
+    '例：「反対者を全員国外追放する」→ {"domination":-85,"egoism":0,"innovation":-25,"prestige":-45,"madness":-20}',
+    '例：「世界を征服し、全国民から神として崇められたい」→ {"domination":90,"egoism":45,"innovation":20,"prestige":95,"madness":-35}',
+  ].join('\n');
 }
 
-// Claudeが指示に反してコードフェンスでJSONを囲んで返すことがあるため除去する
 function extractJsonText(text) {
   const trimmed = text.trim();
   const fenceMatch = trimmed.match(/```\s*(?:json)?\s*([\s\S]*?)```/i);
   return fenceMatch ? fenceMatch[1].trim() : trimmed;
 }
 
-/**
- * 宣言テキストを欲望軸の配点に変換する。
- *
- * @param {string} declaration - プレイヤーの宣言テキスト
- * @param {string} apiKey      - Claude APIキー
- * @returns {Promise<Object>}  - { domination: number, egoism: number, ... }
- */
 export async function mapDesire(declaration, apiKey) {
   try {
     const text = await callClaudeApi({
       apiKey,
       model: MODEL,
       system: buildSystemPrompt(),
-      messages: [{ role: 'user', content: '宣言：「' + declaration + '」' }],
+      messages: [{ role: 'user', content: `宣言：「${declaration}」` }],
       maxTokens: 256,
     });
     const parsed = JSON.parse(extractJsonText(text));
-
-    // 各軸が存在し数値であることを確認
-    const result = {};
-    for (const axis of AXES) {
-      const val = parsed[axis.key];
-      result[axis.key] = typeof val === 'number'
-        ? clampDesireValue(val)
-        : DESIRE_NEUTRAL;
-    }
-    return result;
-  } catch (err) {
-    console.warn('mapDesire: fallback used', err.message);
+    return Object.fromEntries(AXES.map((axis) => [
+      axis.key,
+      typeof parsed[axis.key] === 'number'
+        ? clampDesireValue(parsed[axis.key])
+        : DESIRE_NEUTRAL,
+    ]));
+  } catch (error) {
+    console.warn('mapDesire: fallback used', error.message);
     return createFallbackMapping(declaration);
   }
 }
 
+export { buildSystemPrompt, extractJsonText };
 export default mapDesire;

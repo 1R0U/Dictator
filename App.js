@@ -11,16 +11,21 @@ import {
 } from 'react-native';
 
 import { mapDesire } from './api/mapDesire';
+import { moveDesireAxesTowardNeutral } from './game/desireScale';
 import { generateBeat } from './api/generateBeat';
 import { generateEnding } from './api/generateEnding';
 import { generateFigureDiagnosis } from './api/generateFigureDiagnosis';
+import { generateNarration } from './api/generateNarration';
 import CheckupEvent from './components/CheckupEvent';
+import Codex from './components/Codex';
 import DeclarationForm from './components/DeclarationForm';
 import EndingReveal from './components/EndingReveal';
+import EndingNews from './components/EndingNews';
 import History from './components/History';
 import HistoryDetail from './components/HistoryDetail';
 import MilestoneReport, { MilestoneNavigation } from './components/MilestoneReport';
 import TitleScreen from './components/TitleScreen';
+import { unlockCodexEntry } from './data/codex';
 import { saveResult } from './data/history';
 import { MILESTONES } from './data/milestones';
 import {
@@ -31,7 +36,7 @@ import {
   shouldShowCheckup,
 } from './game/checkup';
 import { createGenerationInput } from './game/declaration';
-import { applyMapping } from './game/meter';
+import { applyMapping, createInitialMeter } from './game/meter';
 import { matchFigure } from './game/figureMatch';
 import {
   advanceCollapseState,
@@ -43,15 +48,20 @@ import { isMilestoneReportPending } from './game/milestoneReport';
 import { STAGES } from './game/navigation';
 import { getPreviousMilestoneEvents } from './game/storyContext';
 import { createHistoryResult } from './game/historyView';
+import { playSoundEffect } from './utils/sound';
+import {
+  buildEndingNarrationText,
+  createEndingNewsScenes,
+} from './game/endingNews';
 
-const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 // desireAxesが未設定（通常発生しない）な場合のみ使うフォールバック値。
 const FALLBACK_FINAL_METER = Object.freeze({
-  domination: 91,
-  egoism: 72,
-  innovation: 64,
-  prestige: 57,
-  madness: 72,
+  domination: 82,
+  egoism: 44,
+  innovation: 28,
+  prestige: 14,
+  madness: 44,
 });
 // エンディング型の判定ロジック（#6/#25）が未実装のため、型自体は仮固定。
 
@@ -97,6 +107,7 @@ function DayGenerationScreen({
   onNext,
   onFinish,
   isFinishing,
+  isPreparingEnding,
   isCollapsePending,
   showCheckup,
   additionalDeclarations = [],
@@ -105,14 +116,15 @@ function DayGenerationScreen({
   report,
   isReportLoading,
 }) {
-  const nextLabel = isFinishing
+  const nextLabel = isPreparingEnding
+    ? '\u30cb\u30e5\u30fc\u30b9\u3092\u6e96\u5099\u4e2d\u2026'
+    : isFinishing
     ? '時間を進めています…'
     : nextMilestone
     ? `${nextMilestone.label}へ進む`
-    : (isCollapsePending ? '時間を進める' : '結末を見る');
-  const onNextAction = isFinishing
-    ? undefined
-    : (isCollapsePending ? onFinish : (nextMilestone ? onNext : onFinish));
+    : '\u30cb\u30e5\u30fc\u30b9\u3092\u59cb\u3081\u308b';
+  const isNextDisabled = isFinishing || isPreparingEnding;
+  const onNextAction = isCollapsePending ? onFinish : (nextMilestone ? onNext : onFinish);
 
   return (
     <SafeAreaView style={styles.destination}>
@@ -166,6 +178,7 @@ function DayGenerationScreen({
                 <MilestoneNavigation
                   isFinal={!nextMilestone && !isCollapsePending}
                   nextLabel={nextLabel}
+                  nextDisabled={isNextDisabled}
                   onNext={onNextAction}
                   onPrevious={previousMilestone ? onPrevious : undefined}
                   previousLabel={previousMilestone ? `${previousMilestone.label}へ戻る` : undefined}
@@ -196,7 +209,12 @@ export default function App() {
   const [endingType, setEndingType] = useState(null);
   const [figureDiagnosis, setFigureDiagnosis] = useState(null);
   const [isEndingLoading, setIsEndingLoading] = useState(false);
+  const [endingNewsScenes, setEndingNewsScenes] = useState([]);
+  const [endingNarrationUri, setEndingNarrationUri] = useState(null);
+  const [endingNarrationError, setEndingNarrationError] = useState(null);
+  const [hasEndingPreparationStarted, setHasEndingPreparationStarted] = useState(false);
   const generatingMilestonesRef = useRef(new Set());
+  const endingPreparationRef = useRef(false);
   const endingScrollRef = useRef(null);
 
   /**
@@ -216,9 +234,14 @@ export default function App() {
     setAdditionalDeclarations([]);
     setMilestoneReports({});
     setLoadingMilestoneKey(null);
+    setEndingNewsScenes([]);
+    setEndingNarrationUri(null);
+    setEndingNarrationError(null);
+    setHasEndingPreparationStarted(false);
+    endingPreparationRef.current = false;
 
-    const result = await mapDesire(nextGenerationInput.declaration, CLAUDE_API_KEY);
-    setDesireAxes(result);
+    const result = await mapDesire(nextGenerationInput.declaration, GEMINI_API_KEY);
+    setDesireAxes(applyMapping(createInitialMeter(), result, 0));
     setStage(STAGES.DAY_GENERATION);
   };
 
@@ -256,7 +279,7 @@ export default function App() {
           milestoneIndex,
         ),
         tone: generationInput.tone,
-        apiKey: CLAUDE_API_KEY,
+        apiKey: GEMINI_API_KEY,
         collapseRoute,
       });
 
@@ -303,9 +326,11 @@ export default function App() {
 
   /** 追加宣言せず、これまでの宣言を踏まえた物語へ進む。 */
   const handleSkipCheckup = async () => {
+    const nextDesireAxes = moveDesireAxesTowardNeutral(desireAxes);
     completeCurrentCheckup();
+    setDesireAxes(nextDesireAxes);
     try {
-      await generateCurrentMilestoneReport(additionalDeclarations);
+      await generateCurrentMilestoneReport(additionalDeclarations, nextDesireAxes);
     } catch (err) {
       console.warn('handleSkipCheckup: failed to generate report', err.message);
     }
@@ -328,8 +353,9 @@ export default function App() {
     setLoadingMilestoneKey(milestoneKey);
 
     try {
-      const mapping = await mapDesire(nextDeclaration.declaration, CLAUDE_API_KEY);
-      const nextDesireAxes = applyMapping(desireAxes, mapping);
+      const mapping = await mapDesire(nextDeclaration.declaration, GEMINI_API_KEY);
+      const progressionIndex = Math.min(nextDeclarations.length, 3);
+      const nextDesireAxes = applyMapping(desireAxes, mapping, progressionIndex);
 
       await generateCurrentMilestoneReport(nextDeclarations, nextDesireAxes);
       setDesireAxes(nextDesireAxes);
@@ -344,15 +370,37 @@ export default function App() {
    *
    * @param {string} [forcedEndingType] 50年時点の国の滅亡分岐など、型を強制する場合に指定する。
    */
-  const handleFinish = async (forcedEndingType) => {
-    if (isEndingLoading) return;
+  const handleFinish = async (forcedEndingType, navigateWhenReady = false) => {
+    if (endingPreparationRef.current) return;
+    endingPreparationRef.current = true;
+    setHasEndingPreparationStarted(true);
     setIsEndingLoading(true);
 
     const resolvedEndingType = forcedEndingType ?? decideEnding(desireAxes);
+    const newsScenes = createEndingNewsScenes(MILESTONES, milestoneReports);
+    setEndingNewsScenes(newsScenes);
+    setEndingNarrationUri(null);
+    setEndingNarrationError(null);
 
     try {
       const meter = desireAxes ?? FALLBACK_FINAL_METER;
       const match = matchFigure(meter);
+
+      const narrationPromise = newsScenes.length
+        ? generateNarration({
+          apiKey: GEMINI_API_KEY,
+          text: buildEndingNarrationText(newsScenes),
+        })
+          .then((narration) => {
+            setEndingNarrationUri(narration.uri);
+            return narration;
+          })
+          .catch((err) => {
+            console.warn('handleFinish: narration generation failed', err.message);
+            setEndingNarrationError(err);
+            return null;
+          })
+        : Promise.resolve(null);
 
       const [ending, diagnosis] = await Promise.all([
         generateEnding({
@@ -361,18 +409,19 @@ export default function App() {
           meter,
           previousDeclarations: getPreviousDeclarationTexts(additionalDeclarations),
           tone: generationInput.tone,
-          apiKey: CLAUDE_API_KEY,
+          apiKey: GEMINI_API_KEY,
         }),
         match
           ? generateFigureDiagnosis({
             figure: match.figure,
             desireAxes: meter,
-            apiKey: CLAUDE_API_KEY,
+            apiKey: GEMINI_API_KEY,
           }).catch((err) => {
             console.warn('handleFinish: figure diagnosis failed', err.message);
             return null;
           })
           : Promise.resolve(null),
+        narrationPromise,
       ]);
 
       setEndingReport(ending);
@@ -382,9 +431,24 @@ export default function App() {
       console.warn('handleFinish: failed to generate ending', err.message);
     } finally {
       setIsEndingLoading(false);
-      setStage(STAGES.ENDING);
+      if (navigateWhenReady) {
+        setStage(newsScenes.length ? STAGES.ENDING_NEWS : STAGES.ENDING);
+      }
     }
   };
+
+  useEffect(() => {
+    const isFinalMilestone = milestoneIndex === MILESTONES.length - 1;
+    const finalReport = MILESTONES.at(-1) && milestoneReports[MILESTONES.at(-1).key];
+    if (
+      stage === STAGES.DAY_GENERATION
+      && isFinalMilestone
+      && finalReport
+      && !hasEndingPreparationStarted
+    ) {
+      handleFinish(finalReport.collapseRoute ?? undefined);
+    }
+  }, [hasEndingPreparationStarted, milestoneIndex, milestoneReports, stage]);
 
   /** エンディング二段演出の完了を受けて、結果を履歴へ保存する。 */
   const handleEndingRevealComplete = () => {
@@ -399,6 +463,17 @@ export default function App() {
     })).catch((err) => {
       console.warn('handleEndingRevealComplete: failed to save result', err.message);
     });
+
+    if (endingType?.startsWith('collapse')) {
+      unlockCodexEntry('collapse', endingType).catch((err) => {
+        console.warn('handleEndingRevealComplete: failed to unlock collapse codex entry', err.message);
+      });
+    }
+    if (figureDiagnosis?.figure?.key) {
+      unlockCodexEntry('figure', figureDiagnosis.figure.key).catch((err) => {
+        console.warn('handleEndingRevealComplete: failed to unlock figure codex entry', err.message);
+      });
+    }
   };
 
   /** エンディング表示後にプレイ状態を初期化してホームへ戻る。 */
@@ -414,6 +489,11 @@ export default function App() {
     setEndingType(null);
     setFigureDiagnosis(null);
     setIsEndingLoading(false);
+    setEndingNewsScenes([]);
+    setEndingNarrationUri(null);
+    setEndingNarrationError(null);
+    setHasEndingPreparationStarted(false);
+    endingPreparationRef.current = false;
     setStage(STAGES.TITLE);
   };
 
@@ -457,6 +537,9 @@ export default function App() {
       );
       const collapseRoute = milestoneReports[milestone.key]?.collapseRoute;
       const nextMilestone = MILESTONES[milestoneIndex + 1];
+      const isFinalMilestone = !nextMilestone;
+      const isPreparingEnding = isFinalMilestone
+        && (!hasEndingPreparationStarted || isEndingLoading);
 
       screen = (
         <DayGenerationScreen
@@ -467,11 +550,19 @@ export default function App() {
           onPrevious={() => (
             setMilestoneIndex((current) => Math.max(current - 1, 0))
           )}
-          onNext={() => (
-            setMilestoneIndex((current) => Math.min(current + 1, MILESTONES.length - 1))
-          )}
-          onFinish={() => handleFinish(collapseRoute ?? undefined)}
+          onNext={() => {
+            playSoundEffect('advance');
+            setMilestoneIndex((current) => Math.min(current + 1, MILESTONES.length - 1));
+          }}
+          onFinish={() => {
+            if (isFinalMilestone && hasEndingPreparationStarted && !isEndingLoading) {
+              setStage(endingNewsScenes.length ? STAGES.ENDING_NEWS : STAGES.ENDING);
+              return;
+            }
+            handleFinish(collapseRoute ?? undefined, true);
+          }}
           isFinishing={isEndingLoading}
+          isPreparingEnding={isPreparingEnding}
           isCollapsePending={Boolean(collapseRoute)}
           showCheckup={showCheckup}
           additionalDeclarations={visibleAdditionalDeclarations}
@@ -508,9 +599,25 @@ export default function App() {
         </DestinationPlaceholder>
       );
       break;
+    case STAGES.ENDING_NEWS:
+      screen = (
+        <EndingNews
+          audioUri={endingNarrationUri}
+          narrationError={endingNarrationError}
+          onComplete={() => setStage(STAGES.ENDING)}
+          scenes={endingNewsScenes}
+        />
+      );
+      break;
+    case STAGES.CODEX:
+      screen = (
+        <Codex onBack={() => setStage(STAGES.TITLE)} />
+      );
+      break;
     default:
       screen = (
         <TitleScreen
+          onOpenCodex={() => setStage(STAGES.CODEX)}
           onStart={() => setStage(STAGES.DECLARATION)}
           onOpenHistory={() => {
             setSelectedHistoryResult(null);

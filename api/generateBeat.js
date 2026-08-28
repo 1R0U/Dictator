@@ -3,6 +3,7 @@
 
 import { FEW_SHOT_DECLARATION, FEW_SHOT_BEATS, TONE_PROMPTS } from '../data/prompts';
 import { ENDING_CATALOG } from '../data/endingCatalog';
+import { AXES } from '../data/axes';
 import { callClaudeApi } from './claudeClient';
 import { redactDesireDisclosure } from '../game/desireDisclosure';
 
@@ -11,13 +12,13 @@ const MODEL = 'claude-haiku-4-5-20251001';
 const MAX_EVENT_TEXT_LENGTH = 600;
 
 /** Convert an internal meter value to a non-numeric signal for story generation. */
-function describeMeterValue(value) {
+function describeMeterValue(key, value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 'neutral';
-  if (value <= 20) return 'very-low';
-  if (value <= 40) return 'low';
-  if (value < 60) return 'neutral';
-  if (value < 80) return 'high';
-  return 'very-high';
+  const axis = AXES.find((item) => item.key === key);
+  if (!axis || Math.abs(value) < 20) return 'neutral';
+  const pole = value < 0 ? axis.leftLabel : axis.rightLabel;
+  const strength = Math.abs(value) >= 80 ? 'extreme' : Math.abs(value) >= 50 ? 'strong' : 'moderate';
+  return `${pole}-${strength}`;
 }
 
 function buildSystemPrompt(tone, collapseRoute) {
@@ -83,7 +84,7 @@ export async function generateBeat({
 }) {
   const allDeclarations = [declaration, ...previousDeclarations];
   const meterSummary = Object.entries(meter)
-    .map(([key, val]) => key + ':' + describeMeterValue(val))
+    .map(([key, val]) => key + ':' + describeMeterValue(key, val))
     .join(' / ');
   const eventHistory = previousEvents.length > 0
     ? previousEvents.map((event, index) => (

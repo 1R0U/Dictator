@@ -11,12 +11,17 @@ import {
   createRevealCompletionNotifier,
   normalizeMeterValue,
 } from '../game/endingReveal';
-import { getDesireTraitKeywords, getDesireTraitSentence } from '../game/desireTraits';
+import {
+  getDesireTendencyLabel,
+  getDesireTraitKeywords,
+  getDesireTraitSentence,
+} from '../game/desireTraits';
 import { getDesireBiasComment } from '../game/desireBias';
 import { matchFigure } from '../game/figureMatch';
 import { FIGURE_DIAGNOSIS_DISCLAIMER, buildFallbackBlurb } from '../data/figures';
 import { getCollapseVisual } from '../data/collapseVisuals';
 import { ENDING_CATALOG } from '../data/endingCatalog';
+import { playCollapseSoundEffects, playSoundEffect } from '../utils/sound';
 import { shouldStartCollapseIntro } from '../game/collapseIntro';
 
 const PHASES = Object.freeze({
@@ -125,6 +130,12 @@ export default function EndingReveal({
     completionNotifier.reset();
     panelRevealAnimation.setValue(0);
     meterAnimations.forEach((animation) => animation.setValue(0));
+
+    if (collapseVisual) {
+      playCollapseSoundEffects();
+    } else {
+      playSoundEffect('happyEnd');
+    }
 
     return () => {
       activeAnimation.current?.stop();
@@ -275,7 +286,10 @@ export default function EndingReveal({
         <PressableScale
           accessibilityRole="button"
           glowColor="#b9985a"
-          onPress={onReturnHome}
+          onPress={() => {
+            playSoundEffect('returnHome');
+            onReturnHome();
+          }}
           style={({ pressed }) => [
             styles.homeButton,
             collapseVisual && styles.homeButtonAfterReplay,
@@ -413,10 +427,12 @@ export default function EndingReveal({
               const traitSentence = getDesireTraitSentence(axis.key, value);
               const traitKeywords = getDesireTraitKeywords(axis.key, value);
               const traitSegments = splitTraitSentenceSegments(traitSentence, traitKeywords);
+              const position = normalizeMeterValue(value);
               const width = meterAnimations[index].interpolate({
                 inputRange: [0, 1],
-                outputRange: ['0%', `${normalizeMeterValue(value)}%`],
+                outputRange: ['0%', `${Math.abs(position - 50)}%`],
               });
+              const fillPosition = value < 0 ? `${position}%` : '50%';
 
               return (
                 <View
@@ -434,10 +450,18 @@ export default function EndingReveal({
                     <Text style={styles.axisLabel}>
                       {axis.label} / {axis.englishName.toUpperCase()}
                     </Text>
-                    <Text style={styles.axisValue}>{value}</Text>
+                    <Text style={styles.axisValue}>{value > 0 ? `+${value}` : value}</Text>
                   </View>
+                  <View style={styles.poleLabels}>
+                    <Text style={styles.poleLabel}>{axis.leftLabel}</Text>
+                    <Text style={styles.poleLabel}>{axis.rightLabel}</Text>
+                  </View>
+                  <Text style={styles.tendencyLabel}>
+                    {getDesireTendencyLabel(axis.key, value)}
+                  </Text>
                   <View style={styles.meterTrack}>
-                    <Animated.View style={[styles.meterFill, { width }]} />
+                    <View style={styles.meterCenter} />
+                    <Animated.View style={[styles.meterFill, { left: fillPosition, width }]} />
                   </View>
                   <Text style={styles.axisTrait}>
                     {traitSegments.map((segment, segmentIndex) => (
@@ -456,7 +480,7 @@ export default function EndingReveal({
 
           <View style={styles.scaleLabels}>
             <Text style={styles.scaleText}>{METER_MIN}</Text>
-            <Text style={styles.scaleText}>50</Text>
+            <Text style={styles.scaleText}>0</Text>
             <Text style={styles.scaleText}>{METER_MAX}</Text>
           </View>
           {isRevealComplete && resolvedFigure ? (
@@ -695,6 +719,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '900',
   },
+  poleLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  poleLabel: {
+    color: '#8e8982',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  tendencyLabel: {
+    marginBottom: 5,
+    color: '#d8c9aa',
+    fontSize: 12,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
   axisTrait: {
     marginTop: 3,
     color: '#8e8982',
@@ -706,13 +746,24 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   meterTrack: {
+    position: 'relative',
     height: 10,
     overflow: 'hidden',
     backgroundColor: '#2d2b30',
   },
   meterFill: {
+    position: 'absolute',
     height: '100%',
     backgroundColor: '#7e2024',
+  },
+  meterCenter: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: '50%',
+    width: 2,
+    backgroundColor: '#d8c9aa',
+    zIndex: 1,
   },
   scaleLabels: {
     marginTop: 12,
