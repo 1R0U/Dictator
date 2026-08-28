@@ -193,7 +193,6 @@ export default function MilestoneReport({
               accessibilityRole="button"
               glowColor="#d8c9aa"
               onPress={handleCycleSpeech}
-              ripple
               style={({ pressed }) => [styles.speechButton, pressed && styles.pressed]}
             >
               <Text style={styles.speechButtonText}>
