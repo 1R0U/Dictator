@@ -326,8 +326,6 @@ export function MilestoneNavigation({
           {onPrevious ? (
             <PressableScale
               accessibilityRole="button"
-              accessibilityState={{ disabled: nextDisabled }}
-              disabled={nextDisabled}
               glowColor="#8e8982"
               onPress={onPrevious}
               style={({ pressed }) => [
@@ -343,6 +341,8 @@ export function MilestoneNavigation({
           {onNext ? (
             <PressableScale
               accessibilityRole="button"
+              accessibilityState={{ disabled: nextDisabled }}
+              disabled={nextDisabled}
               flashy
               glowColor="#b9985a"
               onPress={onNext}

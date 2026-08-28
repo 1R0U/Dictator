@@ -45,9 +45,11 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
   const player = useAudioPlayer(audioUri || null, { updateInterval: 100 });
   const status = useAudioPlayerStatus(player);
   const [fallbackSeconds, setFallbackSeconds] = useState(0);
+  const [hasPlaybackFailed, setHasPlaybackFailed] = useState(false);
   const fade = useRef(new Animated.Value(1)).current;
   const completedRef = useRef(false);
-  const hasAudio = Boolean(audioUri);
+  const playbackStateFailed = ['error', 'failed'].includes(status.playbackState);
+  const hasAudio = Boolean(audioUri) && !hasPlaybackFailed && !playbackStateFailed;
   const fallbackDuration = Math.max(
     FALLBACK_DURATION_SECONDS,
     scenes.reduce((sum, item) => sum + String(item.narration ?? '').length, 0) / 6,
@@ -75,11 +77,20 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
 
   useEffect(() => {
     let cancelled = false;
+    setHasPlaybackFailed(false);
     setAudioModeAsync({ playsInSilentMode: true })
       .then(() => { if (!cancelled && audioUri) player.play(); })
-      .catch(() => {});
+      .catch(() => { if (!cancelled && audioUri) setHasPlaybackFailed(true); });
     return () => { cancelled = true; };
   }, [audioUri, player]);
+
+  useEffect(() => {
+    if (!audioUri || status.isLoaded || hasPlaybackFailed || playbackStateFailed) {
+      return undefined;
+    }
+    const loadTimer = setTimeout(() => setHasPlaybackFailed(true), 8000);
+    return () => clearTimeout(loadTimer);
+  }, [audioUri, hasPlaybackFailed, playbackStateFailed, status.isLoaded]);
 
   useEffect(() => {
     if (hasAudio) return undefined;
@@ -149,8 +160,8 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
           <Text style={styles.skipText}>{'\u30b9\u30ad\u30c3\u30d7'}</Text>
         </Pressable>
       </View>
-      {narrationError ? (
-        <Text style={styles.fallback}>{'\u97f3\u58f0\u3092\u751f\u6210\u3067\u304d\u306a\u304b\u3063\u305f\u305f\u3081\u3001\u5b57\u5e55\u3067\u653e\u9001\u3057\u3066\u3044\u307e\u3059'}</Text>
+      {narrationError || hasPlaybackFailed || playbackStateFailed ? (
+        <Text style={styles.fallback}>{'\u97f3\u58f0\u3092\u518d\u751f\u3067\u304d\u306a\u304b\u3063\u305f\u305f\u3081\u3001\u5b57\u5e55\u3067\u653e\u9001\u3057\u3066\u3044\u307e\u3059'}</Text>
       ) : null}
     </SafeAreaView>
   );
