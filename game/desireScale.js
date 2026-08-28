@@ -1,64 +1,61 @@
-const DESIRE_KEYS = Object.freeze([
-  'domination',
-  'egoism',
-  'innovation',
-  'prestige',
-  'madness',
-]);
-const DESIRE_MIN = 0;
+const DESIRE_KEYS = Object.freeze(['domination', 'egoism', 'innovation', 'prestige', 'madness']);
+const DESIRE_MIN = -100;
 const DESIRE_MAX = 100;
-const DESIRE_NEUTRAL = 50;
-const MAX_DELTA_PER_CALL = 5;
+const DESIRE_NEUTRAL = 0;
+const DESIRE_SCALE_VERSION = 2;
+const MAX_DELTA_PER_CALL = 25;
+// 宣言①〜④の最大加算量を25・30・35・40に固定する。
+const PROGRESSION_MULTIPLIERS = Object.freeze([1, 1.2, 1.4, 1.6]);
+const SKIP_NEUTRAL_STEP = 5;
 
-const PROGRESSION_MULTIPLIERS = Object.freeze([
-  0.1,  // 初日
-  0.2,  // 1週間後
-  0.3,  // 1か月後
-  0.5,  // 半年後
-  0.7,  // 1年後
-]);
-
-/** Clamp a desire value to the shared 0–100 scale. */
 function clampDesireValue(value, fallback = DESIRE_NEUTRAL) {
   const numericValue = Number.isFinite(value) ? value : fallback;
   return Math.max(DESIRE_MIN, Math.min(DESIRE_MAX, Math.round(numericValue)));
 }
 
-/** Normalize all five desire axes to safe values on the shared scale. */
 function normalizeDesireAxes(axes, fallback = DESIRE_NEUTRAL) {
-  return Object.fromEntries(
-    DESIRE_KEYS.map((key) => [key, clampDesireValue(axes?.[key], fallback)]),
-  );
+  return Object.fromEntries(DESIRE_KEYS.map(
+    (key) => [key, clampDesireValue(axes?.[key], fallback)],
+  ));
 }
 
-/**
- * Apply a declaration score as a delta from the neutral score of 50.
- * - progressionIndex controls how much effect this call has (0=early, 4=late).
- * - Diminishing returns prevent values from hitting extremes too easily.
- * - Delta is capped at ±MAX_DELTA_PER_CALL before scaling.
- */
-function applyDesireScore(currentValue, declarationScore, progressionIndex = 2) {
-  const current = clampDesireValue(currentValue);
+function convertLegacyDesireAxes(axes) {
+  return Object.fromEntries(DESIRE_KEYS.map((key) => {
+    const legacyValue = Number.isFinite(axes?.[key]) ? axes[key] : 50;
+    return [key, clampDesireValue((legacyValue - 50) * 2)];
+  }));
+}
+
+function roundSignedValue(value) {
+  return Math.sign(value) * Math.round(Math.abs(value));
+}
+
+/** 宣言内容を、宣言①として扱った場合の加算値へ変換する。 */
+function calculateBaseDeclarationDelta(declarationScore) {
   const score = clampDesireValue(declarationScore);
-  let delta = score - DESIRE_NEUTRAL;
+  return roundSignedValue(score * (MAX_DELTA_PER_CALL / DESIRE_MAX));
+}
 
-  // Cap the raw delta
-  delta = Math.max(-MAX_DELTA_PER_CALL, Math.min(MAX_DELTA_PER_CALL, delta));
-
-  // Apply progression multiplier
+function applyDesireScore(currentValue, declarationScore, progressionIndex = 0) {
+  const current = clampDesireValue(currentValue);
+  const baseDelta = calculateBaseDeclarationDelta(declarationScore);
   const multiplier = PROGRESSION_MULTIPLIERS[
     Math.max(0, Math.min(PROGRESSION_MULTIPLIERS.length - 1, progressionIndex))
   ];
-  delta = Math.round(delta * multiplier);
+  const delta = roundSignedValue(baseDelta * multiplier);
+  return clampDesireValue(current + delta);
+}
 
-  // Diminishing returns
-  const room = Math.min(1, delta > 0
-    ? (DESIRE_MAX - current) / (DESIRE_MAX - DESIRE_NEUTRAL)
-    : (current - DESIRE_MIN) / (DESIRE_NEUTRAL - DESIRE_MIN));
+function moveDesireAxesTowardNeutral(axes, step = SKIP_NEUTRAL_STEP) {
+  const neutralStep = Math.max(0, Math.round(Number(step) || 0));
+  const current = normalizeDesireAxes(axes);
 
-  const dampened = Math.round(delta * room);
-
-  return clampDesireValue(current + dampened);
+  return Object.fromEntries(DESIRE_KEYS.map((key) => {
+    const value = current[key];
+    if (value > 0) return [key, Math.max(DESIRE_NEUTRAL, value - neutralStep)];
+    if (value < 0) return [key, Math.min(DESIRE_NEUTRAL, value + neutralStep)];
+    return [key, DESIRE_NEUTRAL];
+  }));
 }
 
 module.exports = {
@@ -66,9 +63,14 @@ module.exports = {
   DESIRE_MAX,
   DESIRE_MIN,
   DESIRE_NEUTRAL,
+  DESIRE_SCALE_VERSION,
   MAX_DELTA_PER_CALL,
   PROGRESSION_MULTIPLIERS,
+  SKIP_NEUTRAL_STEP,
   applyDesireScore,
+  calculateBaseDeclarationDelta,
   clampDesireValue,
+  convertLegacyDesireAxes,
+  moveDesireAxesTowardNeutral,
   normalizeDesireAxes,
 };

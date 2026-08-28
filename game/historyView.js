@@ -2,7 +2,11 @@ const UNKNOWN_ENDING_TITLE = '名称のない結末';
 const UNKNOWN_SAVED_AT = '日時不明';
 const UNKNOWN_DECLARATION = '記録に残されていない宣言';
 const HISTORY_PAGE_SIZE = 10;
-const { normalizeDesireAxes } = require('./desireScale');
+const {
+  DESIRE_SCALE_VERSION,
+  convertLegacyDesireAxes,
+  normalizeDesireAxes,
+} = require('./desireScale');
 const { ENDING_CATALOG } = require('../data/endingCatalog');
 
 /**
@@ -41,6 +45,7 @@ function createHistoryResult({
   figureDiagnosis,
 }) {
   return {
+    desireScaleVersion: DESIRE_SCALE_VERSION,
     declarationSummary,
     additionalDeclarations: getHistoryAdditionalDeclarations({ additionalDeclarations }),
     desireAxes,
@@ -75,7 +80,10 @@ function normalizeHistoryResults(results) {
       declarationSummary:
         typeof result.declarationSummary === 'string' ? result.declarationSummary : '',
       additionalDeclarations: getHistoryAdditionalDeclarations(result),
-      desireAxes: normalizeDesireAxes(result.desireAxes, 0),
+      desireAxes: result.desireScaleVersion === DESIRE_SCALE_VERSION
+        ? normalizeDesireAxes(result.desireAxes)
+        : convertLegacyDesireAxes(result.desireAxes),
+      desireScaleVersion: DESIRE_SCALE_VERSION,
     }));
 }
 

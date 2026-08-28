@@ -5,7 +5,7 @@
 // 各作品の著作権・商標は各権利者に帰属し、本データセットはファン目線の風刺エンタメとして扱う。
 // 一言紹介・偏見コメントの文面はAI（generateFigureDiagnosis）が対戦ごとに生成するため、
 // ここでは選出用のパターンと、AI応答が得られない場合のフォールバック用epithetのみを持つ。
-const FIGURES = Object.freeze([
+const LEGACY_FIGURES = Object.freeze([
   Object.freeze({
     key: 'caesar',
     name: 'ユリウス・カエサル',
@@ -152,6 +152,15 @@ const FIGURES = Object.freeze([
     pattern: Object.freeze({ domination: 20, egoism: 30, innovation: 70, prestige: 55, madness: 65 }),
   }),
 ]);
+
+// Figure patterns were authored on the former 0..100 scale. Expose them on
+// the current -100..100 bipolar scale without rewriting the source dataset.
+const FIGURES = Object.freeze(LEGACY_FIGURES.map((figure) => Object.freeze({
+  ...figure,
+  pattern: Object.freeze(Object.fromEntries(
+    Object.entries(figure.pattern).map(([key, value]) => [key, (value - 50) * 2]),
+  )),
+})));
 
 const FIGURE_DIAGNOSIS_DISCLAIMER =
   '※本診断はファン目線のエンターテインメント演出です。実在の歴史上の人物や作品中のキャラクターの実像・公式見解を示すものではなく、各作品の権利は各権利者に帰属します。';
