@@ -11,6 +11,16 @@ import PressableScale from './PressableScale';
 
 const HOME_BACKGROUND = require('../assets/home-background.png');
 
+/**
+ * Renders a numbered title-screen action with visual press feedback.
+ *
+ * @param {Object} props
+ * @param {string} props.index - Two-digit menu position displayed beside the label.
+ * @param {string} props.label - Visible and accessible action label.
+ * @param {Function} props.onPress - Callback invoked when the action is selected.
+ * @param {boolean} [props.secondary=false] - Whether to use the subdued secondary style.
+ * @returns {React.ReactElement} The interactive menu button.
+ */
 function MenuButton({ index, label, onPress, secondary = false }) {
   return (
     <PressableScale
@@ -38,6 +48,14 @@ function MenuButton({ index, label, onPress, secondary = false }) {
   );
 }
 
+/**
+ * Renders the responsive home screen and its primary navigation actions.
+ *
+ * @param {Object} props
+ * @param {Function} props.onStart - Opens a new simulation.
+ * @param {Function} props.onOpenHistory - Opens the saved simulation archive.
+ * @returns {React.ReactElement} The illustrated title screen.
+ */
 export default function TitleScreen({ onStart, onOpenHistory }) {
   const { height } = useWindowDimensions();
   const isCompact = height < 720;
