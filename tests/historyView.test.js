@@ -36,11 +36,43 @@ test('normalizeHistoryResults handles empty and malformed stored values', () => 
       additionalDeclarations: [],
       declarationSummary: '',
       desireAxes: { domination: 0, egoism: 0, innovation: 0, madness: 0, prestige: 0 },
+      desireScaleVersion: 2,
       endingBody: '',
       endingTitle: 'ending',
       savedAt: '',
     }],
   );
+});
+
+test('旧履歴の0〜100欲望値を双極尺度へ移行する', () => {
+  const [result] = normalizeHistoryResults([{
+    desireAxes: { domination: 0, egoism: 25, innovation: 50, prestige: 75, madness: 100 },
+  }]);
+  assert.deepEqual(result.desireAxes, {
+    domination: -100,
+    egoism: -50,
+    innovation: 0,
+    prestige: 50,
+    madness: 100,
+  });
+  assert.equal(result.desireScaleVersion, 2);
+});
+
+test('双極尺度へ移行済みの履歴は再変換しない', () => {
+  const desireAxes = {
+    domination: -80,
+    egoism: -30,
+    innovation: 0,
+    prestige: 45,
+    madness: 90,
+  };
+  const [result] = normalizeHistoryResults([{
+    desireScaleVersion: 2,
+    desireAxes,
+  }]);
+
+  assert.deepEqual(result.desireAxes, desireAxes);
+  assert.equal(result.desireScaleVersion, 2);
 });
 
 test('追加宣言を履歴表示向けに正規化する', () => {

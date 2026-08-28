@@ -1,46 +1,26 @@
-// 欲望軸の偏りから偏見的・皮肉めいた一言コメントを生成するロジック（#72）。
 const { DESIRE_KEYS, normalizeDesireAxes } = require('./desireScale');
 
-const BIAS_HIGH_COMMENTS = Object.freeze({
-  domination: '支配欲が振り切れているあなたは、鏡を見るたびに玉座を幻視しているタイプ。',
-  egoism: '我欲が突出しているあなたは、分け前の計算だけは誰よりも速いタイプ。',
-  innovation: '変革欲が突出しているあなたは、昨日の自分すら古臭いと切り捨てるタイプ。',
-  prestige: '威信欲が突出しているあなたは、称賛されないと機嫌が直らないタイプ。',
-  madness: '狂気が突出しているあなたは、正気の人間から見ると立派に見えるタイプ。',
+const BIAS_COMMENTS = Object.freeze({
+  domination: Object.freeze({ left: '気に入らないものを世界から消せば整うと思いがちな、排除先行型です。', right: '地図を見ると空白より国境の向こう側が気になる、征服先行型です。' }),
+  egoism: Object.freeze({ left: '明日の国庫より今夜の宴を優先しがちな、享楽先行型です。', right: '共有という言葉を「まだ自分のものではない」と読む、独占先行型です。' }),
+  innovation: Object.freeze({ left: '設計図を描く前に解体用ハンマーを持つ、破壊先行型です。', right: '動いている制度まで分解して組み直したくなる、改造先行型です。' }),
+  prestige: Object.freeze({ left: '拍手より沈黙を忠誠の証だと思う、畏怖先行型です。', right: '支持率より祭壇の高さが気になる、崇拝先行型です。' }),
+  madness: Object.freeze({ left: '一つの答えを信じるほど他の答えが見えなくなる、狂信先行型です。', right: '予定通りに進むと物足りなくなる、混沌先行型です。' }),
 });
+const BIAS_BALANCED_COMMENT = 'どの方向にもまだ染まり切っていません。次の宣言で人格が決まりそうです。';
 
-const BIAS_LOW_COMMENTS = Object.freeze({
-  domination: 'そのくせ支配欲は最下位。命令されるのは得意でも、するのは苦手なようです。',
-  egoism: 'そのくせ我欲は最下位。損得勘定を忘れた瞬間に足元をすくわれるタイプです。',
-  innovation: 'そのくせ変革欲は最下位。新しいものより、慣れた失敗を選ぶタイプです。',
-  prestige: 'そのくせ威信欲は最下位。褒められても心のどこかで疑っているタイプです。',
-  madness: 'そのくせ狂気は最下位。誰よりも冷静なのに、なぜか誰もついてこないタイプです。',
-});
-
-const BIAS_BALANCED_COMMENT =
-  'すべての欲望が均等に育っているあなたは、逆にどこへ転ぶか誰にも読めないタイプです。';
-
-/** Return the axis key with the highest (first) or lowest (last) value, ties broken by AXES order. */
-function pickExtremeKey(normalized, comparator) {
-  return DESIRE_KEYS.reduce((extremeKey, key) => (
-    comparator(normalized[key], normalized[extremeKey]) ? key : extremeKey
-  ), DESIRE_KEYS[0]);
-}
-
-/**
- * 欲望軸の最大・最小の偏りから、皮肉めいた一言コメントを生成する。
- *
- * @param {Object.<string, number>} desireAxes プレイ結果の最終欲望軸。
- * @returns {string} 偏見的な一言コメント。
- */
 function getDesireBiasComment(desireAxes) {
   const normalized = normalizeDesireAxes(desireAxes);
-  const highKey = pickExtremeKey(normalized, (value, extreme) => value > extreme);
-  const lowKey = pickExtremeKey(normalized, (value, extreme) => value < extreme);
-
-  if (highKey === lowKey) return BIAS_BALANCED_COMMENT;
-
-  return `${BIAS_HIGH_COMMENTS[highKey]}${BIAS_LOW_COMMENTS[lowKey]}`;
+  const strongestKey = DESIRE_KEYS.reduce((best, key) => (
+    Math.abs(normalized[key]) > Math.abs(normalized[best]) ? key : best
+  ), DESIRE_KEYS[0]);
+  const value = normalized[strongestKey];
+  if (Math.abs(value) < 20) return BIAS_BALANCED_COMMENT;
+  return BIAS_COMMENTS[strongestKey][value < 0 ? 'left' : 'right'];
 }
 
-module.exports = { BIAS_BALANCED_COMMENT, BIAS_HIGH_COMMENTS, BIAS_LOW_COMMENTS, getDesireBiasComment };
+module.exports = {
+  BIAS_BALANCED_COMMENT,
+  BIAS_COMMENTS,
+  getDesireBiasComment,
+};

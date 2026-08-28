@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 
 import { mapDesire } from './api/mapDesire';
+import { moveDesireAxesTowardNeutral } from './game/desireScale';
 import { generateBeat } from './api/generateBeat';
 import { generateEnding } from './api/generateEnding';
 import { generateFigureDiagnosis } from './api/generateFigureDiagnosis';
@@ -33,7 +34,7 @@ import {
   shouldShowCheckup,
 } from './game/checkup';
 import { createGenerationInput } from './game/declaration';
-import { applyMapping } from './game/meter';
+import { applyMapping, createInitialMeter } from './game/meter';
 import { matchFigure } from './game/figureMatch';
 import {
   advanceCollapseState,
@@ -54,11 +55,11 @@ import {
 const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 // desireAxesが未設定（通常発生しない）な場合のみ使うフォールバック値。
 const FALLBACK_FINAL_METER = Object.freeze({
-  domination: 91,
-  egoism: 72,
-  innovation: 64,
-  prestige: 57,
-  madness: 72,
+  domination: 82,
+  egoism: 44,
+  innovation: 28,
+  prestige: 14,
+  madness: 44,
 });
 // エンディング型の判定ロジック（#6/#25）が未実装のため、型自体は仮固定。
 
@@ -226,7 +227,7 @@ export default function App() {
     endingPreparationRef.current = false;
 
     const result = await mapDesire(nextGenerationInput.declaration, GEMINI_API_KEY);
-    setDesireAxes(result);
+    setDesireAxes(applyMapping(createInitialMeter(), result, 0));
     setStage(STAGES.DAY_GENERATION);
   };
 
@@ -311,9 +312,11 @@ export default function App() {
 
   /** 追加宣言せず、これまでの宣言を踏まえた物語へ進む。 */
   const handleSkipCheckup = async () => {
+    const nextDesireAxes = moveDesireAxesTowardNeutral(desireAxes);
     completeCurrentCheckup();
+    setDesireAxes(nextDesireAxes);
     try {
-      await generateCurrentMilestoneReport(additionalDeclarations);
+      await generateCurrentMilestoneReport(additionalDeclarations, nextDesireAxes);
     } catch (err) {
       console.warn('handleSkipCheckup: failed to generate report', err.message);
     }
@@ -337,7 +340,8 @@ export default function App() {
 
     try {
       const mapping = await mapDesire(nextDeclaration.declaration, GEMINI_API_KEY);
-      const nextDesireAxes = applyMapping(desireAxes, mapping);
+      const progressionIndex = Math.min(nextDeclarations.length, 3);
+      const nextDesireAxes = applyMapping(desireAxes, mapping, progressionIndex);
 
       await generateCurrentMilestoneReport(nextDeclarations, nextDesireAxes);
       setDesireAxes(nextDesireAxes);
