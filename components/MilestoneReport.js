@@ -91,13 +91,13 @@ export default function MilestoneReport({
     setScrollMetrics((current) => ({ ...current, scrollY: 0 }));
   }, [activeSide]);
 
-  const stopSpeaking = () => {
+  const stopSpeaking = async () => {
     speechSessionRef.current += 1; // 発話中に途中で切り替えた場合、古い発話のコールバックが後から状態を上書きしないようにする
     if (speechRestartTimeoutRef.current) {
       clearTimeout(speechRestartTimeoutRef.current);
       speechRestartTimeoutRef.current = null;
     }
-    Speech.stop();
+    await Speech.stop();
     setSpeechMode(SPEECH_MODE_OFF);
   };
 
@@ -107,12 +107,13 @@ export default function MilestoneReport({
 
   useEffect(() => () => stopSpeaking(), []);
 
-  const speak = (rate) => {
-    stopSpeaking();
+  const speak = async (rate) => {
+    await stopSpeaking(); // Androidはspeak()がQUEUE_ADDのため、前の発話の停止を待ってから次を予約する
     const session = ++speechSessionRef.current;
     setSpeechMode(rate);
     speechRestartTimeoutRef.current = setTimeout(() => {
       speechRestartTimeoutRef.current = null;
+      if (speechSessionRef.current !== session) return; // 待機中にさらに切り替えられていたら発話しない
       Speech.speak(reportContent, {
         language: 'ja-JP',
         rate,
