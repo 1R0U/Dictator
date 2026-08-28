@@ -37,9 +37,9 @@ function applyDesireScore(currentValue, declarationScore) {
   delta = Math.max(-MAX_DELTA_PER_CALL, Math.min(MAX_DELTA_PER_CALL, delta));
 
   // Diminishing returns: how much room is left toward the extreme
-  const room = delta > 0
+  const room = Math.min(1, delta > 0
     ? (DESIRE_MAX - current) / (DESIRE_MAX - DESIRE_NEUTRAL)
-    : (current - DESIRE_MIN) / (DESIRE_NEUTRAL - DESIRE_MIN);
+    : (current - DESIRE_MIN) / (DESIRE_NEUTRAL - DESIRE_MIN));
 
   const dampened = Math.round(delta * room);
 
