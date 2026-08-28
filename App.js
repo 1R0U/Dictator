@@ -123,7 +123,8 @@ function DayGenerationScreen({
     : nextMilestone
     ? `${nextMilestone.label}へ進む`
     : '\u30cb\u30e5\u30fc\u30b9\u3092\u59cb\u3081\u308b';
-  const isNextDisabled = isFinishing || isPreparingEnding;
+  // 前時点の国家状態を確実に保存してから進ませ、次の節目が初期値70%へ戻る競合を防ぐ。
+  const isNextDisabled = isFinishing || isPreparingEnding || isReportLoading;
   const onNextAction = isCollapsePending ? onFinish : (nextMilestone ? onNext : onFinish);
 
   return (
