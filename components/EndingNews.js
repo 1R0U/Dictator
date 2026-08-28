@@ -169,7 +169,10 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#080a0d', paddingHorizontal: 20, paddingVertical: 18 },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  topBar: {
+    width: '100%', maxWidth: 680, alignSelf: 'center',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14,
+  },
   live: { color: '#d7aa63', fontSize: 11, fontWeight: '800', letterSpacing: 2.6 },
   program: { color: '#f3efe6', fontSize: 19, fontWeight: '800', letterSpacing: 1 },
   counter: { color: '#99958d', fontSize: 12, fontWeight: '700' },
@@ -180,16 +183,28 @@ const styles = StyleSheet.create({
   placeholderText: { color: '#9b9994', fontSize: 12, marginTop: 10 },
   dateChip: { position: 'absolute', left: 0, bottom: 0, backgroundColor: '#b7a074', paddingHorizontal: 16, paddingVertical: 8 },
   dateText: { color: '#111317', fontWeight: '900', fontSize: 13 },
-  captionPanel: { backgroundColor: '#e9e3d8', paddingHorizontal: 18, paddingVertical: 16, borderBottomWidth: 5, borderBottomColor: '#8f2431' },
+  captionPanel: {
+    width: '100%', maxWidth: 680, alignSelf: 'center',
+    backgroundColor: '#e9e3d8', paddingHorizontal: 18, paddingVertical: 16, borderBottomWidth: 5, borderBottomColor: '#8f2431',
+  },
   headline: { color: '#13161a', fontSize: 21, lineHeight: 29, fontWeight: '900' },
   tickerViewport: { height: 29, marginTop: 8, overflow: 'hidden', justifyContent: 'center' },
   narration: { color: '#3b3c3d', fontSize: 14, lineHeight: 22, position: 'absolute' },
-  progressTrack: { height: 3, backgroundColor: '#35383c', marginTop: 17 },
+  progressTrack: {
+    width: '100%', maxWidth: 680, alignSelf: 'center',
+    height: 3, backgroundColor: '#35383c', marginTop: 17,
+  },
   progressFill: { height: '100%', backgroundColor: '#b7a074' },
-  controls: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
+  controls: {
+    width: '100%', maxWidth: 680, alignSelf: 'center',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12,
+  },
   controlButton: { paddingVertical: 9, paddingHorizontal: 15, borderWidth: 1, borderColor: '#55585c' },
   controlText: { color: '#d7d3cb', fontSize: 13, fontWeight: '700' },
   skipButton: { paddingVertical: 9, paddingHorizontal: 8 },
   skipText: { color: '#b7a074', fontSize: 13, fontWeight: '800' },
-  fallback: { color: '#777b80', fontSize: 10, textAlign: 'center', marginTop: 4 },
+  fallback: {
+    width: '100%', maxWidth: 680, alignSelf: 'center',
+    color: '#777b80', fontSize: 10, textAlign: 'center', marginTop: 4,
+  },
 });
