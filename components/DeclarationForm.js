@@ -58,7 +58,7 @@ export default function DeclarationForm({ onBack, onSubmit }) {
       compactContentStyle={styles.compactContent}
       contentStyle={styles.content}
       keyboardAvoiding
-      overlay={<View pointerEvents="none" style={styles.accent} />}
+      overlay={<View style={[styles.accent, { pointerEvents: 'none' }]} />}
       scrollProps={{ keyboardShouldPersistTaps: 'handled' }}
     >
       <View>
@@ -124,7 +124,7 @@ export default function DeclarationForm({ onBack, onSubmit }) {
           </View>
         </View>
 
-        <View pointerEvents="none" style={styles.divider} />
+        <View style={[styles.divider, { pointerEvents: 'none' }]} />
 
         <View>
           <Text style={styles.toneLabel}>物語のトーンを選ぶ</Text>
@@ -186,7 +186,7 @@ export default function DeclarationForm({ onBack, onSubmit }) {
           ]}
         >
           <View style={styles.launchCore}>
-            <View pointerEvents="none" style={styles.launchHighlight} />
+            <View style={[styles.launchHighlight, { pointerEvents: 'none' }]} />
             {isSubmitting ? (
               <ActivityIndicator color="#f8ece4" size="small" />
             ) : (

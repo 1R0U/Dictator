@@ -73,7 +73,7 @@ export default function CheckupEvent({ milestoneLabel, onSkip, onSubmit }) {
   return (
     <View accessibilityLabel={`${milestoneLabel}の欲望検診`} style={styles.container}>
       <View style={styles.bubbleWrap}>
-        <View pointerEvents="none" style={styles.bubbleTail} />
+        <View style={[styles.bubbleTail, { pointerEvents: 'none' }]} />
         <View style={styles.bubble}>
           <Text style={styles.checkupLabel}>DESIRE CHECKUP · {milestoneLabel}</Text>
           <Text style={styles.dialogue}>

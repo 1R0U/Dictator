@@ -33,9 +33,9 @@ export default function CornerMessenger({ compact, messages, characters = DEFAUL
       accessible
       style={[styles.container, compact && styles.compactContainer]}
     >
-      <View pointerEvents="none" style={[styles.bubble, compact && styles.compactBubble]}>
+      <View style={[styles.bubble, compact && styles.compactBubble, { pointerEvents: 'none' }]}>
         <Text style={styles.message}>{message}</Text>
-        <View pointerEvents="none" style={styles.tail} />
+        <View style={[styles.tail, { pointerEvents: 'none' }]} />
       </View>
       <Image
         accessible={false}
