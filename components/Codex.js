@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -13,6 +13,7 @@ import {
 
 import CornerMessenger from './CornerMessenger';
 import PressableScale from './PressableScale';
+import ScreenContainer, { useResponsiveLayout } from './ScreenContainer';
 import { AXES } from '../data/axes';
 import { loadCodexState } from '../data/codex';
 import { playSoundEffect } from '../utils/sound';
@@ -215,8 +216,7 @@ function CodexDetailModal({ entry, sectionKey, onClose }) {
  * @param {Function} [props.loadCodex] 図鑑状態を取得する非同期処理。
  */
 export default function Codex({ onBack, loadCodex = loadCodexState }) {
-  const { width } = useWindowDimensions();
-  const isCompact = width < 600;
+  const { width, isCompactWidth: isCompact } = useResponsiveLayout();
   const [activeSectionKey, setActiveSectionKey] = useState(CODEX_SECTIONS[0].key);
   const [codexState, setCodexState] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -262,8 +262,8 @@ export default function Codex({ onBack, loadCodex = loadCodexState }) {
   const cardWidth = (contentWidth - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={[styles.content, isCompact && styles.compactContent]}>
+    <Fragment>
+      <ScreenContainer compactContentStyle={styles.compactContent} contentStyle={styles.content}>
         <View style={styles.header}>
           <PressableScale
             accessibilityRole="button"
@@ -366,27 +366,19 @@ export default function Codex({ onBack, loadCodex = loadCodexState }) {
             </View>
           ) : null}
         </View>
-      </ScrollView>
+      </ScreenContainer>
 
       <CodexDetailModal
         entry={selectedEntry}
         onClose={() => setSelectedEntry(null)}
         sectionKey={activeSectionKey}
       />
-    </SafeAreaView>
+    </Fragment>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0b0b0d',
-  },
   content: {
-    flexGrow: 1,
-    width: '100%',
-    maxWidth: 680,
-    alignSelf: 'center',
     paddingHorizontal: 28,
     paddingTop: 54,
     paddingBottom: 32,

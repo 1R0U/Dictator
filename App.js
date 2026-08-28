@@ -1,10 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import {
-  KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -23,6 +20,7 @@ import EndingNews from './components/EndingNews';
 import History from './components/History';
 import HistoryDetail from './components/HistoryDetail';
 import MilestoneReport, { MilestoneNavigation } from './components/MilestoneReport';
+import ScreenContainer from './components/ScreenContainer';
 import TitleScreen from './components/TitleScreen';
 import { unlockCodexEntry } from './data/codex';
 import { saveResult } from './data/history';
@@ -73,24 +71,19 @@ const FALLBACK_ENDING_BODY =
  */
 function DestinationPlaceholder({ eyebrow, title, children, scrollViewRef }) {
   return (
-    <SafeAreaView style={styles.destination}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.destinationKeyboardArea}
-      >
-        <ScrollView
-          contentContainerStyle={styles.destinationContent}
-          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-          keyboardShouldPersistTaps="always"
-          ref={scrollViewRef}
-          style={styles.destinationScroll}
-        >
-          <Text style={styles.eyebrow}>{eyebrow}</Text>
-          <Text style={styles.destinationTitle}>{title}</Text>
-          {children}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    <ScreenContainer
+      contentStyle={styles.destinationContent}
+      keyboardAvoiding
+      scrollProps={{
+        keyboardDismissMode: Platform.OS === 'ios' ? 'interactive' : 'on-drag',
+        keyboardShouldPersistTaps: 'always',
+        ref: scrollViewRef,
+      }}
+    >
+      <Text style={styles.eyebrow}>{eyebrow}</Text>
+      <Text style={styles.destinationTitle}>{title}</Text>
+      {children}
+    </ScreenContainer>
   );
 }
 
@@ -126,68 +119,61 @@ function DayGenerationScreen({
   const onNextAction = isCollapsePending ? onFinish : (nextMilestone ? onNext : onFinish);
 
   return (
-    <SafeAreaView style={styles.destination}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.destinationKeyboardArea}
-      >
-        <View style={styles.destinationBody}>
-          <ScrollView
-            contentContainerStyle={styles.destinationContent}
-            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-            keyboardShouldPersistTaps="always"
-            style={styles.destinationScroll}
-          >
-            <Text style={styles.eyebrow}>MILESTONE</Text>
-            <Text style={styles.destinationTitle}>{milestone.label}</Text>
-            <View style={styles.declarationBlock}>
-              <Text style={styles.destinationDeclaration}>「{declaration}」</Text>
-              {additionalDeclarations.map((item, index) => (
-                <Text
-                  key={`${item.milestoneKey}-${index}`}
-                  style={styles.additionalDeclaration}
-                >
-                  追加宣言「{item.declaration}」
-                </Text>
-              ))}
-            </View>
-            {showCheckup ? (
-              <CheckupEvent
-                key={milestone.key}
-                milestoneLabel={milestone.label}
-                onSkip={onSkipCheckup}
-                onSubmit={onSubmitAdditionalDeclaration}
-              />
-            ) : (
-              <MilestoneReport
-                headline={report?.headline ?? ''}
-                hideNavigation
-                isFallback={report?.isFallback ?? false}
-                isLoading={isReportLoading}
-                key={milestone.key}
-                memo={report?.memo ?? ''}
-                milestoneLabel={milestone.label}
-                news={report?.news ?? ''}
-              />
-            )}
-          </ScrollView>
-          {!showCheckup ? (
-            <View pointerEvents="box-none" style={styles.stickyNavigationBar}>
-              <View style={styles.stickyNavigationInner}>
-                <MilestoneNavigation
-                  isFinal={!nextMilestone && !isCollapsePending}
-                  nextLabel={nextLabel}
-                  nextDisabled={isNextDisabled}
-                  onNext={onNextAction}
-                  onPrevious={previousMilestone ? onPrevious : undefined}
-                  previousLabel={previousMilestone ? `${previousMilestone.label}へ戻る` : undefined}
-                />
-              </View>
-            </View>
-          ) : null}
+    <ScreenContainer
+      contentStyle={styles.destinationContent}
+      keyboardAvoiding
+      scrollProps={{
+        keyboardDismissMode: Platform.OS === 'ios' ? 'interactive' : 'on-drag',
+        keyboardShouldPersistTaps: 'always',
+      }}
+      stickyFooter={!showCheckup ? (
+        <View pointerEvents="box-none" style={styles.stickyNavigationBar}>
+          <View style={styles.stickyNavigationInner}>
+            <MilestoneNavigation
+              isFinal={!nextMilestone && !isCollapsePending}
+              nextLabel={nextLabel}
+              nextDisabled={isNextDisabled}
+              onNext={onNextAction}
+              onPrevious={previousMilestone ? onPrevious : undefined}
+              previousLabel={previousMilestone ? `${previousMilestone.label}へ戻る` : undefined}
+            />
+          </View>
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      ) : null}
+    >
+      <Text style={styles.eyebrow}>MILESTONE</Text>
+      <Text style={styles.destinationTitle}>{milestone.label}</Text>
+      <View style={styles.declarationBlock}>
+        <Text style={styles.destinationDeclaration}>「{declaration}」</Text>
+        {additionalDeclarations.map((item, index) => (
+          <Text
+            key={`${item.milestoneKey}-${index}`}
+            style={styles.additionalDeclaration}
+          >
+            追加宣言「{item.declaration}」
+          </Text>
+        ))}
+      </View>
+      {showCheckup ? (
+        <CheckupEvent
+          key={milestone.key}
+          milestoneLabel={milestone.label}
+          onSkip={onSkipCheckup}
+          onSubmit={onSubmitAdditionalDeclaration}
+        />
+      ) : (
+        <MilestoneReport
+          headline={report?.headline ?? ''}
+          hideNavigation
+          isFallback={report?.isFallback ?? false}
+          isLoading={isReportLoading}
+          key={milestone.key}
+          memo={report?.memo ?? ''}
+          milestoneLabel={milestone.label}
+          news={report?.news ?? ''}
+        />
+      )}
+    </ScreenContainer>
   );
 }
 
@@ -632,17 +618,6 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  destination: {
-    flex: 1,
-    backgroundColor: '#0b0b0d',
-  },
-  destinationKeyboardArea: {
-    flex: 1,
-  },
-  destinationBody: {
-    flex: 1,
-    position: 'relative',
-  },
   stickyNavigationBar: {
     position: 'absolute',
     left: 0,
@@ -657,14 +632,10 @@ const styles = StyleSheet.create({
     maxWidth: 520,
   },
   destinationContent: {
-    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
     paddingBottom: 140,
-  },
-  destinationScroll: {
-    flex: 1,
   },
   eyebrow: {
     marginBottom: 12,
