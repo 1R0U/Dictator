@@ -55,12 +55,12 @@ test('normalizeCodexState: 未知の値やカテゴリ数に依存せず素通�
   assert.deepEqual(normalizeCodexState('invalid'), {});
   assert.deepEqual(
     normalizeCodexState({
-      collapse: { collapse_oppression: { timesSeen: 1, firstSeenAt: '2026-08-01T00:00:00.000Z' } },
+      collapse: { collapse_anarchy: { timesSeen: 1, firstSeenAt: '2026-08-01T00:00:00.000Z' } },
       figure: { caesar: { timesSeen: 2, firstSeenAt: '2026-08-02T00:00:00.000Z' } },
       futureCategory: { someKey: { timesSeen: 1, firstSeenAt: '2026-08-03T00:00:00.000Z' } },
     }),
     {
-      collapse: { collapse_oppression: { timesSeen: 1, firstSeenAt: '2026-08-01T00:00:00.000Z' } },
+      collapse: { collapse_anarchy: { timesSeen: 1, firstSeenAt: '2026-08-01T00:00:00.000Z' } },
       figure: { caesar: { timesSeen: 2, firstSeenAt: '2026-08-02T00:00:00.000Z' } },
       futureCategory: { someKey: { timesSeen: 1, firstSeenAt: '2026-08-03T00:00:00.000Z' } },
     },
@@ -69,19 +69,20 @@ test('normalizeCodexState: 未知の値やカテゴリ数に依存せず素通�
 
 test('buildCollapseCodexEntries: COLLAPSE_VISUALS全件を番号順に並べ、解放状態を合成する', () => {
   const codexState = {
-    collapse: { collapse_oppression: { timesSeen: 2, firstSeenAt: '2026-08-01T00:00:00.000Z' } },
+    collapse: { collapse_citizen_disappearance: { timesSeen: 2, firstSeenAt: '2026-08-01T00:00:00.000Z' } },
   };
   const entries = buildCollapseCodexEntries(codexState);
 
+  assert.equal(entries.length, 19);
   assert.equal(entries.length, Object.keys(COLLAPSE_VISUALS).length);
   assert.deepEqual(entries.map((entry) => entry.number), entries.map((entry) => entry.number).slice().sort());
 
-  const unlocked = entries.find((entry) => entry.key === 'collapse_oppression');
+  const unlocked = entries.find((entry) => entry.key === 'collapse_citizen_disappearance');
   assert.equal(unlocked.unlocked, true);
   assert.equal(unlocked.timesSeen, 2);
-  assert.equal(unlocked.label, '圧政崩壊');
+  assert.equal(unlocked.label, '国民消滅・大量国外脱出');
 
-  const locked = entries.find((entry) => entry.key === 'collapse_void');
+  const locked = entries.find((entry) => entry.key === 'collapse_ai_takeover');
   assert.equal(locked.unlocked, false);
   assert.equal(locked.timesSeen, 0);
   assert.equal(locked.firstSeenAt, null);

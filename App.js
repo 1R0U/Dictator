@@ -116,7 +116,8 @@ function DayGenerationScreen({
     : nextMilestone
     ? `${nextMilestone.label}へ進む`
     : '\u30cb\u30e5\u30fc\u30b9\u3092\u59cb\u3081\u308b';
-  const isNextDisabled = isFinishing || isPreparingEnding;
+  // 前時点の国家状態を確実に保存してから進ませ、次の節目が初期値70%へ戻る競合を防ぐ。
+  const isNextDisabled = isFinishing || isPreparingEnding || isReportLoading;
   const onNextAction = isCollapsePending ? onFinish : (nextMilestone ? onNext : onFinish);
 
   return (
@@ -164,6 +165,7 @@ function DayGenerationScreen({
         />
       ) : (
         <MilestoneReport
+          collapsePressure={report?.collapsePressure}
           headline={report?.headline ?? ''}
           hideNavigation
           isFallback={report?.isFallback ?? false}
@@ -244,16 +246,6 @@ export default function App() {
         .map((item) => milestoneReports[item.key])
         .filter(Boolean)
         .at(-1);
-      const collapseState = advanceCollapseState({
-        previousRisk: previousReport?.collapseRisk ?? 0,
-        previousPressure: previousReport?.collapsePressure,
-        axes: meter,
-        previousAxes: previousReport?.desireAxesSnapshot,
-        milestoneIndex,
-      });
-      const collapseRoute = shouldTriggerNationCollapse(collapseState.risk)
-        ? determineCollapseRoute(meter, collapseState.pressure)
-        : null;
       const report = await generateBeat({
         declaration: generationInput.declaration,
         milestoneLabel: milestone.label,
@@ -266,8 +258,18 @@ export default function App() {
         ),
         tone: generationInput.tone,
         apiKey: GEMINI_API_KEY,
-        collapseRoute,
+        previousState: previousReport?.collapsePressure,
       });
+      const collapseState = advanceCollapseState({
+        previousPressure: previousReport?.collapsePressure,
+        stateDelta: report.stateDelta,
+      });
+      const collapseRoute = shouldTriggerNationCollapse(
+        collapseState.pressure,
+        report.collapseSignals,
+      )
+        ? determineCollapseRoute(collapseState.pressure, report.collapseSignals)
+        : null;
 
       setMilestoneReports((current) => ({
         ...current,
@@ -276,6 +278,7 @@ export default function App() {
           collapseRisk: collapseState.risk,
           collapsePressure: collapseState.pressure,
           collapseRoute,
+          collapseSignals: report.collapseSignals,
           desireAxesSnapshot: { ...meter },
         },
       }));

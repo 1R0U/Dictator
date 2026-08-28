@@ -4,6 +4,7 @@ import { setAudioModeAsync } from 'expo-audio';
 import * as Speech from 'expo-speech';
 
 import PressableScale from './PressableScale';
+import { getCollapseWarning } from '../game/collapseWarning';
 import {
   REPORT_SIDES,
   REPORT_STATUS,
@@ -33,6 +34,7 @@ const NOTEBOOK_LINES = Array.from({ length: NOTEBOOK_LINE_COUNT }, (_, i) => i);
  * @param {string} [props.headline] generateBeatが返したニュース見出し。
  * @param {string} props.news generateBeatが返したニュース本文。
  * @param {string} props.memo generateBeatが返した側近メモ本文。
+ * @param {Object} [props.collapsePressure] 非公開の国家状態6指標。
  * @param {Function} [props.onPrevious] 前の節目へ戻る処理。
  * @param {string} [props.previousLabel] 戻るボタンのラベル。
  * @param {Function} [props.onNext] 次の節目へ進む処理。
@@ -47,6 +49,7 @@ export default function MilestoneReport({
   headline,
   news,
   memo,
+  collapsePressure,
   onPrevious,
   previousLabel = '前の節目へ戻る',
   onNext,
@@ -58,7 +61,11 @@ export default function MilestoneReport({
 }) {
   const [activeSide, setActiveSide] = useState(REPORT_SIDES.NEWS);
   const isNews = activeSide === REPORT_SIDES.NEWS;
-  const reportContent = getReportContent(activeSide, { news, memo });
+  const collapseWarning = getCollapseWarning(collapsePressure);
+  const memoWithWarning = collapseWarning
+    ? `【側近より緊急報告】\n${collapseWarning.message}\n\n${memo}`
+    : memo;
+  const reportContent = getReportContent(activeSide, { news, memo: memoWithWarning });
   const status = getReportStatus({ isLoading, isFallback });
   const [speechMode, setSpeechMode] = useState(SPEECH_MODE_OFF);
   const speechRestartTimeoutRef = useRef(null);
