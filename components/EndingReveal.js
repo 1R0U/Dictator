@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import PressableScale from './PressableScale';
 import { AXES } from '../data/axes';
 import {
   METER_MAX,
@@ -194,18 +195,22 @@ export default function EndingReveal({
   const extraActions = (
     <>
       {collapseVisual ? (
-        <Pressable
+        <PressableScale
           accessibilityRole="button"
+          glowColor="#8c3c2f"
           onPress={() => setIsImageFullscreen(true)}
+          ripple
           style={({ pressed }) => [styles.replayImageButton, pressed && styles.pressed]}
         >
           <Text style={styles.replayImageButtonText}>崩壊の光景をもう一度見る</Text>
-        </Pressable>
+        </PressableScale>
       ) : null}
       {onReturnHome ? (
-        <Pressable
+        <PressableScale
           accessibilityRole="button"
+          glowColor="#b9985a"
           onPress={onReturnHome}
+          ripple
           style={({ pressed }) => [
             styles.homeButton,
             collapseVisual && styles.homeButtonAfterReplay,
@@ -213,7 +218,7 @@ export default function EndingReveal({
           ]}
         >
           <Text style={styles.homeButtonText}>{returnLabel}</Text>
-        </Pressable>
+        </PressableScale>
       ) : null}
     </>
   );
@@ -262,14 +267,17 @@ export default function EndingReveal({
         {collapseVisual ? <Text style={styles.collapseReasonLabel}>滅亡理由</Text> : null}
         <Text style={[styles.body, collapseVisual && styles.collapseBody]}>{body}</Text>
       </View>
-      <Pressable
+      <PressableScale
         accessibilityRole="button"
         accessibilityState={{
           disabled: phase === PHASES.METER && !isRevealComplete,
           expanded: phase === PHASES.METER,
         }}
         disabled={phase === PHASES.METER && !isRevealComplete}
+        flashy={phase === PHASES.ENDING}
+        glowColor="#b9985a"
         onPress={handleToggleMeter}
+        ripple
         style={({ pressed }) => [
           styles.revealButton,
           phase === PHASES.METER && !isRevealComplete && styles.revealedButton,
@@ -287,7 +295,7 @@ export default function EndingReveal({
         <Text style={styles.revealButtonIcon}>
           {phase === PHASES.ENDING ? '↓' : (isRevealComplete ? '↑' : '…')}
         </Text>
-      </Pressable>
+      </PressableScale>
       {phase === PHASES.ENDING ? extraActions : null}
       {phase === PHASES.METER ? (
         <Animated.View

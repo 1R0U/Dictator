@@ -1,13 +1,13 @@
 import { useRef } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import EndingReveal from './EndingReveal';
+import PressableScale from './PressableScale';
 import {
   formatHistoryDate,
   getHistoryAdditionalDeclarations,
   getHistoryDeclarationSummary,
   getHistoryEndingBody,
-  getHistoryEndingTypeLabel,
   getHistoryTitle,
 } from '../game/historyView';
 
@@ -23,24 +23,30 @@ export default function HistoryDetail({ result, onBack }) {
         ref={scrollViewRef}
         style={styles.scrollView}
       >
-        <Pressable
+        <PressableScale
           accessibilityRole="button"
+          glowColor="#a9a39a"
           onPress={onBack}
+          ripple
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
         >
           <Text style={styles.backButtonText}>← 履歴一覧へ戻る</Text>
-        </Pressable>
-        <Text style={styles.kicker}>ARCHIVE DETAIL</Text>
-        <Text style={styles.date}>{formatHistoryDate(result?.savedAt)}</Text>
-        <Text style={styles.endingType}>ENDING TYPE / {getHistoryEndingTypeLabel(result)}</Text>
+        </PressableScale>
         <Text style={styles.declarationLabel}>OPENING DECLARATION</Text>
         <View style={styles.declarationBlock}>
-          <Text style={styles.declaration}>「{getHistoryDeclarationSummary(result)}」</Text>
+          <Text style={styles.declaration}>
+            「{getHistoryDeclarationSummary(result)}」
+          </Text>
           {additionalDeclarations.map((item, index) => (
             <Text key={`${item.milestoneKey}-${index}`} style={styles.additionalDeclaration}>
               追加宣言「{item.declaration}」
             </Text>
           ))}
+        </View>
+        <View style={styles.meta}>
+          <Text style={styles.kicker}>ARCHIVE DETAIL</Text>
+          <Text style={styles.metaDot}>·</Text>
+          <Text style={styles.date}>{formatHistoryDate(result?.savedAt)}</Text>
         </View>
         <EndingReveal
           body={getHistoryEndingBody(result)}
@@ -83,52 +89,57 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
   },
-  kicker: {
-    marginBottom: 8,
+  declarationLabel: {
     color: '#b9985a',
     fontSize: 10,
     fontWeight: '900',
-    letterSpacing: 3,
-  },
-  date: {
-    marginBottom: 12,
-    color: '#8e8982',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  endingType: {
-    marginBottom: 20,
-    color: '#d8c9aa',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-  declarationLabel: {
-    color: '#625e58',
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 2,
+    letterSpacing: 4,
   },
   declarationBlock: {
     width: '100%',
     maxWidth: 560,
-    marginTop: 8,
-    marginBottom: 24,
+    marginTop: 10,
+    marginBottom: 20,
     alignItems: 'center',
   },
   declaration: {
-    color: '#c8c0b5',
-    fontSize: 14,
-    lineHeight: 23,
+    marginTop: 10,
+    color: '#f3eee4',
+    fontSize: 30,
+    fontWeight: '900',
+    lineHeight: 40,
+    letterSpacing: 0.5,
     textAlign: 'center',
   },
   additionalDeclaration: {
-    marginTop: 6,
+    marginTop: 10,
     color: '#d8c9aa',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
-    lineHeight: 21,
+    lineHeight: 22,
     textAlign: 'center',
+  },
+  meta: {
+    marginBottom: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  kicker: {
+    color: '#77716a',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+  metaDot: {
+    color: '#4e483d',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  date: {
+    color: '#77716a',
+    fontSize: 11,
+    fontWeight: '700',
   },
   pressed: {
     opacity: 0.65,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import PressableScale from './PressableScale';
 import {
   REPORT_SIDES,
   REPORT_STATUS,
@@ -91,10 +92,12 @@ export default function MilestoneReport({
             </Text>
           ) : null}
           <View accessibilityRole="tablist" style={styles.tabs}>
-            <Pressable
+            <PressableScale
               accessibilityRole="tab"
               accessibilityState={{ selected: isNews }}
+              glowColor="#d8c9aa"
               onPress={() => setActiveSide(REPORT_SIDES.NEWS)}
+              ripple
               style={({ pressed }) => [
                 styles.tab,
                 isNews && styles.activeNewsTab,
@@ -102,11 +105,13 @@ export default function MilestoneReport({
               ]}
             >
               <Text style={[styles.tabText, isNews && styles.activeTabText]}>表・ニュース</Text>
-            </Pressable>
-            <Pressable
+            </PressableScale>
+            <PressableScale
               accessibilityRole="tab"
               accessibilityState={{ selected: !isNews }}
+              glowColor="#7e2024"
               onPress={() => setActiveSide(REPORT_SIDES.MEMO)}
+              ripple
               style={({ pressed }) => [
                 styles.tab,
                 !isNews && styles.activeMemoTab,
@@ -116,7 +121,7 @@ export default function MilestoneReport({
               <Text style={[styles.tabText, !isNews && styles.activeMemoTabText]}>
                 裏・側近メモ
               </Text>
-            </Pressable>
+            </PressableScale>
           </View>
 
           <View
@@ -234,9 +239,11 @@ export function MilestoneNavigation({ onPrevious, previousLabel, onNext, nextLab
       {onPrevious || onNext ? (
         <View style={styles.navigation}>
           {onPrevious ? (
-            <Pressable
+            <PressableScale
               accessibilityRole="button"
+              glowColor="#8e8982"
               onPress={onPrevious}
+              ripple
               style={({ pressed }) => [
                 styles.navigationButton,
                 styles.previousButton,
@@ -245,11 +252,13 @@ export function MilestoneNavigation({ onPrevious, previousLabel, onNext, nextLab
             >
               <Text style={styles.previousArrow}>←</Text>
               <Text style={styles.previousButtonText}>{previousLabel}</Text>
-            </Pressable>
+            </PressableScale>
           ) : null}
           {onNext ? (
-            <Pressable
+            <PressableScale
               accessibilityRole="button"
+              flashy
+              glowColor="#b9985a"
               onPress={onNext}
               style={({ pressed }) => [
                 styles.navigationButton,
@@ -259,7 +268,7 @@ export function MilestoneNavigation({ onPrevious, previousLabel, onNext, nextLab
             >
               <Text style={styles.nextButtonText}>{nextLabel}</Text>
               <Text style={styles.nextArrow}>→</Text>
-            </Pressable>
+            </PressableScale>
           ) : null}
         </View>
       ) : null}

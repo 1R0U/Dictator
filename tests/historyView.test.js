@@ -10,7 +10,8 @@ const {
   getHistoryAdditionalDeclarations,
   getHistoryDeclarationSummary,
   getHistoryEndingBody,
-  getHistoryEndingTypeLabel,
+  getHistoryPageCount,
+  getHistoryPageItems,
   getHistoryTitle,
   normalizeHistoryResults,
 } = require('../game/historyView');
@@ -121,9 +122,21 @@ test('履歴詳細に冒頭宣言の要約を安全に表示する', () => {
   assert.equal(getHistoryDeclarationSummary({ declarationSummary: 18 }), '記録に残されていない宣言');
 });
 
-test('履歴詳細に保存済みのエンディング型を表示する', () => {
-  assert.equal(getHistoryEndingTypeLabel({ endingType: 'ironic_peace' }), '皮肉な平和');
-  assert.equal(getHistoryEndingTypeLabel({ endingType: 'unknown' }), '分類不明');
+test('件数からページ数を算出する', () => {
+  assert.equal(getHistoryPageCount([], 10), 1);
+  assert.equal(getHistoryPageCount(new Array(10).fill({}), 10), 1);
+  assert.equal(getHistoryPageCount(new Array(11).fill({}), 10), 2);
+  assert.equal(getHistoryPageCount(new Array(20).fill({}), 10), 2);
+  assert.equal(getHistoryPageCount(null, 10), 1);
+});
+
+test('指定ページに表示する要素だけを切り出す', () => {
+  const results = Array.from({ length: 15 }, (_, i) => i);
+
+  assert.deepEqual(getHistoryPageItems(results, 0, 10), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  assert.deepEqual(getHistoryPageItems(results, 1, 10), [10, 11, 12, 13, 14]);
+  assert.deepEqual(getHistoryPageItems(results, 2, 10), []);
+  assert.deepEqual(getHistoryPageItems(null, 0, 10), []);
 });
 
 test('保存日時を日本語の一覧表示向けに整形する', () => {

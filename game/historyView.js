@@ -1,6 +1,7 @@
 const UNKNOWN_ENDING_TITLE = '名称のない結末';
 const UNKNOWN_SAVED_AT = '日時不明';
 const UNKNOWN_DECLARATION = '記録に残されていない宣言';
+const HISTORY_PAGE_SIZE = 10;
 const { normalizeDesireAxes } = require('./desireScale');
 const { ENDING_CATALOG } = require('../data/endingCatalog');
 
@@ -111,11 +112,6 @@ function getHistoryAccessibilityLabel(result, title, savedAt) {
   return [title, savedAt, ...declarations].join('、');
 }
 
-/** Return a readable label for the saved ending type. */
-function getHistoryEndingTypeLabel(result) {
-  return ENDING_CATALOG[result?.endingType]?.label ?? '分類不明';
-}
-
 /**
  * ISO形式の保存日時を履歴一覧向けに整形する。
  *
@@ -140,7 +136,34 @@ function formatHistoryDate(savedAt, locale = 'ja-JP', timeZone) {
   }).format(date);
 }
 
+/**
+ * 履歴一覧を指定件数ずつのページに分けた場合の総ページ数を返す。
+ *
+ * @param {Array} results 履歴一覧。
+ * @param {number} [pageSize] 1ページあたりの件数。
+ * @returns {number} 総ページ数（結果が0件でも最低1）。
+ */
+function getHistoryPageCount(results, pageSize = HISTORY_PAGE_SIZE) {
+  if (!Array.isArray(results) || results.length === 0 || pageSize <= 0) return 1;
+  return Math.ceil(results.length / pageSize);
+}
+
+/**
+ * 指定ページ（0始まり）に表示する履歴一覧の一部を返す。
+ *
+ * @param {Array} results 履歴一覧。
+ * @param {number} page 表示するページ（0始まり）。
+ * @param {number} [pageSize] 1ページあたりの件数。
+ * @returns {Array} そのページに表示する要素。
+ */
+function getHistoryPageItems(results, page, pageSize = HISTORY_PAGE_SIZE) {
+  if (!Array.isArray(results) || pageSize <= 0) return [];
+  const start = Math.max(page, 0) * pageSize;
+  return results.slice(start, start + pageSize);
+}
+
 module.exports = {
+  HISTORY_PAGE_SIZE,
   UNKNOWN_ENDING_TITLE,
   UNKNOWN_DECLARATION,
   UNKNOWN_SAVED_AT,
@@ -150,7 +173,8 @@ module.exports = {
   getHistoryAdditionalDeclarations,
   getHistoryDeclarationSummary,
   getHistoryEndingBody,
-  getHistoryEndingTypeLabel,
+  getHistoryPageCount,
+  getHistoryPageItems,
   getHistoryTitle,
   normalizeHistoryResults,
 };

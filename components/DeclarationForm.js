@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 
 import CornerMessenger from './CornerMessenger';
+import PressableScale from './PressableScale';
 import { TONES, canStartDeclaration } from '../game/declaration';
 
 const MAX_LENGTH = 500;
@@ -69,14 +69,16 @@ export default function DeclarationForm({ onBack, onSubmit }) {
           style={styles.scrollView}
         >
           <View>
-            <Pressable
+            <PressableScale
               accessibilityRole="button"
               disabled={isSubmitting}
+              glowColor="#a9a39a"
               onPress={onBack}
+              ripple
               style={({ pressed }) => [styles.backButton, pressed && styles.pressedBackButton]}
             >
               <Text style={styles.backButtonText}>← ホームへ戻る</Text>
-            </Pressable>
+            </PressableScale>
             <View style={[styles.intro, isCompact && styles.compactIntro]}>
               <View style={styles.headingCopy}>
                 <Text style={[styles.title, isCompact && styles.compactTitle]}>第一勅令</Text>
@@ -137,13 +139,15 @@ export default function DeclarationForm({ onBack, onSubmit }) {
                   const toneColor = TONE_COLORS[tone.id] || DEFAULT_TONE_COLOR;
 
                   return (
-                    <Pressable
+                    <PressableScale
                       accessibilityLabel={`${tone.label}トーン`}
                       accessibilityRole="radio"
                       accessibilityState={{ selected: isSelected }}
                       disabled={isSubmitting}
+                      glowColor={toneColor}
                       onPress={() => setSelectedTone(tone.id)}
                       key={tone.id}
+                      ripple
                       style={({ pressed }) => [
                         styles.toneButton,
                         isSelected && {
@@ -159,7 +163,7 @@ export default function DeclarationForm({ onBack, onSubmit }) {
                       >
                         {tone.label}
                       </Text>
-                    </Pressable>
+                    </PressableScale>
                   );
                 })}
               </View>
@@ -175,9 +179,11 @@ export default function DeclarationForm({ onBack, onSubmit }) {
               ) : null}
             </View>
 
-            <Pressable
+            <PressableScale
               accessibilityRole="button"
               disabled={!canSubmit}
+              flashy
+              glowColor="#f2c14e"
               onPress={handleSubmit}
               style={({ pressed }) => [
                 styles.launchButton,
@@ -193,7 +199,7 @@ export default function DeclarationForm({ onBack, onSubmit }) {
                   <Text style={styles.launchText}>宣言</Text>
                 )}
               </View>
-            </Pressable>
+            </PressableScale>
             {submitError ? (
               <Text accessibilityLiveRegion="polite" style={styles.errorText}>
                 {submitError}
