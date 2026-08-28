@@ -4,8 +4,11 @@ const assert = require('node:assert/strict');
 const {
   REPORT_SIDES,
   REPORT_STATUS,
+  SPEECH_RATES,
+  SPEECH_MODE_OFF,
   getReportContent,
   getReportStatus,
+  getNextSpeechMode,
   isMilestoneReportPending,
 } = require('../game/milestoneReport');
 
@@ -60,6 +63,16 @@ test('非検診の未生成レポートは初回描画からローディング�
     showCheckup: false,
     report: undefined,
   }), true);
+});
+
+test('読み上げモードは読み上げなし→×1→×2→読み上げなしと巡回する', () => {
+  assert.equal(getNextSpeechMode(SPEECH_MODE_OFF), SPEECH_RATES[0]);
+  assert.equal(getNextSpeechMode(SPEECH_RATES[0]), SPEECH_RATES[1]);
+  assert.equal(getNextSpeechMode(SPEECH_RATES[1]), SPEECH_MODE_OFF);
+});
+
+test('未知の速度値を渡した場合は読み上げなしへ戻す', () => {
+  assert.equal(getNextSpeechMode(999), SPEECH_MODE_OFF);
 });
 
 test('生成済みレポートまたは検診画面では未生成ローディングにしない', () => {
