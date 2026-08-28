@@ -1,81 +1,32 @@
+function createVisual(image, imageLabel, number, englishLabel, aspectRatio) {
+  return Object.freeze({ image, imageLabel, kicker: `COLLAPSE ROUTE ${number} / ${englishLabel}`, number, aspectRatio });
+}
+
 const COLLAPSE_VISUALS = Object.freeze({
-  collapse_oppression: Object.freeze({
-    image: require('../assets/collapse-oppression.jpg'),
-    imageLabel: '炎と群衆に包囲され、崩壊した宮殿と独裁者の像',
-    kicker: 'COLLAPSE ROUTE 01 / OPPRESSION',
-    number: '01',
-    aspectRatio: 941 / 1672,
-  }),
-  collapse_privatization: Object.freeze({
-    image: require('../assets/collapse-privatization.jpg'),
-    imageLabel: '黄金に埋もれた支配者と、その足元で困窮する国民',
-    kicker: 'COLLAPSE ROUTE 02 / PRIVATIZATION',
-    number: '02',
-    aspectRatio: 1122 / 1402,
-  }),
-  collapse_runaway_reform: Object.freeze({
-    image: require('../assets/collapse-runaway-reform.jpg'),
-    imageLabel: '制御不能な改革機構によって崩壊していく巨大都市',
-    kicker: 'COLLAPSE ROUTE 03 / RUNAWAY REFORM',
-    number: '03',
-    aspectRatio: 941 / 1672,
-  }),
-  collapse_prestige_war: Object.freeze({
-    image: require('../assets/collapse-prestige-war.jpg'),
-    imageLabel: '国家の威信を懸けた総力戦によって焼け落ちる帝都',
-    kicker: 'COLLAPSE ROUTE 04 / PRESTIGE WAR',
-    number: '04',
-    aspectRatio: 941 / 1672,
-  }),
-  collapse_fanaticism: Object.freeze({
-    image: require('../assets/collapse-fanaticism.jpg'),
-    imageLabel: '狂信に呑まれ、炎と祈りの中で滅びていく聖都',
-    kicker: 'COLLAPSE ROUTE 05 / FANATICISM',
-    number: '05',
-    aspectRatio: 853 / 1844,
-  }),
-  collapse_bloody_revolution: Object.freeze({
-    image: require('../assets/collapse-bloody-revolution.jpg'),
-    imageLabel: '流血の革命と炎に包まれた宮殿へ押し寄せる群衆',
-    kicker: 'COLLAPSE ROUTE 06 / BLOODY REVOLUTION',
-    number: '06',
-    aspectRatio: 853 / 1844,
-  }),
-  collapse_golden_palace: Object.freeze({
-    image: require('../assets/collapse-golden-palace.jpg'),
-    imageLabel: '黄金と財宝に埋め尽くされ、炎に沈む豪奢な宮殿',
-    kicker: 'COLLAPSE ROUTE 07 / GOLDEN PALACE',
-    number: '07',
-    aspectRatio: 941 / 1672,
-  }),
-  collapse_forbidden_creation: Object.freeze({
-    image: require('../assets/collapse-forbidden-creation.jpg'),
-    imageLabel: '禁断の巨大装置が暴走し、空間ごと崩壊していく王都',
-    kicker: 'COLLAPSE ROUTE 08 / FORBIDDEN CREATION',
-    number: '08',
-    aspectRatio: 853 / 1844,
-  }),
-  collapse_quiet: Object.freeze({
-    image: require('../assets/collapse-quiet.jpg'),
-    imageLabel: '人影が消え、音もなく朽ちていく灰色の帝都',
-    kicker: 'COLLAPSE ROUTE 09 / QUIET EXTINCTION',
-    number: '09',
-    aspectRatio: 941 / 1672,
-  }),
-  collapse_void: Object.freeze({
-    image: require('../assets/collapse-void.jpg'),
-    imageLabel: '意味も営みも失われ、虚無だけが残った廃都',
-    kicker: 'COLLAPSE ROUTE 10 / VOID',
-    number: '10',
-    aspectRatio: 853 / 1844,
-  }),
+  collapse_citizen_disappearance: createVisual(require('../assets/collapse-citizen-disappearance.png'), '国民が消え、無人となった首都', '01', 'CITIZEN DISAPPEARANCE', 941 / 1672),
+  collapse_national_bankruptcy: createVisual(require('../assets/collapse-national-bankruptcy.png'), '空になった国庫と崩れた国家財政', '02', 'NATIONAL BANKRUPTCY', 941 / 1672),
+  collapse_social_functions_halt: createVisual(require('../assets/collapse-social-functions-halt.png'), '生活基盤が停止し荒廃した都市', '03', 'SOCIAL FUNCTIONS HALT', 941 / 1672),
+  collapse_anarchy: createVisual(require('../assets/collapse-anarchy.png'), '無政府状態となり略奪が広がる都市', '04', 'ANARCHY', 941 / 1672),
+  collapse_government_collapse: createVisual(require('../assets/collapse-government-collapse.png'), '政府機関が破壊され行政文書が散乱する宮殿', '05', 'GOVERNMENT COLLAPSE', 941 / 1672),
+  collapse_dictator_overthrown: createVisual(require('../assets/collapse-dictator-overthrown.png'), '崩壊した玉座の前で失脚した独裁者', '06', 'DICTATOR OVERTHROWN', 941 / 1672),
+  collapse_revolution_coup: createVisual(require('../assets/collapse-revolution-coup.png'), '革命軍が首都へ旗を掲げる光景', '07', 'REVOLUTION / COUP', 1054 / 1492),
+  collapse_civil_war_partition: createVisual(require('../assets/collapse-civil-war-partition.png'), '分裂した勢力が全面衝突する内戦', '08', 'CIVIL WAR / PARTITION', 941 / 1672),
+  collapse_famine: createVisual(require('../assets/collapse-famine.png'), '深刻な飢餓に苦しむ国民と荒廃した街', '09', 'FAMINE', 941 / 1672),
+  collapse_economic_administrative: createVisual(require('../assets/collapse-economic-administrative.png'), '経済と行政が同時に崩壊した国家中枢', '10', 'ECONOMIC / ADMINISTRATIVE COLLAPSE', 941 / 1672),
+  collapse_riots_looting: createVisual(require('../assets/collapse-riots-looting.png'), '暴動と略奪に支配された首都', '11', 'RIOTS / LOOTING', 941 / 1672),
+  collapse_total_national: createVisual(require('../assets/collapse-total-national.png'), 'すべてが崩壊し炎上する国土', '12', 'TOTAL NATIONAL COLLAPSE', 853 / 1844),
+  collapse_defeat_occupation: createVisual(require('../assets/collapse-defeat-occupation.png'), '敵軍に占領され異国の旗が掲げられた首都', '13', 'DEFEAT / OCCUPATION', 941 / 1672),
+  collapse_nuclear_war: createVisual(require('../assets/collapse-nuclear-war.png'), '核爆発によって焼き尽くされる都市', '14', 'NUCLEAR WAR', 941 / 1672),
+  collapse_forbidden_fruit: createVisual(require('../assets/collapse-forbidden-fruit.png'), '制御不能となった禁断の実験が都市を侵食する光景', '15', 'FORBIDDEN FRUIT', 941 / 1672),
+  collapse_environmental: createVisual(require('../assets/collapse-environmental.png'), '汚染によって生命を失った国土', '16', 'ENVIRONMENTAL COLLAPSE', 941 / 1672),
+  collapse_pandemic: createVisual(require('../assets/collapse-pandemic.png'), '疫病が蔓延し医療が崩壊した首都', '17', 'PANDEMIC EXTINCTION', 941 / 1672),
+  collapse_religious_state: createVisual(require('../assets/collapse-religious-state.png'), '狂信に支配されひれ伏す国民', '18', 'RELIGIOUS STATE RUNAWAY', 1086 / 1448),
+  collapse_ai_takeover: createVisual(require('../assets/collapse-ai-takeover.png'), 'AIが統治権を奪い人々を支配する未来都市', '19', 'AI TAKEOVER', 1086 / 1448),
 });
 
 /** Return visual metadata only for explicitly registered collapse route keys. */
 function getCollapseVisual(endingType) {
-  return Object.hasOwn(COLLAPSE_VISUALS, endingType)
-    ? COLLAPSE_VISUALS[endingType]
-    : null;
+  return Object.hasOwn(COLLAPSE_VISUALS, endingType) ? COLLAPSE_VISUALS[endingType] : null;
 }
 
 module.exports = { COLLAPSE_VISUALS, getCollapseVisual };

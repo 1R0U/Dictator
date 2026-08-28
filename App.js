@@ -161,6 +161,7 @@ function DayGenerationScreen({
               />
             ) : (
               <MilestoneReport
+                collapsePressure={report?.collapsePressure}
                 headline={report?.headline ?? ''}
                 hideNavigation
                 isFallback={report?.isFallback ?? false}
@@ -258,16 +259,6 @@ export default function App() {
         .map((item) => milestoneReports[item.key])
         .filter(Boolean)
         .at(-1);
-      const collapseState = advanceCollapseState({
-        previousRisk: previousReport?.collapseRisk ?? 0,
-        previousPressure: previousReport?.collapsePressure,
-        axes: meter,
-        previousAxes: previousReport?.desireAxesSnapshot,
-        milestoneIndex,
-      });
-      const collapseRoute = shouldTriggerNationCollapse(collapseState.risk)
-        ? determineCollapseRoute(meter, collapseState.pressure)
-        : null;
       const report = await generateBeat({
         declaration: generationInput.declaration,
         milestoneLabel: milestone.label,
@@ -280,8 +271,18 @@ export default function App() {
         ),
         tone: generationInput.tone,
         apiKey: GEMINI_API_KEY,
-        collapseRoute,
+        previousState: previousReport?.collapsePressure,
       });
+      const collapseState = advanceCollapseState({
+        previousPressure: previousReport?.collapsePressure,
+        stateDelta: report.stateDelta,
+      });
+      const collapseRoute = shouldTriggerNationCollapse(
+        collapseState.pressure,
+        report.collapseSignals,
+      )
+        ? determineCollapseRoute(collapseState.pressure, report.collapseSignals)
+        : null;
 
       setMilestoneReports((current) => ({
         ...current,
@@ -290,6 +291,7 @@ export default function App() {
           collapseRisk: collapseState.risk,
           collapsePressure: collapseState.pressure,
           collapseRoute,
+          collapseSignals: report.collapseSignals,
           desireAxesSnapshot: { ...meter },
         },
       }));
