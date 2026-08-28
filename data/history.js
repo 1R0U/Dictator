@@ -27,7 +27,8 @@ async function appendEntry(result) {
 // 同時に呼ばれてもread-modify-writeが衝突しないよう、保存処理を直列化するキュー。
 let saveQueue = Promise.resolve();
 
-// result: { declarationSummary, desireAxes, endingType, endingTitle, endingBody } を想定。
+// result: { declarationSummary, additionalDeclarations, desireAxes, endingType, endingTitle, endingBody } を想定。
+// endingTypeには通常エンドのほか、確定した滅亡ルートのキーも保存する。
 // 日時は保存時にsavedAtとして付与する。
 export function saveResult(result) {
   const run = saveQueue.then(() => appendEntry(result));

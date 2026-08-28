@@ -3,23 +3,35 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
+import CornerMessenger from './CornerMessenger';
+import PressableScale from './PressableScale';
 import { TONES, canStartDeclaration } from '../game/declaration';
 
 const MAX_LENGTH = 500;
+
+const TONE_COLORS = {
+  horror: '#5b2f78',
+  pop: '#c9457a',
+  real: '#3f7ea8',
+  emotional: '#d98a3d',
+};
+const DEFAULT_TONE_COLOR = '#c53a34';
 
 /**
  * 最初の法律を入力し、親コンポーネントへ送信するフォーム。
  */
 export default function DeclarationForm({ onBack, onSubmit }) {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 600;
   const [declaration, setDeclaration] = useState('');
   const [selectedTone, setSelectedTone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,94 +64,140 @@ export default function DeclarationForm({ onBack, onSubmit }) {
       >
         <View pointerEvents="none" style={styles.accent} />
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, isCompact && styles.compactContent]}
           keyboardShouldPersistTaps="handled"
           style={styles.scrollView}
         >
           <View>
-            <Pressable
+            <PressableScale
               accessibilityRole="button"
               disabled={isSubmitting}
+              glowColor="#a9a39a"
               onPress={onBack}
               style={({ pressed }) => [styles.backButton, pressed && styles.pressedBackButton]}
             >
               <Text style={styles.backButtonText}>← ホームへ戻る</Text>
-            </Pressable>
-            <Text style={styles.kicker}>FIRST DECREE</Text>
-            <Text style={styles.title}>冒頭宣言</Text>
-            <Text style={styles.description}>
-              この国で、あなたが最初に定める法律を宣言してください。
-            </Text>
+            </PressableScale>
+            <View style={[styles.intro, isCompact && styles.compactIntro]}>
+              <View style={styles.headingCopy}>
+                <Text style={[styles.title, isCompact && styles.compactTitle]}>第一勅令</Text>
+                <Text style={styles.description}>
+                  最初に定める法律を宣言
+                </Text>
+              </View>
+              <View style={styles.messengerWrap}>
+                <CornerMessenger
+                  compact={isCompact}
+                  messages={[
+                    'あなたの欲望を、ここに刻んで。',
+                    'さあ、最初の一文を。',
+                    '国のかたちは、この一行で決まる。',
+                    '遠慮はいらない。命令して。',
+                    '躊躇は記録に残らない。',
+                    'どんな欲望も、私は裁く。',
+                    '本音を、法律にしてしまえばいい。',
+                    '誰も止めない。今だけは。',
+                    'その一言が、国民の明日を決める。',
+                    '建前はいらない。欲しいものを言って。',
+                  ]}
+                />
+              </View>
+            </View>
           </View>
 
           <View style={styles.form}>
-            <View style={styles.inputFrame}>
-              <TextInput
-                accessibilityLabel="冒頭宣言"
-                editable={!isSubmitting}
-                maxLength={MAX_LENGTH}
-                multiline
-                onChangeText={setDeclaration}
-                placeholder="例：すべての国民は、毎日ひとつ願いを叶えられる。"
-                placeholderTextColor="#625e58"
-                style={styles.input}
-                textAlignVertical="top"
-                value={declaration}
-              />
-              <Text style={styles.counter}>{declaration.length} / {MAX_LENGTH}</Text>
+            <View style={styles.inputSection}>
+              <View style={styles.articleLabelRow}>
+                <View style={styles.articleMark} />
+                <Text style={styles.articleLabel}>第一条</Text>
+              </View>
+              <View style={styles.inputFrame}>
+                <TextInput
+                  accessibilityLabel="冒頭宣言"
+                  editable={!isSubmitting}
+                  maxLength={MAX_LENGTH}
+                  multiline
+                  onChangeText={setDeclaration}
+                  placeholder="例：すべての国民は、毎日ひとつ願いを叶えられる。"
+                  placeholderTextColor="#625e58"
+                  style={styles.input}
+                  textAlignVertical="top"
+                  value={declaration}
+                />
+                <Text style={styles.counter}>{declaration.length} / {MAX_LENGTH}</Text>
+              </View>
             </View>
+
+            <View pointerEvents="none" style={styles.divider} />
 
             <View>
               <Text style={styles.toneLabel}>物語のトーンを選ぶ</Text>
-              <View style={styles.toneGrid}>
+              <View style={styles.toneRow}>
                 {TONES.map((tone) => {
                   const isSelected = selectedTone === tone.id;
+                  const toneColor = TONE_COLORS[tone.id] || DEFAULT_TONE_COLOR;
 
                   return (
-                    <Pressable
+                    <PressableScale
                       accessibilityLabel={`${tone.label}トーン`}
                       accessibilityRole="radio"
                       accessibilityState={{ selected: isSelected }}
                       disabled={isSubmitting}
+                      glowColor={toneColor}
                       onPress={() => setSelectedTone(tone.id)}
                       key={tone.id}
                       style={({ pressed }) => [
                         styles.toneButton,
-                        isSelected && styles.selectedToneButton,
+                        isSelected && {
+                          borderColor: toneColor,
+                          backgroundColor: toneColor,
+                        },
                         pressed && styles.pressedButton,
                       ]}
                     >
-                      <Text style={[styles.toneButtonText, isSelected && styles.selectedToneButtonText]}>
+                      <Text
+                        numberOfLines={1}
+                        style={[styles.toneButtonText, isSelected && styles.selectedToneButtonText]}
+                      >
                         {tone.label}
                       </Text>
-                      <Text style={[styles.toneDescription, isSelected && styles.selectedToneDescription]}>
-                        {tone.description}
-                      </Text>
-                    </Pressable>
+                    </PressableScale>
                   );
                 })}
               </View>
+              {selectedTone ? (
+                <Text
+                  style={[
+                    styles.toneDescription,
+                    { color: TONE_COLORS[selectedTone] || DEFAULT_TONE_COLOR },
+                  ]}
+                >
+                  {TONES.find((tone) => tone.id === selectedTone)?.description}
+                </Text>
+              ) : null}
             </View>
 
-            <Pressable
+            <PressableScale
               accessibilityRole="button"
               disabled={!canSubmit}
+              flashy
+              glowColor="#f2c14e"
               onPress={handleSubmit}
               style={({ pressed }) => [
-                styles.submitButton,
+                styles.launchButton,
                 !canSubmit && styles.disabledButton,
                 pressed && canSubmit && styles.pressedButton,
               ]}
             >
-              {isSubmitting ? (
-                <View style={styles.loadingContent}>
-                  <ActivityIndicator color="#111114" size="small" />
-                  <Text style={styles.submitText}>宣言中...</Text>
-                </View>
-              ) : (
-                <Text style={styles.submitText}>この法律を宣言する</Text>
-              )}
-            </Pressable>
+              <View style={styles.launchCore}>
+                <View pointerEvents="none" style={styles.launchHighlight} />
+                {isSubmitting ? (
+                  <ActivityIndicator color="#f8ece4" size="small" />
+                ) : (
+                  <Text style={styles.launchText}>宣言</Text>
+                )}
+              </View>
+            </PressableScale>
             {submitError ? (
               <Text accessibilityLiveRegion="polite" style={styles.errorText}>
                 {submitError}
@@ -177,19 +235,31 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'space-between',
     paddingHorizontal: 28,
-    paddingTop: 64,
+    paddingTop: 24,
     paddingBottom: 28,
   },
-  kicker: {
-    marginBottom: 14,
-    color: '#b9985a',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 4,
+  compactContent: {
+    paddingHorizontal: 16,
+  },
+  intro: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginTop: 32,
+    gap: 18,
+  },
+  compactIntro: {
+    gap: 10,
+  },
+  headingCopy: {
+    flex: 1,
+  },
+  messengerWrap: {
+    marginTop: -28,
   },
   backButton: {
     alignSelf: 'flex-start',
-    marginBottom: 36,
+    marginBottom: 14,
     paddingVertical: 8,
     paddingRight: 12,
   },
@@ -203,10 +273,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   title: {
-    color: '#f3eee4',
+    color: '#c53a34',
     fontSize: 38,
     fontWeight: '800',
     letterSpacing: 4,
+  },
+  compactTitle: {
+    fontSize: 26,
+    letterSpacing: 1,
   },
   description: {
     maxWidth: 360,
@@ -216,7 +290,32 @@ const styles = StyleSheet.create({
     lineHeight: 26,
   },
   form: {
+    flex: 1,
     gap: 18,
+  },
+  inputSection: {
+    flex: 1,
+  },
+  articleLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  articleMark: {
+    width: 14,
+    height: 1,
+    backgroundColor: '#c9a24a',
+  },
+  articleLabel: {
+    color: '#c9a24a',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#232227',
   },
   toneLabel: {
     marginBottom: 10,
@@ -224,43 +323,41 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 1,
+    textAlign: 'center',
   },
-  toneGrid: {
+  toneRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
   },
   toneButton: {
-    width: '48%',
-    minHeight: 70,
+    flex: 1,
+    minHeight: 48,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 6,
     borderWidth: 1,
     borderColor: '#4e483d',
     backgroundColor: '#141417',
   },
-  selectedToneButton: {
-    borderColor: '#b9985a',
-    backgroundColor: '#b9985a',
-  },
   toneButtonText: {
-    color: '#f3eee4',
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 2,
+    color: '#d8c9aa',
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: 3,
+    fontStyle: 'italic',
   },
   selectedToneButtonText: {
-    color: '#111114',
+    color: '#f8ece4',
+    fontWeight: '700',
   },
   toneDescription: {
-    marginTop: 5,
+    marginTop: 8,
     color: '#a9a39a',
     fontSize: 11,
-  },
-  selectedToneDescription: {
-    color: '#3c3020',
+    textAlign: 'center',
   },
   inputFrame: {
+    flex: 1,
     minHeight: 190,
     padding: 18,
     borderWidth: 1,
@@ -280,28 +377,54 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textAlign: 'right',
   },
-  submitButton: {
-    minHeight: 58,
+  launchButton: {
+    alignSelf: 'center',
+    width: 240,
+    height: 100,
+    borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#b9985a',
+    backgroundColor: '#1a1a1a',
+    borderWidth: 5,
+    borderColor: '#f2c14e',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  launchCore: {
+    width: 200,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#c53a34',
+    borderWidth: 3,
+    borderColor: '#7e2024',
+    overflow: 'hidden',
+  },
+  launchHighlight: {
+    position: 'absolute',
+    top: 14,
+    left: 22,
+    width: 46,
+    height: 20,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    transform: [{ rotate: '-20deg' }],
+  },
+  launchText: {
+    color: '#f8ece4',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 6,
   },
   disabledButton: {
     opacity: 0.35,
   },
   pressedButton: {
     opacity: 0.72,
-  },
-  loadingContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  submitText: {
-    color: '#111114',
-    fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: 1.5,
   },
   errorText: {
     color: '#d98b8f',

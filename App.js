@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -7,17 +7,19 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  View,
 } from 'react-native';
 
 import { mapDesire } from './api/mapDesire';
 import { generateBeat } from './api/generateBeat';
 import { generateEnding } from './api/generateEnding';
+import { generateFigureDiagnosis } from './api/generateFigureDiagnosis';
 import CheckupEvent from './components/CheckupEvent';
 import DeclarationForm from './components/DeclarationForm';
 import EndingReveal from './components/EndingReveal';
 import History from './components/History';
 import HistoryDetail from './components/HistoryDetail';
-import MilestoneReport from './components/MilestoneReport';
+import MilestoneReport, { MilestoneNavigation } from './components/MilestoneReport';
 import TitleScreen from './components/TitleScreen';
 import { AXES } from './data/axes';
 import { saveResult } from './data/history';
@@ -26,11 +28,21 @@ import {
   completeCheckup,
   createAdditionalDeclaration,
   getPreviousDeclarationTexts,
+  getVisibleAdditionalDeclarations,
   shouldShowCheckup,
 } from './game/checkup';
 import { createGenerationInput } from './game/declaration';
 import { applyMapping } from './game/meter';
+import { matchFigure } from './game/figureMatch';
+import {
+  advanceCollapseState,
+  determineCollapseRoute,
+  shouldTriggerNationCollapse,
+} from './game/milestoneEnding';
+import { isMilestoneReportPending } from './game/milestoneReport';
 import { STAGES } from './game/navigation';
+import { getPreviousMilestoneEvents } from './game/storyContext';
+import { createHistoryResult } from './game/historyView';
 
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 // desireAxesが未設定（通常発生しない）な場合のみ使うフォールバック値。
@@ -50,7 +62,7 @@ const FALLBACK_ENDING_BODY =
 /**
  * 未実装の遷移先に共通のプレースホルダー画面を表示する。
  */
-function DestinationPlaceholder({ eyebrow, title, children }) {
+function DestinationPlaceholder({ eyebrow, title, children, scrollViewRef }) {
   return (
     <SafeAreaView style={styles.destination}>
       <KeyboardAvoidingView
@@ -61,6 +73,7 @@ function DestinationPlaceholder({ eyebrow, title, children }) {
           contentContainerStyle={styles.destinationContent}
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           keyboardShouldPersistTaps="always"
+          ref={scrollViewRef}
           style={styles.destinationScroll}
         >
           <Text style={styles.eyebrow}>{eyebrow}</Text>
@@ -85,47 +98,90 @@ function DayGenerationScreen({
   onNext,
   onFinish,
   isFinishing,
+  isCollapsePending,
   showCheckup,
-  additionalDeclaration,
+  additionalDeclarations = [],
   onSkipCheckup,
   onSubmitAdditionalDeclaration,
   report,
   isReportLoading,
 }) {
+  const nextLabel = isFinishing
+    ? '時間を進めています…'
+    : nextMilestone
+    ? `${nextMilestone.label}へ進む`
+    : (isCollapsePending ? '時間を進める' : '結末を見る');
+  const onNextAction = isFinishing
+    ? undefined
+    : (isCollapsePending ? onFinish : (nextMilestone ? onNext : onFinish));
+
   return (
-    <DestinationPlaceholder eyebrow="MILESTONE" title={milestone.label}>
-      <Text style={styles.destinationDeclaration}>「{declaration}」</Text>
-      {showCheckup ? (
-        <CheckupEvent
-          key={milestone.key}
-          milestoneLabel={milestone.label}
-          onSkip={onSkipCheckup}
-          onSubmit={onSubmitAdditionalDeclaration}
-        />
-      ) : (
-        <MilestoneReport
-          isFallback={report?.isFallback ?? false}
-          isFinal={!nextMilestone}
-          isLoading={isReportLoading}
-          key={milestone.key}
-          memo={report?.memo ?? `側近メモ：${milestone.description} 表向きは平静だが、現場では想定外の影響が広がっている。`}
-          milestoneLabel={milestone.label}
-          previousLabel={previousMilestone ? `${previousMilestone.label}へ戻る` : undefined}
-          onPrevious={previousMilestone ? onPrevious : undefined}
-          news={report?.news ?? `【${milestone.label}】${milestone.description} 政府は状況を注視すると発表しています。`}
-          nextLabel={
-            nextMilestone ? `${nextMilestone.label}へ進む` : (isFinishing ? '結末を生成中…' : '結末を見る')
-          }
-          onNext={nextMilestone ? onNext : (isFinishing ? undefined : onFinish)}
-        />
-      )}
-      {additionalDeclaration ? (
-        <Text style={styles.additionalDeclaration}>
-          追加宣言「{additionalDeclaration.declaration}」
-        </Text>
-      ) : null}
-      
-    </DestinationPlaceholder>
+    <SafeAreaView style={styles.destination}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.destinationKeyboardArea}
+      >
+        <View style={styles.destinationBody}>
+          <ScrollView
+            contentContainerStyle={styles.destinationContent}
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            keyboardShouldPersistTaps="always"
+            style={styles.destinationScroll}
+          >
+            <Text style={styles.eyebrow}>MILESTONE</Text>
+            <Text style={styles.destinationTitle}>{milestone.label}</Text>
+            <View style={styles.declarationBlock}>
+              <Text style={styles.destinationDeclaration}>「{declaration}」</Text>
+              {additionalDeclarations.map((item, index) => (
+                <Text
+                  key={`${item.milestoneKey}-${index}`}
+                  style={styles.additionalDeclaration}
+                >
+                  追加宣言「{item.declaration}」
+                </Text>
+              ))}
+            </View>
+            {showCheckup ? (
+              <CheckupEvent
+                key={milestone.key}
+                milestoneLabel={milestone.label}
+                onSkip={onSkipCheckup}
+                onSubmit={onSubmitAdditionalDeclaration}
+              />
+            ) : (
+              <MilestoneReport
+                headline={report?.headline ?? ''}
+                hideNavigation
+                isFallback={report?.isFallback ?? false}
+                isLoading={isReportLoading}
+                key={milestone.key}
+                memo={report?.memo ?? ''}
+                milestoneLabel={milestone.label}
+                news={report?.news ?? ''}
+              />
+            )}
+            {desireAxes ? (
+              <Text style={styles.destinationAxes}>
+                {AXES.map((axis) => `${axis.label} ${desireAxes[axis.key]}`).join('　')}
+              </Text>
+            ) : null}
+          </ScrollView>
+          {!showCheckup ? (
+            <View pointerEvents="box-none" style={styles.stickyNavigationBar}>
+              <View style={styles.stickyNavigationInner}>
+                <MilestoneNavigation
+                  isFinal={!nextMilestone && !isCollapsePending}
+                  nextLabel={nextLabel}
+                  onNext={onNextAction}
+                  onPrevious={previousMilestone ? onPrevious : undefined}
+                  previousLabel={previousMilestone ? `${previousMilestone.label}へ戻る` : undefined}
+                />
+              </View>
+            </View>
+          ) : null}
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -143,7 +199,11 @@ export default function App() {
   const [selectedHistoryResult, setSelectedHistoryResult] = useState(null);
   const [loadingMilestoneKey, setLoadingMilestoneKey] = useState(null);
   const [endingReport, setEndingReport] = useState(null);
+  const [endingType, setEndingType] = useState(DUMMY_ENDING_TYPE);
+  const [figureDiagnosis, setFigureDiagnosis] = useState(null);
   const [isEndingLoading, setIsEndingLoading] = useState(false);
+  const generatingMilestonesRef = useRef(new Set());
+  const endingScrollRef = useRef(null);
 
   /**
    * 冒頭宣言を送信する。
@@ -171,22 +231,81 @@ export default function App() {
   /** 現在までの宣言を踏まえたNEWS/MEMOを生成して節目に保存する。 */
   const generateCurrentMilestoneReport = async (declarations, meter = desireAxes) => {
     const milestone = MILESTONES[milestoneIndex];
+    if (generatingMilestonesRef.current.has(milestone.key)) return;
+
+    generatingMilestonesRef.current.add(milestone.key);
     setLoadingMilestoneKey(milestone.key);
     try {
+      const previousReport = MILESTONES
+        .slice(0, milestoneIndex)
+        .map((item) => milestoneReports[item.key])
+        .filter(Boolean)
+        .at(-1);
+      const collapseState = advanceCollapseState({
+        previousRisk: previousReport?.collapseRisk ?? 0,
+        previousPressure: previousReport?.collapsePressure,
+        axes: meter,
+        previousAxes: previousReport?.desireAxesSnapshot,
+        milestoneIndex,
+      });
+      const collapseRoute = shouldTriggerNationCollapse(collapseState.risk)
+        ? determineCollapseRoute(meter, collapseState.pressure)
+        : null;
       const report = await generateBeat({
         declaration: generationInput.declaration,
         milestoneLabel: milestone.label,
         meter,
         previousDeclarations: getPreviousDeclarationTexts(declarations),
+        previousEvents: getPreviousMilestoneEvents(
+          MILESTONES,
+          milestoneReports,
+          milestoneIndex,
+        ),
         tone: generationInput.tone,
         apiKey: CLAUDE_API_KEY,
+        collapseRoute,
       });
 
-      setMilestoneReports((current) => ({ ...current, [milestone.key]: report }));
+      setMilestoneReports((current) => ({
+        ...current,
+        [milestone.key]: {
+          ...report,
+          collapseRisk: collapseState.risk,
+          collapsePressure: collapseState.pressure,
+          collapseRoute,
+          desireAxesSnapshot: { ...meter },
+        },
+      }));
     } finally {
+      generatingMilestonesRef.current.delete(milestone.key);
       setLoadingMilestoneKey((current) => (current === milestone.key ? null : current));
     }
   };
+
+  /** 検診のない節目へ到達した時点で、宣言と過去の流れを使ってレポートを生成する。 */
+  useEffect(() => {
+    if (stage !== STAGES.DAY_GENERATION || !generationInput || !desireAxes) return;
+
+    const milestone = MILESTONES[milestoneIndex];
+    if (
+      shouldShowCheckup(milestone, handledCheckups)
+      || milestoneReports[milestone.key]
+      || loadingMilestoneKey === milestone.key
+    ) return;
+
+    generateCurrentMilestoneReport(additionalDeclarations).catch((err) => {
+      console.warn('generateCurrentMilestoneReport: failed', err.message);
+    });
+  }, [
+    additionalDeclarations,
+    desireAxes,
+    generationInput,
+    handledCheckups,
+    loadingMilestoneKey,
+    milestoneIndex,
+    milestoneReports,
+    stage,
+  ]);
 
   /** 追加宣言せず、これまでの宣言を踏まえた物語へ進む。 */
   const handleSkipCheckup = async () => {
@@ -226,21 +345,45 @@ export default function App() {
     }
   };
 
-  /** 選択トーンを反映したエンディングを生成し、結末画面へ進む。 */
-  const handleFinish = async () => {
+  /**
+   * 選択トーンを反映したエンディングを生成し、結末画面へ進む。
+   *
+   * @param {string} [forcedEndingType] 50年時点の国の滅亡分岐など、型を強制する場合に指定する。
+   */
+  const handleFinish = async (forcedEndingType) => {
     if (isEndingLoading) return;
     setIsEndingLoading(true);
 
+    const resolvedEndingType = forcedEndingType ?? DUMMY_ENDING_TYPE;
+
     try {
-      const ending = await generateEnding({
-        declaration: generationInput.declaration,
-        endingType: DUMMY_ENDING_TYPE,
-        meter: desireAxes ?? FALLBACK_FINAL_METER,
-        tone: generationInput.tone,
-        apiKey: CLAUDE_API_KEY,
-      });
+      const meter = desireAxes ?? FALLBACK_FINAL_METER;
+      const match = matchFigure(meter);
+
+      const [ending, diagnosis] = await Promise.all([
+        generateEnding({
+          declaration: generationInput.declaration,
+          endingType: resolvedEndingType,
+          meter,
+          previousDeclarations: getPreviousDeclarationTexts(additionalDeclarations),
+          tone: generationInput.tone,
+          apiKey: CLAUDE_API_KEY,
+        }),
+        match
+          ? generateFigureDiagnosis({
+            figure: match.figure,
+            desireAxes: meter,
+            apiKey: CLAUDE_API_KEY,
+          }).catch((err) => {
+            console.warn('handleFinish: figure diagnosis failed', err.message);
+            return null;
+          })
+          : Promise.resolve(null),
+      ]);
 
       setEndingReport(ending);
+      setEndingType(resolvedEndingType);
+      setFigureDiagnosis(match && diagnosis ? { figure: match.figure, ...diagnosis } : null);
     } catch (err) {
       console.warn('handleFinish: failed to generate ending', err.message);
     } finally {
@@ -251,13 +394,15 @@ export default function App() {
 
   /** エンディング二段演出の完了を受けて、結果を履歴へ保存する。 */
   const handleEndingRevealComplete = () => {
-    saveResult({
+    saveResult(createHistoryResult({
       declarationSummary: generationInput?.declaration ?? '',
+      additionalDeclarations,
       desireAxes: desireAxes ?? FALLBACK_FINAL_METER,
       endingBody: endingReport?.body ?? FALLBACK_ENDING_BODY,
-      endingType: DUMMY_ENDING_TYPE,
+      endingType,
       endingTitle: endingReport?.title ?? FALLBACK_ENDING_HEADLINE,
-    }).catch((err) => {
+      figureDiagnosis: figureDiagnosis ?? null,
+    })).catch((err) => {
       console.warn('handleEndingRevealComplete: failed to save result', err.message);
     });
   };
@@ -272,6 +417,8 @@ export default function App() {
     setMilestoneReports({});
     setLoadingMilestoneKey(null);
     setEndingReport(null);
+    setEndingType(DUMMY_ENDING_TYPE);
+    setFigureDiagnosis(null);
     setIsEndingLoading(false);
     setStage(STAGES.TITLE);
   };
@@ -309,9 +456,13 @@ export default function App() {
     case STAGES.DAY_GENERATION: {
       const milestone = MILESTONES[milestoneIndex];
       const showCheckup = shouldShowCheckup(milestone, handledCheckups);
-      const additionalDeclaration = additionalDeclarations.find(
-        (item) => item.milestoneKey === milestone.key,
+      const visibleAdditionalDeclarations = getVisibleAdditionalDeclarations(
+        additionalDeclarations,
+        MILESTONES,
+        milestoneIndex,
       );
+      const collapseRoute = milestoneReports[milestone.key]?.collapseRoute;
+      const nextMilestone = MILESTONES[milestoneIndex + 1];
 
       screen = (
         <DayGenerationScreen
@@ -319,36 +470,46 @@ export default function App() {
           desireAxes={desireAxes}
           milestone={milestone}
           previousMilestone={MILESTONES[milestoneIndex - 1]}
-          nextMilestone={MILESTONES[milestoneIndex + 1]}
+          nextMilestone={nextMilestone}
           onPrevious={() => (
             setMilestoneIndex((current) => Math.max(current - 1, 0))
           )}
           onNext={() => (
             setMilestoneIndex((current) => Math.min(current + 1, MILESTONES.length - 1))
           )}
-          onFinish={handleFinish}
+          onFinish={() => handleFinish(collapseRoute ?? undefined)}
           isFinishing={isEndingLoading}
+          isCollapsePending={Boolean(collapseRoute)}
           showCheckup={showCheckup}
-          additionalDeclaration={additionalDeclaration}
+          additionalDeclarations={visibleAdditionalDeclarations}
           onSkipCheckup={handleSkipCheckup}
           onSubmitAdditionalDeclaration={handleAdditionalDeclaration}
           report={milestoneReports[milestone.key]}
-          isReportLoading={loadingMilestoneKey === milestone.key}
+          isReportLoading={isMilestoneReportPending({
+            isLoading: loadingMilestoneKey === milestone.key,
+            showCheckup,
+            report: milestoneReports[milestone.key],
+          })}
         />
       );
       break;
     }
     case STAGES.ENDING:
       screen = (
-        <DestinationPlaceholder eyebrow="FINAL REPORT" title="世界の結末">
+        <DestinationPlaceholder
+          eyebrow="FINAL REPORT"
+          scrollViewRef={endingScrollRef}
+          title="世界の結末"
+        >
           <EndingReveal
             body={endingReport?.body ?? FALLBACK_ENDING_BODY}
-            declarations={[generationInput?.declaration, ...additionalDeclarations.map(d => d.declaration)].filter(Boolean)}
-            declarations={[generationInput?.declaration, ...additionalDeclarations.map(d => d.declaration)].filter(Boolean)}
+            endingType={endingType}
+            figureDiagnosis={figureDiagnosis}
             finalMeter={desireAxes ?? FALLBACK_FINAL_METER}
             headline={endingReport?.title ?? FALLBACK_ENDING_HEADLINE}
             onRevealComplete={handleEndingRevealComplete}
             onReturnHome={handleReturnHome}
+            scrollViewRef={endingScrollRef}
           />
         </DestinationPlaceholder>
       );
@@ -381,11 +542,29 @@ const styles = StyleSheet.create({
   destinationKeyboardArea: {
     flex: 1,
   },
+  destinationBody: {
+    flex: 1,
+    position: 'relative',
+  },
+  stickyNavigationBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingBottom: 20,
+  },
+  stickyNavigationInner: {
+    width: '100%',
+    maxWidth: 520,
+  },
   destinationContent: {
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
+    paddingBottom: 140,
   },
   destinationScroll: {
     flex: 1,
@@ -403,8 +582,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 2,
   },
-  destinationDeclaration: {
+  declarationBlock: {
     marginVertical: 24,
+    alignItems: 'center',
+  },
+  destinationDeclaration: {
     maxWidth: 320,
     color: '#a9a39a',
     fontSize: 15,
@@ -419,7 +601,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   additionalDeclaration: {
-    marginTop: 18,
+    marginTop: 6,
     maxWidth: 520,
     color: '#d8c9aa',
     fontSize: 13,

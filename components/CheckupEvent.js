@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import PressableScale from './PressableScale';
 import {
   MAX_ADDITIONAL_DECLARATION_LENGTH,
   canSubmitAdditionalDeclaration,
@@ -94,9 +95,10 @@ export default function CheckupEvent({ milestoneLabel, onSkip, onSubmit }) {
           </View>
 
           <View style={styles.actions}>
-            <Pressable
+            <PressableScale
               accessibilityRole="button"
               disabled={isSubmitting}
+              glowColor="#8e8982"
               onPress={handleSkip}
               style={({ pressed }) => [
                 styles.actionButton,
@@ -113,10 +115,12 @@ export default function CheckupEvent({ milestoneLabel, onSkip, onSubmit }) {
               ) : (
                 <Text style={styles.skipButtonText}>今回はスキップ</Text>
               )}
-            </Pressable>
-            <Pressable
+            </PressableScale>
+            <PressableScale
               accessibilityRole="button"
               disabled={!canSubmit}
+              flashy
+              glowColor="#7e2024"
               onPress={handleSubmit}
               style={({ pressed }) => [
                 styles.actionButton,
@@ -133,7 +137,7 @@ export default function CheckupEvent({ milestoneLabel, onSkip, onSubmit }) {
               ) : (
                 <Text style={styles.declareButtonText}>追加宣言する</Text>
               )}
-            </Pressable>
+            </PressableScale>
           </View>
           {submitError ? (
             <Text accessibilityLiveRegion="polite" style={styles.errorText}>{submitError}</Text>
@@ -161,6 +165,7 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     maxWidth: 620,
+    marginTop: 32,
     marginBottom: 10,
     alignItems: 'center',
   },
@@ -235,7 +240,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   inputFrame: {
-    minHeight: 120,
+    minHeight: 180,
     marginTop: 20,
     padding: 14,
     borderWidth: 1,
@@ -243,7 +248,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fffaf0',
   },
   input: {
-    minHeight: 72,
+    minHeight: 132,
     color: '#201e1b',
     fontSize: 15,
     lineHeight: 24,

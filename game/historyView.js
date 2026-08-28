@@ -1,6 +1,7 @@
 const UNKNOWN_ENDING_TITLE = '名称のない結末';
 const UNKNOWN_SAVED_AT = '日時不明';
 const UNKNOWN_DECLARATION = '記録に残されていない宣言';
+const HISTORY_PAGE_SIZE = 10;
 const { normalizeDesireAxes } = require('./desireScale');
 const { ENDING_CATALOG } = require('../data/endingCatalog');
 
@@ -14,6 +15,40 @@ function getHistoryTitle(result) {
   return typeof result?.endingTitle === 'string' && result.endingTitle.trim()
     ? result.endingTitle.trim()
     : UNKNOWN_ENDING_TITLE;
+}
+
+/** Return safe, trimmed additional declarations from a persisted result. */
+function getHistoryAdditionalDeclarations(result) {
+  if (!Array.isArray(result?.additionalDeclarations)) return [];
+
+  return result.additionalDeclarations
+    .filter((item) => item !== null && typeof item === 'object' && !Array.isArray(item))
+    .filter((item) => typeof item.declaration === 'string' && item.declaration.trim())
+    .map((item) => ({
+      milestoneKey: typeof item.milestoneKey === 'string' ? item.milestoneKey : '',
+      declaration: item.declaration.trim(),
+    }));
+}
+
+/** Build the persisted result shared by the ending screen and history views. */
+function createHistoryResult({
+  declarationSummary,
+  additionalDeclarations,
+  desireAxes,
+  endingBody,
+  endingType,
+  endingTitle,
+  figureDiagnosis,
+}) {
+  return {
+    declarationSummary,
+    additionalDeclarations: getHistoryAdditionalDeclarations({ additionalDeclarations }),
+    desireAxes,
+    endingBody,
+    endingType,
+    endingTitle,
+    figureDiagnosis,
+  };
 }
 
 /**
@@ -39,6 +74,7 @@ function normalizeHistoryResults(results) {
       endingBody: typeof result.endingBody === 'string' ? result.endingBody : '',
       declarationSummary:
         typeof result.declarationSummary === 'string' ? result.declarationSummary : '',
+      additionalDeclarations: getHistoryAdditionalDeclarations(result),
       desireAxes: normalizeDesireAxes(result.desireAxes, 0),
     }));
 }
@@ -64,9 +100,16 @@ function getHistoryDeclarationSummary(result) {
     : UNKNOWN_DECLARATION;
 }
 
-/** Return a readable label for the saved ending type. */
-function getHistoryEndingTypeLabel(result) {
-  return ENDING_CATALOG[result?.endingType]?.label ?? '分類不明';
+/** Build the complete screen-reader label for a history card. */
+function getHistoryAccessibilityLabel(result, title, savedAt) {
+  const declarations = [
+    `冒頭宣言「${getHistoryDeclarationSummary(result)}」`,
+    ...getHistoryAdditionalDeclarations(result).map(
+      (item) => `追加宣言「${item.declaration}」`,
+    ),
+  ];
+
+  return [title, savedAt, ...declarations].join('、');
 }
 
 /**
@@ -93,14 +136,45 @@ function formatHistoryDate(savedAt, locale = 'ja-JP', timeZone) {
   }).format(date);
 }
 
+/**
+ * 履歴一覧を指定件数ずつのページに分けた場合の総ページ数を返す。
+ *
+ * @param {Array} results 履歴一覧。
+ * @param {number} [pageSize] 1ページあたりの件数。
+ * @returns {number} 総ページ数（結果が0件でも最低1）。
+ */
+function getHistoryPageCount(results, pageSize = HISTORY_PAGE_SIZE) {
+  if (!Array.isArray(results) || results.length === 0 || pageSize <= 0) return 1;
+  return Math.ceil(results.length / pageSize);
+}
+
+/**
+ * 指定ページ（0始まり）に表示する履歴一覧の一部を返す。
+ *
+ * @param {Array} results 履歴一覧。
+ * @param {number} page 表示するページ（0始まり）。
+ * @param {number} [pageSize] 1ページあたりの件数。
+ * @returns {Array} そのページに表示する要素。
+ */
+function getHistoryPageItems(results, page, pageSize = HISTORY_PAGE_SIZE) {
+  if (!Array.isArray(results) || pageSize <= 0) return [];
+  const start = Math.max(page, 0) * pageSize;
+  return results.slice(start, start + pageSize);
+}
+
 module.exports = {
+  HISTORY_PAGE_SIZE,
   UNKNOWN_ENDING_TITLE,
   UNKNOWN_DECLARATION,
   UNKNOWN_SAVED_AT,
+  createHistoryResult,
   formatHistoryDate,
+  getHistoryAccessibilityLabel,
+  getHistoryAdditionalDeclarations,
   getHistoryDeclarationSummary,
   getHistoryEndingBody,
-  getHistoryEndingTypeLabel,
+  getHistoryPageCount,
+  getHistoryPageItems,
   getHistoryTitle,
   normalizeHistoryResults,
 };

@@ -34,6 +34,35 @@ const TRAIT_SENTENCES = Object.freeze({
   }),
 });
 
+/** Each level's single best-fitting word within TRAIT_SENTENCES, used to highlight the sentence for display. */
+const TRAIT_KEYWORDS = Object.freeze({
+  domination: Object.freeze({
+    low: Object.freeze(['放任的']),
+    medium: Object.freeze(['秩序']),
+    high: Object.freeze(['独裁的']),
+  }),
+  egoism: Object.freeze({
+    low: Object.freeze(['献身的']),
+    medium: Object.freeze(['実利的']),
+    high: Object.freeze(['貪欲']),
+  }),
+  innovation: Object.freeze({
+    low: Object.freeze(['停滞']),
+    medium: Object.freeze(['保守的']),
+    high: Object.freeze(['創世']),
+  }),
+  prestige: Object.freeze({
+    low: Object.freeze(['迎合的']),
+    medium: Object.freeze(['威厳']),
+    high: Object.freeze(['畏怖']),
+  }),
+  madness: Object.freeze({
+    low: Object.freeze(['理性的']),
+    medium: Object.freeze(['偏執的']),
+    high: Object.freeze(['破滅的']),
+  }),
+});
+
 /** Return low (0–33), medium (34–66), or high (67–100). */
 function getDesireLevel(value) {
   const normalized = clampDesireValue(value, 0);
@@ -48,9 +77,17 @@ function getDesireTraitSentence(axisKey, value) {
   return traits?.[getDesireLevel(value)] ?? 'この欲望の傾向は判定できません。';
 }
 
+/** Return the key word(s) to highlight within the trait sentence for an axis and value. */
+function getDesireTraitKeywords(axisKey, value) {
+  const keywords = TRAIT_KEYWORDS[axisKey];
+  return keywords?.[getDesireLevel(value)] ?? [];
+}
+
 module.exports = {
   DESIRE_LEVELS,
   TRAIT_SENTENCES,
+  TRAIT_KEYWORDS,
   getDesireLevel,
   getDesireTraitSentence,
+  getDesireTraitKeywords,
 };

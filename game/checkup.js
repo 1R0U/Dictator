@@ -63,6 +63,21 @@ function getPreviousDeclarationTexts(declarations) {
   return declarations.map((item) => item.declaration);
 }
 
+/** Return declarations made no later than the milestone currently being viewed. */
+function getVisibleAdditionalDeclarations(declarations, milestones, currentIndex) {
+  const visibleMilestoneKeys = new Set(
+    milestones.slice(0, currentIndex + 1).map((milestone) => milestone.key),
+  );
+
+  return declarations.filter(
+    (item) => item !== null
+      && typeof item === 'object'
+      && visibleMilestoneKeys.has(item.milestoneKey)
+      && typeof item.declaration === 'string'
+      && item.declaration.trim(),
+  );
+}
+
 /**
  * 乱数値を配列内の安全なインデックスへ変換する。
  *
@@ -87,6 +102,7 @@ module.exports = {
   completeCheckup,
   createAdditionalDeclaration,
   getPreviousDeclarationTexts,
+  getVisibleAdditionalDeclarations,
   selectRandomIndex,
   shouldShowCheckup,
 };
