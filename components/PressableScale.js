@@ -1,10 +1,13 @@
 import { useRef, useState } from 'react';
-import { Animated, Pressable } from 'react-native';
+import { Animated, Platform, Pressable } from 'react-native';
 
 import SparkBurst from './SparkBurst';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const FLASHY_DURATION_MS = 550;
+// Web版はnative animation moduleが存在せず、useNativeDriver:trueだと
+// 警告が出た上でJSフォールバックになるだけなので、Webでは最初からfalseにする。
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 /**
  * Pressableへタップエフェクトを足したラッパー。
@@ -34,7 +37,7 @@ export default function PressableScale({
   const animateTo = (toValue) => {
     Animated.spring(scale, {
       toValue,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
       speed: flashy ? 30 : 50,
       bounciness: flashy ? 16 : 6,
     }).start();
@@ -46,7 +49,7 @@ export default function PressableScale({
     Animated.timing(burst, {
       toValue: 1,
       duration,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
     }).start();
   };
 

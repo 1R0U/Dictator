@@ -1,20 +1,17 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 
 import CornerMessenger from './CornerMessenger';
 import PressableScale from './PressableScale';
+import ScreenContainer, { useResponsiveLayout } from './ScreenContainer';
 import { TONES, canStartDeclaration } from '../game/declaration';
+import { playSoundEffect } from '../utils/sound';
 
 const MAX_LENGTH = 500;
 
@@ -30,8 +27,7 @@ const DEFAULT_TONE_COLOR = '#c53a34';
  * 最初の法律を入力し、親コンポーネントへ送信するフォーム。
  */
 export default function DeclarationForm({ onBack, onSubmit }) {
-  const { width } = useWindowDimensions();
-  const isCompact = width < 600;
+  const { isCompactWidth: isCompact } = useResponsiveLayout();
   const [declaration, setDeclaration] = useState('');
   const [selectedTone, setSelectedTone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,6 +40,7 @@ export default function DeclarationForm({ onBack, onSubmit }) {
   const handleSubmit = async () => {
     if (!canSubmit) return;
 
+    playSoundEffect('declare');
     setSubmitError('');
     setIsSubmitting(true);
 
@@ -57,172 +54,159 @@ export default function DeclarationForm({ onBack, onSubmit }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <View pointerEvents="none" style={styles.accent} />
-        <ScrollView
-          contentContainerStyle={[styles.content, isCompact && styles.compactContent]}
-          keyboardShouldPersistTaps="handled"
-          style={styles.scrollView}
+    <ScreenContainer
+      compactContentStyle={styles.compactContent}
+      contentStyle={styles.content}
+      keyboardAvoiding
+      overlay={<View style={[styles.accent, { pointerEvents: 'none' }]} />}
+      scrollProps={{ keyboardShouldPersistTaps: 'handled' }}
+    >
+      <View>
+        <PressableScale
+          accessibilityRole="button"
+          disabled={isSubmitting}
+          glowColor="#a9a39a"
+          onPress={() => {
+            playSoundEffect('returnHome');
+            onBack();
+          }}
+          style={({ pressed }) => [styles.backButton, pressed && styles.pressedBackButton]}
         >
-          <View>
-            <PressableScale
-              accessibilityRole="button"
-              disabled={isSubmitting}
-              glowColor="#a9a39a"
-              onPress={onBack}
-              style={({ pressed }) => [styles.backButton, pressed && styles.pressedBackButton]}
-            >
-              <Text style={styles.backButtonText}>← ホームへ戻る</Text>
-            </PressableScale>
-            <View style={[styles.intro, isCompact && styles.compactIntro]}>
-              <View style={styles.headingCopy}>
-                <Text style={[styles.title, isCompact && styles.compactTitle]}>第一勅令</Text>
-                <Text style={styles.description}>
-                  最初に定める法律を宣言
-                </Text>
-              </View>
-              <View style={styles.messengerWrap}>
-                <CornerMessenger
-                  compact={isCompact}
-                  messages={[
-                    'あなたの欲望を、ここに刻んで。',
-                    'さあ、最初の一文を。',
-                    '国のかたちは、この一行で決まる。',
-                    '遠慮はいらない。命令して。',
-                    '躊躇は記録に残らない。',
-                    'どんな欲望も、私は裁く。',
-                    '本音を、法律にしてしまえばいい。',
-                    '誰も止めない。今だけは。',
-                    'その一言が、国民の明日を決める。',
-                    '建前はいらない。欲しいものを言って。',
-                  ]}
-                />
-              </View>
-            </View>
+          <Text style={styles.backButtonText}>← ホームへ戻る</Text>
+        </PressableScale>
+        <View style={[styles.intro, isCompact && styles.compactIntro]}>
+          <View style={styles.headingCopy}>
+            <Text style={[styles.title, isCompact && styles.compactTitle]}>第一勅令</Text>
+            <Text style={styles.description}>
+              最初に定める法律を宣言
+            </Text>
           </View>
+          <View style={styles.messengerWrap}>
+            <CornerMessenger
+              compact={isCompact}
+              messages={[
+                'あなたの欲望を、ここに刻んで。',
+                'さあ、最初の一文を。',
+                '国のかたちは、この一行で決まる。',
+                '遠慮はいらない。命令して。',
+                '躊躇は記録に残らない。',
+                'どんな欲望も、私は裁く。',
+                '本音を、法律にしてしまえばいい。',
+                '誰も止めない。今だけは。',
+                'その一言が、国民の明日を決める。',
+                '建前はいらない。欲しいものを言って。',
+              ]}
+            />
+          </View>
+        </View>
+      </View>
 
-          <View style={styles.form}>
-            <View style={styles.inputSection}>
-              <View style={styles.articleLabelRow}>
-                <View style={styles.articleMark} />
-                <Text style={styles.articleLabel}>第一条</Text>
-              </View>
-              <View style={styles.inputFrame}>
-                <TextInput
-                  accessibilityLabel="冒頭宣言"
-                  editable={!isSubmitting}
-                  maxLength={MAX_LENGTH}
-                  multiline
-                  onChangeText={setDeclaration}
-                  placeholder="例：すべての国民は、毎日ひとつ願いを叶えられる。"
-                  placeholderTextColor="#625e58"
-                  style={styles.input}
-                  textAlignVertical="top"
-                  value={declaration}
-                />
-                <Text style={styles.counter}>{declaration.length} / {MAX_LENGTH}</Text>
-              </View>
-            </View>
+      <View style={styles.form}>
+        <View style={styles.inputSection}>
+          <View style={styles.articleLabelRow}>
+            <View style={styles.articleMark} />
+            <Text style={styles.articleLabel}>第一条</Text>
+          </View>
+          <View style={styles.inputFrame}>
+            <TextInput
+              accessibilityLabel="冒頭宣言"
+              editable={!isSubmitting}
+              maxLength={MAX_LENGTH}
+              multiline
+              onChangeText={setDeclaration}
+              placeholder="例：すべての国民は、毎日ひとつ願いを叶えられる。"
+              placeholderTextColor="#625e58"
+              style={styles.input}
+              textAlignVertical="top"
+              value={declaration}
+            />
+            <Text style={styles.counter}>{declaration.length} / {MAX_LENGTH}</Text>
+          </View>
+        </View>
 
-            <View pointerEvents="none" style={styles.divider} />
+        <View style={[styles.divider, { pointerEvents: 'none' }]} />
 
-            <View>
-              <Text style={styles.toneLabel}>物語のトーンを選ぶ</Text>
-              <View style={styles.toneRow}>
-                {TONES.map((tone) => {
-                  const isSelected = selectedTone === tone.id;
-                  const toneColor = TONE_COLORS[tone.id] || DEFAULT_TONE_COLOR;
+        <View>
+          <Text style={styles.toneLabel}>物語のトーンを選ぶ</Text>
+          <View style={styles.toneRow}>
+            {TONES.map((tone) => {
+              const isSelected = selectedTone === tone.id;
+              const toneColor = TONE_COLORS[tone.id] || DEFAULT_TONE_COLOR;
 
-                  return (
-                    <PressableScale
-                      accessibilityLabel={`${tone.label}トーン`}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: isSelected }}
-                      disabled={isSubmitting}
-                      glowColor={toneColor}
-                      onPress={() => setSelectedTone(tone.id)}
-                      key={tone.id}
-                      style={({ pressed }) => [
-                        styles.toneButton,
-                        isSelected && {
-                          borderColor: toneColor,
-                          backgroundColor: toneColor,
-                        },
-                        pressed && styles.pressedButton,
-                      ]}
-                    >
-                      <Text
-                        numberOfLines={1}
-                        style={[styles.toneButtonText, isSelected && styles.selectedToneButtonText]}
-                      >
-                        {tone.label}
-                      </Text>
-                    </PressableScale>
-                  );
-                })}
-              </View>
-              {selectedTone ? (
-                <Text
-                  style={[
-                    styles.toneDescription,
-                    { color: TONE_COLORS[selectedTone] || DEFAULT_TONE_COLOR },
+              return (
+                <PressableScale
+                  accessibilityLabel={`${tone.label}トーン`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isSelected }}
+                  disabled={isSubmitting}
+                  glowColor={toneColor}
+                  onPress={() => setSelectedTone(tone.id)}
+                  key={tone.id}
+                  style={({ pressed }) => [
+                    styles.toneButton,
+                    isSelected && {
+                      borderColor: toneColor,
+                      backgroundColor: toneColor,
+                    },
+                    pressed && styles.pressedButton,
                   ]}
                 >
-                  {TONES.find((tone) => tone.id === selectedTone)?.description}
-                </Text>
-              ) : null}
-            </View>
-
-            <PressableScale
-              accessibilityRole="button"
-              disabled={!canSubmit}
-              flashy
-              glowColor="#f2c14e"
-              onPress={handleSubmit}
-              style={({ pressed }) => [
-                styles.launchButton,
-                !canSubmit && styles.disabledButton,
-                pressed && canSubmit && styles.pressedButton,
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.toneButtonText, isSelected && styles.selectedToneButtonText]}
+                  >
+                    {tone.label}
+                  </Text>
+                </PressableScale>
+              );
+            })}
+          </View>
+          {selectedTone ? (
+            <Text
+              style={[
+                styles.toneDescription,
+                { color: TONE_COLORS[selectedTone] || DEFAULT_TONE_COLOR },
               ]}
             >
-              <View style={styles.launchCore}>
-                <View pointerEvents="none" style={styles.launchHighlight} />
-                {isSubmitting ? (
-                  <ActivityIndicator color="#f8ece4" size="small" />
-                ) : (
-                  <Text style={styles.launchText}>宣言</Text>
-                )}
-              </View>
-            </PressableScale>
-            {submitError ? (
-              <Text accessibilityLiveRegion="polite" style={styles.errorText}>
-                {submitError}
-              </Text>
-            ) : null}
-          </View>
+              {TONES.find((tone) => tone.id === selectedTone)?.description}
+            </Text>
+          ) : null}
+        </View>
 
-          <Text style={styles.note}>宣言は、この国の未来を決定します。</Text>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        <PressableScale
+          accessibilityRole="button"
+          disabled={!canSubmit}
+          flashy
+          glowColor="#f2c14e"
+          onPress={handleSubmit}
+          style={({ pressed }) => [
+            styles.launchButton,
+            !canSubmit && styles.disabledButton,
+            pressed && canSubmit && styles.pressedButton,
+          ]}
+        >
+          <View style={styles.launchCore}>
+            <View style={[styles.launchHighlight, { pointerEvents: 'none' }]} />
+            {isSubmitting ? (
+              <ActivityIndicator color="#f8ece4" size="small" />
+            ) : (
+              <Text style={styles.launchText}>宣言</Text>
+            )}
+          </View>
+        </PressableScale>
+        {submitError ? (
+          <Text accessibilityLiveRegion="polite" style={styles.errorText}>
+            {submitError}
+          </Text>
+        ) : null}
+      </View>
+
+      <Text style={styles.note}>宣言は、この国の未来を決定します。</Text>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0b0b0d',
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
   accent: {
     position: 'absolute',
     top: 0,
@@ -232,7 +216,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#7e2024',
   },
   content: {
-    flexGrow: 1,
     justifyContent: 'space-between',
     paddingHorizontal: 28,
     paddingTop: 24,

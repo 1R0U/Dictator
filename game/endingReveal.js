@@ -1,17 +1,18 @@
 const {
   DESIRE_MAX: METER_MAX,
   DESIRE_MIN: METER_MIN,
+  DESIRE_NEUTRAL,
   clampDesireValue,
 } = require('./desireScale');
 
 /**
- * 欲望軸の値を0〜100へ補正する。
+ * 欲望軸の値を-100〜100へ補正する。
  *
  * @param {number} value 欲望軸の最終値。
- * @returns {number} 0〜100に収めた値。
+ * @returns {number} -100〜100に収めた値。
  */
 function clampMeterValue(value) {
-  return clampDesireValue(value, METER_MIN);
+  return clampDesireValue(value, DESIRE_NEUTRAL);
 }
 
 /**

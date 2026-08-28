@@ -1,8 +1,9 @@
 import { useRef } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import EndingReveal from './EndingReveal';
 import PressableScale from './PressableScale';
+import ScreenContainer from './ScreenContainer';
 import {
   formatHistoryDate,
   getHistoryAdditionalDeclarations,
@@ -17,61 +18,47 @@ export default function HistoryDetail({ result, onBack }) {
   const scrollViewRef = useRef(null);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        ref={scrollViewRef}
-        style={styles.scrollView}
+    <ScreenContainer contentStyle={styles.content} scrollProps={{ ref: scrollViewRef }}>
+      <PressableScale
+        accessibilityRole="button"
+        glowColor="#a9a39a"
+        onPress={onBack}
+        style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
       >
-        <PressableScale
-          accessibilityRole="button"
-          glowColor="#a9a39a"
-          onPress={onBack}
-          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-        >
-          <Text style={styles.backButtonText}>← 履歴一覧へ戻る</Text>
-        </PressableScale>
-        <Text style={styles.declarationLabel}>OPENING DECLARATION</Text>
-        <View style={styles.declarationBlock}>
-          <Text style={styles.declaration}>
-            「{getHistoryDeclarationSummary(result)}」
+        <Text style={styles.backButtonText}>← 履歴一覧へ戻る</Text>
+      </PressableScale>
+      <Text style={styles.declarationLabel}>OPENING DECLARATION</Text>
+      <View style={styles.declarationBlock}>
+        <Text style={styles.declaration}>
+          「{getHistoryDeclarationSummary(result)}」
+        </Text>
+        {additionalDeclarations.map((item, index) => (
+          <Text key={`${item.milestoneKey}-${index}`} style={styles.additionalDeclaration}>
+            追加宣言「{item.declaration}」
           </Text>
-          {additionalDeclarations.map((item, index) => (
-            <Text key={`${item.milestoneKey}-${index}`} style={styles.additionalDeclaration}>
-              追加宣言「{item.declaration}」
-            </Text>
-          ))}
-        </View>
-        <View style={styles.meta}>
-          <Text style={styles.kicker}>ARCHIVE DETAIL</Text>
-          <Text style={styles.metaDot}>·</Text>
-          <Text style={styles.date}>{formatHistoryDate(result?.savedAt)}</Text>
-        </View>
-        <EndingReveal
-          body={getHistoryEndingBody(result)}
-          endingType={result?.endingType}
-          figureDiagnosis={result?.figureDiagnosis}
-          finalMeter={result?.desireAxes}
-          headline={getHistoryTitle(result)}
-          onReturnHome={onBack}
-          returnLabel="履歴一覧へ戻る"
-          scrollViewRef={scrollViewRef}
-        />
-      </ScrollView>
-    </SafeAreaView>
+        ))}
+      </View>
+      <View style={styles.meta}>
+        <Text style={styles.kicker}>ARCHIVE DETAIL</Text>
+        <Text style={styles.metaDot}>·</Text>
+        <Text style={styles.date}>{formatHistoryDate(result?.savedAt)}</Text>
+      </View>
+      <EndingReveal
+        body={getHistoryEndingBody(result)}
+        endingType={result?.endingType}
+        figureDiagnosis={result?.figureDiagnosis}
+        finalMeter={result?.desireAxes}
+        headline={getHistoryTitle(result)}
+        onReturnHome={onBack}
+        returnLabel="履歴一覧へ戻る"
+        scrollViewRef={scrollViewRef}
+      />
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0b0b0d',
-  },
-  scrollView: {
-    flex: 1,
-  },
   content: {
-    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,

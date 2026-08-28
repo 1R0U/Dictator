@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 
 import CornerMessenger from './CornerMessenger';
 import PressableScale from './PressableScale';
+import ScreenContainer, { useResponsiveLayout } from './ScreenContainer';
 import { loadResults } from '../data/history';
+import { playSoundEffect } from '../utils/sound';
 import {
   HISTORY_PAGE_SIZE,
   formatHistoryDate,
@@ -32,8 +31,7 @@ import {
  * @param {Function} [props.loadHistory] 履歴を取得する非同期処理。
  */
 export default function History({ onBack, onSelect, loadHistory = loadResults }) {
-  const { width } = useWindowDimensions();
-  const isCompact = width < 600;
+  const { isCompactWidth: isCompact } = useResponsiveLayout();
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -72,191 +70,178 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
   }, [fetchHistory]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={[styles.content, isCompact && styles.compactContent]}
-        style={styles.scrollView}
-      >
-        <View style={styles.header}>
-          <PressableScale
-            accessibilityRole="button"
-            glowColor="#a9a39a"
-            onPress={onBack}
-            style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.backButtonText}>← ホームへ戻る</Text>
-          </PressableScale>
-          <View style={[styles.intro, isCompact && styles.compactIntro]}>
-            <View style={[styles.headingCopy, styles.loweredHeaderContent]}>
-              <Text style={[styles.title, isCompact && styles.compactTitle]}>過去の記録</Text>
-              <Text style={styles.description}>これまでに統治した国々の結末。</Text>
-            </View>
-            <View style={styles.loweredHeaderContent}>
-              <CornerMessenger
-                compact={isCompact}
-                messages={[
-                  '過去の欲望が、まだ光ってる。',
-                  'すべての宣言を、私は覚えている。',
-                  'この光、消えたことは一度もない。',
-                  '結末から目をそらさないで。',
-                  '記録は、消させない。',
-                  '過去も、裁きの対象だ。',
-                  'どの国も、同じ欲望から始まった。',
-                  '忘れたふりは、許さない。',
-                  'ここに眠るのは、あなたの選択の結果。',
-                  '次はどんな国を、望む？',
-                ]}
-              />
-            </View>
+    <ScreenContainer compactContentStyle={styles.compactContent} contentStyle={styles.content}>
+      <View style={styles.header}>
+        <PressableScale
+          accessibilityRole="button"
+          glowColor="#a9a39a"
+          onPress={() => {
+            playSoundEffect('returnHome');
+            onBack();
+          }}
+          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
+        >
+          <Text style={styles.backButtonText}>← ホームへ戻る</Text>
+        </PressableScale>
+        <View style={[styles.intro, isCompact && styles.compactIntro]}>
+          <View style={[styles.headingCopy, styles.loweredHeaderContent]}>
+            <Text style={[styles.title, isCompact && styles.compactTitle]}>過去の記録</Text>
+            <Text style={styles.description}>これまでに統治した国々の結末。</Text>
+          </View>
+          <View style={styles.loweredHeaderContent}>
+            <CornerMessenger
+              compact={isCompact}
+              messages={[
+                '過去の欲望が、まだ光ってる。',
+                'すべての宣言を、私は覚えている。',
+                'この光、消えたことは一度もない。',
+                '結末から目をそらさないで。',
+                '記録は、消させない。',
+                '過去も、裁きの対象だ。',
+                'どの国も、同じ欲望から始まった。',
+                '忘れたふりは、許さない。',
+                'ここに眠るのは、あなたの選択の結果。',
+                '次はどんな国を、望む？',
+              ]}
+            />
           </View>
         </View>
+      </View>
 
-        <View style={styles.listArea}>
-          {isLoading ? (
-            <View accessibilityLiveRegion="polite" style={styles.statePanel}>
-              <ActivityIndicator color="#b9985a" size="large" />
-              <Text style={styles.stateText}>記録を読み込み中…</Text>
+      <View style={styles.listArea}>
+        {isLoading ? (
+          <View accessibilityLiveRegion="polite" style={styles.statePanel}>
+            <ActivityIndicator color="#b9985a" size="large" />
+            <Text style={styles.stateText}>記録を読み込み中…</Text>
+          </View>
+        ) : null}
+
+        {!isLoading && loadError ? (
+          <View accessibilityLiveRegion="polite" style={styles.statePanel}>
+            <Text style={styles.stateMark}>!</Text>
+            <Text style={styles.stateTitle}>記録を開けませんでした</Text>
+            <Text style={styles.stateText}>{loadError}</Text>
+            <PressableScale
+              accessibilityRole="button"
+              glowColor="#b9985a"
+              onPress={fetchHistory}
+              style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}
+            >
+              <Text style={styles.retryButtonText}>もう一度読み込む</Text>
+            </PressableScale>
+          </View>
+        ) : null}
+
+        {!isLoading && !loadError && results.length === 0 ? (
+          <View accessibilityLiveRegion="polite" style={styles.statePanel}>
+            <Text style={styles.emptyEmblem}>◇</Text>
+            <Text style={styles.stateTitle}>記録はまだありません</Text>
+            <Text style={styles.stateText}>
+              国の結末まで見届けると、ここに統治の記録が残ります。
+            </Text>
+            <PressableScale
+              accessibilityRole="button"
+              glowColor="#b9985a"
+              onPress={onBack}
+              style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}
+            >
+              <Text style={styles.retryButtonText}>最初の国をつくる</Text>
+            </PressableScale>
+          </View>
+        ) : null}
+
+        {!isLoading && !loadError && results.length > 0 ? (
+          <View>
+            <View style={styles.listHeader}>
+              <Text style={styles.listLabel}>ARCHIVED NATIONS</Text>
+              <Text style={styles.resultCount}>{results.length}件</Text>
             </View>
-          ) : null}
+            <View style={styles.list}>
+              {pageResults.map((result, index) => {
+                const overallIndex = currentPage * HISTORY_PAGE_SIZE + index;
+                const title = getHistoryTitle(result);
+                const savedAt = formatHistoryDate(result.savedAt);
+                const additionalDeclarations = getHistoryAdditionalDeclarations(result);
 
-          {!isLoading && loadError ? (
-            <View accessibilityLiveRegion="polite" style={styles.statePanel}>
-              <Text style={styles.stateMark}>!</Text>
-              <Text style={styles.stateTitle}>記録を開けませんでした</Text>
-              <Text style={styles.stateText}>{loadError}</Text>
-              <PressableScale
-                accessibilityRole="button"
-                glowColor="#b9985a"
-                onPress={fetchHistory}
-                style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}
-              >
-                <Text style={styles.retryButtonText}>もう一度読み込む</Text>
-              </PressableScale>
-            </View>
-          ) : null}
-
-          {!isLoading && !loadError && results.length === 0 ? (
-            <View accessibilityLiveRegion="polite" style={styles.statePanel}>
-              <Text style={styles.emptyEmblem}>◇</Text>
-              <Text style={styles.stateTitle}>記録はまだありません</Text>
-              <Text style={styles.stateText}>
-                国の結末まで見届けると、ここに統治の記録が残ります。
-              </Text>
-              <PressableScale
-                accessibilityRole="button"
-                glowColor="#b9985a"
-                onPress={onBack}
-                style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}
-              >
-                <Text style={styles.retryButtonText}>最初の国をつくる</Text>
-              </PressableScale>
-            </View>
-          ) : null}
-
-          {!isLoading && !loadError && results.length > 0 ? (
-            <View>
-              <View style={styles.listHeader}>
-                <Text style={styles.listLabel}>ARCHIVED NATIONS</Text>
-                <Text style={styles.resultCount}>{results.length}件</Text>
-              </View>
-              <View style={styles.list}>
-                {pageResults.map((result, index) => {
-                  const overallIndex = currentPage * HISTORY_PAGE_SIZE + index;
-                  const title = getHistoryTitle(result);
-                  const savedAt = formatHistoryDate(result.savedAt);
-                  const additionalDeclarations = getHistoryAdditionalDeclarations(result);
-
-                  return (
-                    <PressableScale
-                      accessibilityLabel={getHistoryAccessibilityLabel(result, title, savedAt)}
-                      accessibilityRole="button"
-                      glowColor="#b9985a"
-                      key={`${result.savedAt ?? 'unknown'}-${overallIndex}`}
-                      onPress={() => onSelect(result)}
-                      style={({ pressed }) => [styles.card, pressed && styles.pressedCard]}
-                    >
-                      <View style={styles.cardIndex}>
-                        <Text style={styles.cardIndexText}>
-                          {String(overallIndex + 1).padStart(2, '0')}
+                return (
+                  <PressableScale
+                    accessibilityLabel={getHistoryAccessibilityLabel(result, title, savedAt)}
+                    accessibilityRole="button"
+                    glowColor="#b9985a"
+                    key={`${result.savedAt ?? 'unknown'}-${overallIndex}`}
+                    onPress={() => onSelect(result)}
+                    style={({ pressed }) => [styles.card, pressed && styles.pressedCard]}
+                  >
+                    <View style={styles.cardIndex}>
+                      <Text style={styles.cardIndexText}>
+                        {String(overallIndex + 1).padStart(2, '0')}
+                      </Text>
+                    </View>
+                    <View style={styles.cardContent}>
+                      <Text style={styles.cardDate}>{savedAt}</Text>
+                      <Text style={styles.cardTitle}>{title}</Text>
+                      {result.declarationSummary ? (
+                        <Text numberOfLines={2} style={styles.cardSummary}>
+                          「{result.declarationSummary}」
                         </Text>
-                      </View>
-                      <View style={styles.cardContent}>
-                        <Text style={styles.cardDate}>{savedAt}</Text>
-                        <Text style={styles.cardTitle}>{title}</Text>
-                        {result.declarationSummary ? (
-                          <Text numberOfLines={2} style={styles.cardSummary}>
-                            「{result.declarationSummary}」
-                          </Text>
-                        ) : null}
-                        {additionalDeclarations.map((item, declarationIndex) => (
-                          <Text
-                            key={`${item.milestoneKey}-${declarationIndex}`}
-                            numberOfLines={2}
-                            style={styles.cardAdditionalDeclaration}
-                          >
-                            追加宣言「{item.declaration}」
-                          </Text>
-                        ))}
-                      </View>
-                      <Text style={styles.cardArrow}>→</Text>
-                    </PressableScale>
-                  );
-                })}
-              </View>
-              {pageCount > 1 ? (
-                <View style={styles.pagination}>
-                  <PressableScale
-                    accessibilityRole="button"
-                    disabled={currentPage === 0}
-                    glowColor="#d8c9aa"
-                    onPress={() => setPage((current) => Math.max(current - 1, 0))}
-                    style={({ pressed }) => [
-                      styles.pageButton,
-                      currentPage === 0 && styles.disabledPageButton,
-                      pressed && currentPage > 0 && styles.pressed,
-                    ]}
-                  >
-                    <Text style={styles.pageButtonText}>← 前へ</Text>
+                      ) : null}
+                      {additionalDeclarations.map((item, declarationIndex) => (
+                        <Text
+                          key={`${item.milestoneKey}-${declarationIndex}`}
+                          numberOfLines={2}
+                          style={styles.cardAdditionalDeclaration}
+                        >
+                          追加宣言「{item.declaration}」
+                        </Text>
+                      ))}
+                    </View>
+                    <Text style={styles.cardArrow}>→</Text>
                   </PressableScale>
-                  <Text style={styles.pageIndicator}>
-                    {currentPage + 1} / {pageCount}
-                  </Text>
-                  <PressableScale
-                    accessibilityRole="button"
-                    disabled={currentPage >= pageCount - 1}
-                    glowColor="#d8c9aa"
-                    onPress={() => setPage((current) => Math.min(current + 1, pageCount - 1))}
-                    style={({ pressed }) => [
-                      styles.pageButton,
-                      currentPage >= pageCount - 1 && styles.disabledPageButton,
-                      pressed && currentPage < pageCount - 1 && styles.pressed,
-                    ]}
-                  >
-                    <Text style={styles.pageButtonText}>次へ →</Text>
-                  </PressableScale>
-                </View>
-              ) : null}
+                );
+              })}
             </View>
-          ) : null}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+            {pageCount > 1 ? (
+              <View style={styles.pagination}>
+                <PressableScale
+                  accessibilityRole="button"
+                  disabled={currentPage === 0}
+                  glowColor="#d8c9aa"
+                  onPress={() => setPage((current) => Math.max(current - 1, 0))}
+                  style={({ pressed }) => [
+                    styles.pageButton,
+                    currentPage === 0 && styles.disabledPageButton,
+                    pressed && currentPage > 0 && styles.pressed,
+                  ]}
+                >
+                  <Text style={styles.pageButtonText}>← 前へ</Text>
+                </PressableScale>
+                <Text style={styles.pageIndicator}>
+                  {currentPage + 1} / {pageCount}
+                </Text>
+                <PressableScale
+                  accessibilityRole="button"
+                  disabled={currentPage >= pageCount - 1}
+                  glowColor="#d8c9aa"
+                  onPress={() => setPage((current) => Math.min(current + 1, pageCount - 1))}
+                  style={({ pressed }) => [
+                    styles.pageButton,
+                    currentPage >= pageCount - 1 && styles.disabledPageButton,
+                    pressed && currentPage < pageCount - 1 && styles.pressed,
+                  ]}
+                >
+                  <Text style={styles.pageButtonText}>次へ →</Text>
+                </PressableScale>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0b0b0d',
-  },
-  scrollView: {
-    flex: 1,
-  },
   content: {
-    flexGrow: 1,
-    width: '100%',
-    maxWidth: 680,
-    alignSelf: 'center',
     paddingHorizontal: 28,
     paddingTop: 54,
     paddingBottom: 32,
