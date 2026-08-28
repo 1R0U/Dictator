@@ -248,6 +248,39 @@ test('複合ルート6・7・8は同じ突出度で基本ルートから切り�
   });
 });
 
+test('複合ルートは片方の軸だけが極端に高くても選ばれない', () => {
+  const cases = [
+    {
+      axes: { domination: 100, egoism: 50, innovation: 50, prestige: 50, madness: 75 },
+      expectedRoute: COLLAPSE_ROUTES.oppression,
+    },
+    {
+      axes: { domination: 50, egoism: 100, innovation: 50, prestige: 75, madness: 50 },
+      expectedRoute: COLLAPSE_ROUTES.privatization,
+    },
+    {
+      axes: { domination: 50, egoism: 50, innovation: 75, prestige: 50, madness: 100 },
+      expectedRoute: COLLAPSE_ROUTES.fanaticism,
+    },
+  ];
+
+  cases.forEach(({ axes, expectedRoute }) => {
+    let state = { risk: 0, pressure: {} };
+    for (let milestoneIndex = 0; milestoneIndex < 10; milestoneIndex += 1) {
+      state = advanceCollapseState({
+        previousRisk: state.risk,
+        previousPressure: state.pressure,
+        axes,
+        previousAxes: axes,
+        milestoneIndex,
+      });
+    }
+
+    assert.equal(determineCollapseRoute(axes), expectedRoute);
+    assert.equal(determineCollapseRoute(axes, state.pressure), expectedRoute);
+  });
+});
+
 test('一定の欲望値では累積判定と直接判定が一致する', () => {
   const profiles = [
     { domination: 82, egoism: 70, innovation: 70, prestige: 70, madness: 82 },

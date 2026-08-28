@@ -52,7 +52,13 @@ function getCompoundProminenceFactor(values, pairKeys) {
 
 /** Reward a compound route only when both relevant axes stand out from the rest. */
 function calculateCompoundPressure(values, axisContributions, pairKeys) {
-  return Math.max(...pairKeys.map((key) => axisContributions[key]))
+  const weakerNormalizedContribution = Math.min(...pairKeys.map(
+    (key) => axisContributions[key] / AXIS_RISK_WEIGHTS[key],
+  ));
+  const comparisonWeight = Math.max(...pairKeys.map((key) => AXIS_RISK_WEIGHTS[key]));
+
+  return weakerNormalizedContribution
+    * comparisonWeight
     * 1.25
     * getCompoundProminenceFactor(values, pairKeys);
 }
