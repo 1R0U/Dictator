@@ -2,7 +2,6 @@
 // data/codex.js（AsyncStorage入出力）と components/Codex.js（表示）の両方から使う。
 const { COLLAPSE_VISUALS } = require('../data/collapseVisuals');
 const { ENDING_CATALOG } = require('../data/endingCatalog');
-const { FIGURES } = require('../data/figures');
 
 /** Return a valid { timesSeen, firstSeenAt } entry, or null if malformed/empty. */
 function normalizeCodexEntry(entry) {
@@ -92,32 +91,9 @@ function buildCollapseCodexEntries(codexState, {
     });
 }
 
-/**
- * 偉人図鑑：FIGURESの登録順を通し番号として扱い、解放状態を合成する。
- * 人物が増えてもFIGURES側に追記するだけで自動的に反映される。
- */
-function buildFigureCodexEntries(codexState, { figures = FIGURES } = {}) {
-  const categoryState = normalizeCodexCategory(codexState?.figure);
-
-  return figures.map((figure, index) => {
-    const entry = categoryState[figure.key] ?? null;
-    return {
-      key: figure.key,
-      number: String(index + 1).padStart(2, '0'),
-      name: figure.name,
-      epithet: figure.epithet,
-      pattern: figure.pattern,
-      unlocked: Boolean(entry),
-      timesSeen: entry?.timesSeen ?? 0,
-      firstSeenAt: entry?.firstSeenAt ?? null,
-    };
-  });
-}
-
 module.exports = {
   applyCodexUnlock,
   buildCollapseCodexEntries,
-  buildFigureCodexEntries,
   normalizeCodexCategory,
   normalizeCodexState,
 };

@@ -35,7 +35,7 @@ async function unlockEntry(category, key) {
 // 同時に呼ばれてもread-modify-writeが衝突しないよう、保存処理を直列化するキュー。
 let saveQueue = Promise.resolve();
 
-// category: 図鑑のカテゴリキー（例: 'collapse', 'figure'）。今後カテゴリが増えても新しい文字列を渡すだけでよい。
+// category: 図鑑のカテゴリキー（現在は 'collapse'）。
 // key: そのカテゴリ内のエントリキー（崩壊ルートのendingType、偉人のfigure.keyなど）。
 export function unlockCodexEntry(category, key) {
   const run = saveQueue.then(() => unlockEntry(category, key));

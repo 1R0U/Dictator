@@ -37,4 +37,39 @@ function matchFigure(desireAxes, figures = FIGURES) {
   return bestFigure ? { figure: bestFigure, distance: bestDistance } : null;
 }
 
-module.exports = { computeDesireDistance, matchFigure };
+/** 現行データセットと完全に一致する保存済み人物だけを再利用する。 */
+function isCurrentFigureSnapshot(figure, figures = FIGURES) {
+  if (!figure || typeof figure !== 'object' || !figure.key || !figure.type) return false;
+
+  const current = figures.find((candidate) => candidate.key === figure.key);
+  if (!current || current.type !== figure.type) return false;
+
+  return DESIRE_KEYS.every(
+    (key) => Number(figure.pattern?.[key]) === Number(current.pattern?.[key]),
+  );
+}
+
+/**
+ * 履歴に旧人物データが保存されている場合は、現在の候補だけで再診断する。
+ * 戻り値の canReuseCopy が false のとき、旧人物を含み得る保存済み紹介文も再利用しない。
+ */
+function resolveCurrentFigure(desireAxes, savedFigure, figures = FIGURES) {
+  if (isCurrentFigureSnapshot(savedFigure, figures)) {
+    return {
+      figure: figures.find((candidate) => candidate.key === savedFigure.key),
+      canReuseCopy: true,
+    };
+  }
+
+  return {
+    figure: matchFigure(desireAxes, figures)?.figure ?? null,
+    canReuseCopy: false,
+  };
+}
+
+module.exports = {
+  computeDesireDistance,
+  isCurrentFigureSnapshot,
+  matchFigure,
+  resolveCurrentFigure,
+};
