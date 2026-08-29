@@ -35,6 +35,24 @@ const COLLAPSE_SOUND = require('../assets/collapse-impact.wav');
 
 setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
 
+/** Derive the center-to-edge fill geometry shared by every meter bar. */
+function getMeterFillGeometry(value) {
+  const position = normalizeMeterValue(value);
+  const width = `${Math.abs(position - 50)}%`;
+  const fillPosition = value < 0 ? `${position}%` : '50%';
+  return { position, width, fillPosition };
+}
+
+/** Render the track/center/fill visuals shared by the player meter and figure stat rows. */
+function MeterTrack({ fillPosition, width }) {
+  return (
+    <View style={styles.meterTrack}>
+      <View style={styles.meterCenter} />
+      <Animated.View style={[styles.meterFill, { left: fillPosition, width }]} />
+    </View>
+  );
+}
+
 /** Split a trait sentence into plain/highlighted segments so key words stand out visually. */
 function splitTraitSentenceSegments(sentence, keywords) {
   const segments = [];
@@ -429,12 +447,11 @@ export default function EndingReveal({
               const traitSentence = getDesireTraitSentence(axis.key, value);
               const traitKeywords = getDesireTraitKeywords(axis.key, value);
               const traitSegments = splitTraitSentenceSegments(traitSentence, traitKeywords);
-              const position = normalizeMeterValue(value);
+              const { position, fillPosition } = getMeterFillGeometry(value);
               const width = meterAnimations[index].interpolate({
                 inputRange: [0, 1],
                 outputRange: ['0%', `${Math.abs(position - 50)}%`],
               });
-              const fillPosition = value < 0 ? `${position}%` : '50%';
 
               return (
                 <View
@@ -461,10 +478,7 @@ export default function EndingReveal({
                   <Text style={styles.tendencyLabel}>
                     {getDesireTendencyLabel(axis.key, value)}
                   </Text>
-                  <View style={styles.meterTrack}>
-                    <View style={styles.meterCenter} />
-                    <Animated.View style={[styles.meterFill, { left: fillPosition, width }]} />
-                  </View>
+                  <MeterTrack fillPosition={fillPosition} width={width} />
                   <Text style={styles.axisTrait}>
                     {traitSegments.map((segment, segmentIndex) => (
                       <Text
@@ -491,6 +505,28 @@ export default function EndingReveal({
               <Text style={styles.figureLead}>あなたに最も近い人物は…</Text>
               <Text style={styles.figureName}>{resolvedFigure.name}</Text>
               <Text style={styles.figureEpithet}>{resolvedFigure.type ?? resolvedFigure.epithet}</Text>
+              <View style={styles.figureStatList}>
+                {AXES.map((axis) => {
+                  const value = clampMeterValue(resolvedFigure.pattern?.[axis.key]);
+                  const { width, fillPosition } = getMeterFillGeometry(value);
+
+                  return (
+                    <View
+                      accessibilityLabel={`${resolvedFigure.name}の${axis.name} ${value}`}
+                      accessibilityValue={{ max: METER_MAX, min: METER_MIN, now: value }}
+                      accessible
+                      key={axis.key}
+                      style={styles.figureStatRow}
+                    >
+                      <View style={styles.figureStatLabels}>
+                        <Text style={styles.figureStatLabel}>{axis.label}</Text>
+                        <Text style={styles.figureStatValue}>{value > 0 ? `+${value}` : value}</Text>
+                      </View>
+                      <MeterTrack fillPosition={fillPosition} width={width} />
+                    </View>
+                  );
+                })}
+              </View>
               <Text style={styles.figureBlurb}>{resolvedBlurb}</Text>
               <View style={styles.biasDivider} />
               <Text style={styles.biasLabel}>あなたの性格は偏見的にこれ！</Text>
@@ -811,6 +847,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     textAlign: 'center',
+  },
+  figureStatList: {
+    marginTop: 18,
+    gap: 10,
+  },
+  figureStatRow: {
+    gap: 5,
+  },
+  figureStatLabels: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  figureStatLabel: {
+    color: '#d8c9aa',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  figureStatValue: {
+    color: '#f3eee4',
+    fontSize: 12,
+    fontWeight: '900',
   },
   figureBlurb: {
     marginTop: 14,
