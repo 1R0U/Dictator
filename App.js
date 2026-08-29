@@ -373,10 +373,11 @@ export default function App() {
 
     try {
       const isCollapseEnding = Boolean(resolvedEndingType?.startsWith('collapse'));
-      const meter = desireAxes && isCollapseEnding
-        ? extrapolateMissedDeclarations(desireAxes, additionalDeclarations.length)
-        : desireAxes ?? FALLBACK_FINAL_METER;
-      if (meter !== desireAxes) setDesireAxes(meter);
+      let meter = desireAxes ?? FALLBACK_FINAL_METER;
+      if (desireAxes && isCollapseEnding) {
+        meter = extrapolateMissedDeclarations(desireAxes, handledCheckups.length);
+        if (meter !== desireAxes) setDesireAxes(meter);
+      }
       const match = matchFigure(meter);
 
       const narrationPromise = newsScenes.length

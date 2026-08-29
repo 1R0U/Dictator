@@ -35,6 +35,24 @@ const COLLAPSE_SOUND = require('../assets/collapse-impact.wav');
 
 setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
 
+/** Derive the center-to-edge fill geometry shared by every meter bar. */
+function getMeterFillGeometry(value) {
+  const position = normalizeMeterValue(value);
+  const width = `${Math.abs(position - 50)}%`;
+  const fillPosition = value < 0 ? `${position}%` : '50%';
+  return { position, width, fillPosition };
+}
+
+/** Render the track/center/fill visuals shared by the player meter and figure stat rows. */
+function MeterTrack({ fillPosition, width }) {
+  return (
+    <View style={styles.meterTrack}>
+      <View style={styles.meterCenter} />
+      <Animated.View style={[styles.meterFill, { left: fillPosition, width }]} />
+    </View>
+  );
+}
+
 /** Split a trait sentence into plain/highlighted segments so key words stand out visually. */
 function splitTraitSentenceSegments(sentence, keywords) {
   const segments = [];
@@ -429,12 +447,11 @@ export default function EndingReveal({
               const traitSentence = getDesireTraitSentence(axis.key, value);
               const traitKeywords = getDesireTraitKeywords(axis.key, value);
               const traitSegments = splitTraitSentenceSegments(traitSentence, traitKeywords);
-              const position = normalizeMeterValue(value);
+              const { position, fillPosition } = getMeterFillGeometry(value);
               const width = meterAnimations[index].interpolate({
                 inputRange: [0, 1],
                 outputRange: ['0%', `${Math.abs(position - 50)}%`],
               });
-              const fillPosition = value < 0 ? `${position}%` : '50%';
 
               return (
                 <View
@@ -461,10 +478,7 @@ export default function EndingReveal({
                   <Text style={styles.tendencyLabel}>
                     {getDesireTendencyLabel(axis.key, value)}
                   </Text>
-                  <View style={styles.meterTrack}>
-                    <View style={styles.meterCenter} />
-                    <Animated.View style={[styles.meterFill, { left: fillPosition, width }]} />
-                  </View>
+                  <MeterTrack fillPosition={fillPosition} width={width} />
                   <Text style={styles.axisTrait}>
                     {traitSegments.map((segment, segmentIndex) => (
                       <Text
@@ -494,9 +508,7 @@ export default function EndingReveal({
               <View style={styles.figureStatList}>
                 {AXES.map((axis) => {
                   const value = clampMeterValue(resolvedFigure.pattern?.[axis.key]);
-                  const position = normalizeMeterValue(value);
-                  const width = `${Math.abs(position - 50)}%`;
-                  const fillPosition = value < 0 ? `${position}%` : '50%';
+                  const { width, fillPosition } = getMeterFillGeometry(value);
 
                   return (
                     <View
@@ -510,10 +522,7 @@ export default function EndingReveal({
                         <Text style={styles.figureStatLabel}>{axis.label}</Text>
                         <Text style={styles.figureStatValue}>{value > 0 ? `+${value}` : value}</Text>
                       </View>
-                      <View style={styles.meterTrack}>
-                        <View style={styles.meterCenter} />
-                        <View style={[styles.meterFill, { left: fillPosition, width }]} />
-                      </View>
+                      <MeterTrack fillPosition={fillPosition} width={width} />
                     </View>
                   );
                 })}

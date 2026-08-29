@@ -53,6 +53,8 @@ function applyDesireScore(currentValue, declarationScore, progressionIndex = 0) 
 function extrapolateMissedDeclarations(axes, completedDeclarationCount) {
   const maxProgressionIndex = PROGRESSION_MULTIPLIERS.length - 1;
   const completedCount = Math.max(0, Math.round(Number(completedDeclarationCount) || 0));
+  if (completedCount >= maxProgressionIndex) return axes;
+
   let result = normalizeDesireAxes(axes);
 
   for (
