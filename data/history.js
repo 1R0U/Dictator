@@ -24,16 +24,21 @@ async function appendLocalEntry(result) {
 }
 
 async function saveToSupabase(entry) {
-  const { error } = await supabase.from('game_results').insert({
-    declaration_summary: entry.declarationSummary ?? '',
-    desire_axes: entry.desireAxes ?? {},
-    ending_type: entry.endingType ?? '',
-    ending_headline: entry.endingTitle ?? '',
-    ending_body: entry.endingBody ?? '',
-    additional_declarations: entry.additionalDeclarations ?? [],
-  });
-  if (error) {
-    console.warn('Supabase save failed:', error.message);
+  if (!supabase) return;
+  try {
+    const { error } = await supabase.from('game_results').insert({
+      declaration_summary: entry.declarationSummary ?? '',
+      desire_axes: entry.desireAxes ?? {},
+      ending_type: entry.endingType ?? '',
+      ending_headline: entry.endingTitle ?? '',
+      ending_body: entry.endingBody ?? '',
+      additional_declarations: entry.additionalDeclarations ?? [],
+    });
+    if (error) {
+      console.warn('Supabase save failed:', error.message);
+    }
+  } catch (err) {
+    console.warn('Supabase save failed, kept local result:', err.message);
   }
 }
 
@@ -51,6 +56,10 @@ export function saveResult(result) {
 
 export async function loadResults() {
   await saveQueue;
+  if (!supabase) {
+    const entries = await readLocalEntries();
+    return entries.reverse();
+  }
   try {
     const { data, error } = await supabase
       .from('game_results')

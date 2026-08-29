@@ -5,6 +5,7 @@ const {
   calculateBaseDeclarationDelta,
   clampDesireValue,
   convertLegacyDesireAxes,
+  extrapolateMissedDeclarations,
   moveDesireAxesTowardNeutral,
   normalizeDesireAxes,
 } = require('../game/desireScale');
@@ -73,6 +74,27 @@ test('強い宣言を重ねると欲望値が上限と下限へ到達できる',
 
   assert.equal(positive, 100);
   assert.equal(negative, -100);
+});
+
+test('滅亡時、未消化の追加宣言分をそれまでの傾向から自動で加算する', () => {
+  const axes = {
+    domination: 40, egoism: -20, innovation: 0, prestige: 10, madness: -5,
+  };
+
+  // 追加宣言0回で滅亡：残り3回分（倍率1.2/1.4/1.6）を自動加算する。
+  const zeroCompleted = extrapolateMissedDeclarations(axes, 0);
+  const expected = [1, 2, 3].reduce((current, progressionIndex) => (
+    Object.fromEntries(Object.keys(current).map((key) => [
+      key, applyDesireScore(current[key], current[key], progressionIndex),
+    ]))
+  ), normalizeDesireAxes(axes));
+  assert.deepEqual(zeroCompleted, expected);
+
+  // 追加宣言を3回すべて消化済みなら何も加算しない。
+  assert.deepEqual(extrapolateMissedDeclarations(axes, 3), normalizeDesireAxes(axes));
+
+  // 中立(0)の軸は傾向がないため加算されない。
+  assert.equal(extrapolateMissedDeclarations({ ...axes, innovation: 0 }, 2).innovation, 0);
 });
 
 test('スキップ時はすべての軸を5ずつ中央へ近づける', () => {

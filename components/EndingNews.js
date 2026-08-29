@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import {
+  Animated,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 
 import { getSceneAtTime } from '../game/endingNews';
@@ -45,6 +54,8 @@ function NewsTicker({ text, durationSeconds }) {
 }
 
 export default function EndingNews({ scenes, audioUri, narrationError, onComplete }) {
+  const { width, height } = useWindowDimensions();
+  const isCompact = width < 520 || height < 700;
   const player = useAudioPlayer(audioUri || null, { updateInterval: 100 });
   const status = useAudioPlayerStatus(player);
   const [fallbackSeconds, setFallbackSeconds] = useState(0);
@@ -128,17 +139,36 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
         <Text style={styles.counter}>{sceneIndex + 1} / {scenes.length}</Text>
       </View>
 
-      <Animated.View style={[styles.visual, { opacity: fade }]}>
-        <View style={[styles.glow, { backgroundColor: ACCENTS[sceneIndex % ACCENTS.length] }]} />
-        <View style={styles.placeholderFrame}>
-          <Text style={styles.placeholderMark}>DN</Text>
-          <Text style={styles.placeholderText}>{'\u5831\u9053\u753b\u50cf\u306f\u5f8c\u304b\u3089\u8ffd\u52a0\u3067\u304d\u307e\u3059'}</Text>
+      <Animated.View style={[styles.bulletin, isCompact && styles.compactBulletin, { opacity: fade }]}>
+        <View style={[styles.accentWash, { backgroundColor: ACCENTS[sceneIndex % ACCENTS.length] }]} />
+        <View style={styles.bulletinRule} />
+        <View style={styles.bulletinHeader}>
+          <Text style={styles.bulletinKind}>BREAKING NEWS</Text>
+          <Text style={styles.bulletinNumber}>{String(sceneIndex + 1).padStart(2, '0')}</Text>
         </View>
-        <View style={styles.dateChip}><Text style={styles.dateText}>{scene.label}</Text></View>
+        <View style={styles.bulletinCopy}>
+          <Text style={[styles.era, isCompact && styles.compactEra]}>{scene.label}</Text>
+          <Text
+            adjustsFontSizeToFit
+            minimumFontScale={0.72}
+            numberOfLines={isCompact ? 4 : 5}
+            style={[styles.mainHeadline, isCompact && styles.compactMainHeadline]}
+          >
+            {scene.headline}
+          </Text>
+        </View>
+        <View style={styles.bulletinFooter}>
+          <Text style={styles.bulletinFooterText}>DESIRE NATION · NATIONAL BROADCAST</Text>
+          <View style={styles.liveDot} />
+          <Text style={styles.onAir}>ON AIR</Text>
+        </View>
       </Animated.View>
 
       <View style={styles.captionPanel}>
-        <Text style={styles.headline}>{scene.headline}</Text>
+        <View style={styles.captionLabelRow}>
+          <Text style={styles.captionLabel}>NEWS FLASH</Text>
+          <Text style={styles.captionEra}>{scene.label}</Text>
+        </View>
         <NewsTicker
           durationSeconds={sceneDuration}
           key={scene.key}
@@ -179,19 +209,63 @@ const styles = StyleSheet.create({
   live: { color: '#d7aa63', fontSize: 11, fontWeight: '800', letterSpacing: 2.6 },
   program: { color: '#f3efe6', fontSize: 19, fontWeight: '800', letterSpacing: 1 },
   counter: { color: '#99958d', fontSize: 12, fontWeight: '700' },
-  visual: { flex: 1, minHeight: 260, overflow: 'hidden', backgroundColor: '#151a20', borderWidth: 1, borderColor: '#4b4b47' },
-  glow: { position: 'absolute', width: 280, height: 280, borderRadius: 140, opacity: 0.36, top: -80, right: -60 },
-  placeholderFrame: { flex: 1, margin: 24, borderWidth: 1, borderColor: 'rgba(230,220,200,0.22)', alignItems: 'center', justifyContent: 'center' },
-  placeholderMark: { color: 'rgba(255,255,255,0.1)', fontSize: 90, fontWeight: '900', letterSpacing: -7 },
-  placeholderText: { color: '#9b9994', fontSize: 12, marginTop: 10 },
-  dateChip: { position: 'absolute', left: 0, bottom: 0, backgroundColor: '#b7a074', paddingHorizontal: 16, paddingVertical: 8 },
-  dateText: { color: '#111317', fontWeight: '900', fontSize: 13 },
+  bulletin: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 680,
+    minHeight: 280,
+    alignSelf: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#4b4b47',
+    backgroundColor: '#101318',
+    paddingHorizontal: 30,
+    paddingVertical: 24,
+  },
+  compactBulletin: { minHeight: 210, paddingHorizontal: 20, paddingVertical: 16 },
+  accentWash: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: '38%',
+    opacity: 0.24,
+  },
+  bulletinRule: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 7,
+    height: '100%',
+    backgroundColor: '#8f2431',
+  },
+  bulletinHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  bulletinKind: { color: '#d7aa63', fontSize: 11, fontWeight: '900', letterSpacing: 2.4 },
+  bulletinNumber: { color: 'rgba(255,255,255,0.14)', fontSize: 42, lineHeight: 42, fontWeight: '900' },
+  bulletinCopy: { flex: 1, justifyContent: 'center', paddingVertical: 12 },
+  era: { color: '#aaa49a', fontSize: 15, fontWeight: '800', letterSpacing: 2, marginBottom: 12 },
+  compactEra: { fontSize: 12, marginBottom: 7 },
+  mainHeadline: {
+    maxWidth: 580,
+    color: '#f3efe6',
+    fontSize: 38,
+    lineHeight: 50,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  compactMainHeadline: { fontSize: 27, lineHeight: 36 },
+  bulletinFooter: { flexDirection: 'row', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: '#45464a' },
+  bulletinFooterText: { flex: 1, color: '#777b80', fontSize: 9, fontWeight: '800', letterSpacing: 1.2 },
+  liveDot: { width: 7, height: 7, borderRadius: 4, marginLeft: 12, marginRight: 6, backgroundColor: '#b3333d' },
+  onAir: { color: '#d9d4ca', fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
   captionPanel: {
     width: '100%', maxWidth: 680, alignSelf: 'center',
-    backgroundColor: '#e9e3d8', paddingHorizontal: 18, paddingVertical: 16, borderBottomWidth: 5, borderBottomColor: '#8f2431',
+    backgroundColor: '#e9e3d8', paddingHorizontal: 18, paddingVertical: 13, borderBottomWidth: 5, borderBottomColor: '#8f2431',
   },
-  headline: { color: '#13161a', fontSize: 21, lineHeight: 29, fontWeight: '900' },
-  tickerViewport: { height: 29, marginTop: 8, overflow: 'hidden', justifyContent: 'center' },
+  captionLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  captionLabel: { color: '#8f2431', fontSize: 10, fontWeight: '900', letterSpacing: 2 },
+  captionEra: { color: '#6d6a64', fontSize: 10, fontWeight: '800' },
+  tickerViewport: { height: 29, marginTop: 5, overflow: 'hidden', justifyContent: 'center' },
   narration: { color: '#3b3c3d', fontSize: 14, lineHeight: 22, position: 'absolute' },
   progressTrack: {
     width: '100%', maxWidth: 680, alignSelf: 'center',
