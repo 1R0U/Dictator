@@ -55,7 +55,7 @@ test('データセット内の26人に重複しないkeyと、名前・タイプ
 
 test('AI応答が得られない場合のフォールバック一言紹介に人物名を含む', () => {
   const target = FIGURES[0];
-  assert.match(buildFallbackBlurb(target), new RegExp(target.name));
+  assert.ok(buildFallbackBlurb(target).includes(target.name));
 });
 
 test('現行人物の保存スナップショットは紹介文を再利用できる', () => {
@@ -81,11 +81,20 @@ test('旧人物の保存スナップショットは最終5軸から現行26人�
   assert.equal(result.canReuseCopy, false);
 });
 
-test('同じkeyでも旧形式または値が異なる人物データは再利用しない', () => {
+test('同じkeyでも旧形式の人物データは再利用しない', () => {
   const current = FIGURES[6];
   const stale = {
     ...current,
     type: undefined,
+  };
+
+  assert.equal(isCurrentFigureSnapshot(stale), false);
+});
+
+test('同じkeyでもパターン値が異なる人物データは再利用しない', () => {
+  const current = FIGURES[6];
+  const stale = {
+    ...current,
     pattern: { ...current.pattern, domination: current.pattern.domination + 1 },
   };
 
