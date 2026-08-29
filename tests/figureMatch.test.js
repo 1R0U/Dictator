@@ -1,7 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { computeDesireDistance, matchFigure } = require('../game/figureMatch');
+const {
+  computeDesireDistance,
+  isCurrentFigureSnapshot,
+  matchFigure,
+  resolveCurrentFigure,
+} = require('../game/figureMatch');
 const { FIGURES, buildFallbackBlurb } = require('../data/figures');
 
 test('候補人物のパターンと完全一致する欲望軸は距離0でその人物を選出する', () => {
@@ -35,19 +40,54 @@ test('ユークリッド距離を軸ごとの差から算出する', () => {
   assert.equal(distance, 5);
 });
 
-test('データセット内の全人物に重複しないkeyと、名前・エピセット・パターンがある', () => {
+test('データセット内の26人に重複しないkeyと、名前・タイプ・双極パターンがある', () => {
   const keys = FIGURES.map((figure) => figure.key);
   assert.equal(new Set(keys).size, FIGURES.length);
-  assert.ok(FIGURES.length >= 20);
+  assert.equal(FIGURES.length, 26);
 
   for (const figure of FIGURES) {
     assert.ok(figure.name);
-    assert.ok(figure.epithet);
+    assert.ok(figure.type);
     assert.ok(figure.pattern);
+    assert.ok(Object.values(figure.pattern).every((value) => value >= -100 && value <= 100));
   }
 });
 
 test('AI応答が得られない場合のフォールバック一言紹介に人物名を含む', () => {
   const target = FIGURES[0];
   assert.match(buildFallbackBlurb(target), new RegExp(target.name));
+});
+
+test('現行人物の保存スナップショットは紹介文を再利用できる', () => {
+  const target = FIGURES[0];
+  assert.equal(isCurrentFigureSnapshot(target), true);
+  assert.deepEqual(resolveCurrentFigure(target.pattern, target), {
+    figure: target,
+    canReuseCopy: true,
+  });
+});
+
+test('旧人物の保存スナップショットは最終5軸から現行26人へ再診断する', () => {
+  const oldFigure = {
+    key: 'caesar',
+    name: '旧候補',
+    epithet: '旧紹介',
+    pattern: { domination: 0, egoism: 0, innovation: 0, prestige: 0, madness: 0 },
+  };
+  const result = resolveCurrentFigure(FIGURES[5].pattern, oldFigure);
+
+  assert.equal(isCurrentFigureSnapshot(oldFigure), false);
+  assert.equal(result.figure.key, FIGURES[5].key);
+  assert.equal(result.canReuseCopy, false);
+});
+
+test('同じkeyでも旧形式または値が異なる人物データは再利用しない', () => {
+  const current = FIGURES[6];
+  const stale = {
+    ...current,
+    type: undefined,
+    pattern: { ...current.pattern, domination: current.pattern.domination + 1 },
+  };
+
+  assert.equal(isCurrentFigureSnapshot(stale), false);
 });

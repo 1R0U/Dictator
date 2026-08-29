@@ -17,7 +17,7 @@ import {
   getDesireTraitSentence,
 } from '../game/desireTraits';
 import { getDesireBiasComment } from '../game/desireBias';
-import { matchFigure } from '../game/figureMatch';
+import { resolveCurrentFigure } from '../game/figureMatch';
 import { FIGURE_DIAGNOSIS_DISCLAIMER, buildFallbackBlurb } from '../data/figures';
 import { getCollapseVisual } from '../data/collapseVisuals';
 import { ENDING_CATALOG } from '../data/endingCatalog';
@@ -92,11 +92,14 @@ export default function EndingReveal({
   const collapseHitFour = useAudioPlayer(collapseAudioSource);
   const meterAnimations = useRef(AXES.map(() => new Animated.Value(0))).current;
   const panelRevealAnimation = useRef(new Animated.Value(0)).current;
-  const resolvedFigure = figureDiagnosis?.figure ?? matchFigure(finalMeter)?.figure;
-  const resolvedBlurb = figureDiagnosis?.figure && figureDiagnosis?.blurb
+  const resolvedFigureState = resolveCurrentFigure(finalMeter, figureDiagnosis?.figure);
+  const resolvedFigure = resolvedFigureState.figure;
+  const resolvedBlurb = resolvedFigureState.canReuseCopy && figureDiagnosis?.blurb
     ? figureDiagnosis.blurb
     : (resolvedFigure ? buildFallbackBlurb(resolvedFigure) : null);
-  const resolvedBiasComment = figureDiagnosis?.biasComment ?? getDesireBiasComment(finalMeter);
+  const resolvedBiasComment = resolvedFigureState.canReuseCopy && figureDiagnosis?.biasComment
+    ? figureDiagnosis.biasComment
+    : getDesireBiasComment(finalMeter);
   const collapseLabel = collapseVisual ? ENDING_CATALOG[endingType]?.label : null;
   const activeAnimation = useRef(null);
   const isRevealing = useRef(false);
@@ -487,7 +490,7 @@ export default function EndingReveal({
               <Text style={styles.figureKicker}>FIGURE DIAGNOSIS</Text>
               <Text style={styles.figureLead}>あなたに最も近い人物は…</Text>
               <Text style={styles.figureName}>{resolvedFigure.name}</Text>
-              <Text style={styles.figureEpithet}>{resolvedFigure.epithet}</Text>
+              <Text style={styles.figureEpithet}>{resolvedFigure.type ?? resolvedFigure.epithet}</Text>
               <Text style={styles.figureBlurb}>{resolvedBlurb}</Text>
               <View style={styles.biasDivider} />
               <Text style={styles.biasLabel}>あなたの性格は偏見的にこれ！</Text>

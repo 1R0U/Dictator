@@ -55,7 +55,7 @@ function MenuButton({ index, label, onPress, secondary = false }) {
  * @param {Object} props
  * @param {Function} props.onStart - Opens a new simulation.
  * @param {Function} props.onOpenHistory - Opens the saved simulation archive.
- * @param {Function} props.onOpenCodex - Opens the collapse/figure codex.
+ * @param {Function} props.onOpenCodex - Opens the collapse codex.
  * @returns {React.ReactElement} The illustrated title screen.
  */
 export default function TitleScreen({ onStart, onOpenHistory, onOpenCodex }) {
