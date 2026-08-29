@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 
 import { mapDesire } from './api/mapDesire';
-import { moveDesireAxesTowardNeutral } from './game/desireScale';
+import { extrapolateMissedDeclarations, moveDesireAxesTowardNeutral } from './game/desireScale';
 import { generateBeat } from './api/generateBeat';
 import { generateEnding } from './api/generateEnding';
 import { generateFigureDiagnosis } from './api/generateFigureDiagnosis';
@@ -372,7 +372,11 @@ export default function App() {
     setEndingNarrationError(null);
 
     try {
-      const meter = desireAxes ?? FALLBACK_FINAL_METER;
+      const isCollapseEnding = Boolean(resolvedEndingType?.startsWith('collapse'));
+      const meter = desireAxes && isCollapseEnding
+        ? extrapolateMissedDeclarations(desireAxes, additionalDeclarations.length)
+        : desireAxes ?? FALLBACK_FINAL_METER;
+      if (meter !== desireAxes) setDesireAxes(meter);
       const match = matchFigure(meter);
 
       const narrationPromise = newsScenes.length
