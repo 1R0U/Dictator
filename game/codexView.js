@@ -1,4 +1,4 @@
-// 図鑑（崩壊エンディング／偉人診断）の解放状態を扱う純粋ロジック。
+// 図鑑（崩壊エンディング）の解放状態を扱う純粋ロジック。
 // data/codex.js（AsyncStorage入出力）と components/Codex.js（表示）の両方から使う。
 const { COLLAPSE_VISUALS } = require('../data/collapseVisuals');
 const { ENDING_CATALOG } = require('../data/endingCatalog');
