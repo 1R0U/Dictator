@@ -46,6 +46,31 @@ function applyDesireScore(currentValue, declarationScore, progressionIndex = 0) 
   return clampDesireValue(current + delta);
 }
 
+/**
+ * 滅亡などで検診を最後まで消化できなかった場合に、
+ * その時点までの各軸の値を傾向として参照し、未消化の追加宣言分の倍率成長を自動で加算する。
+ */
+function extrapolateMissedDeclarations(axes, completedDeclarationCount) {
+  const maxProgressionIndex = PROGRESSION_MULTIPLIERS.length - 1;
+  const completedCount = Math.max(0, Math.round(Number(completedDeclarationCount) || 0));
+  if (completedCount >= maxProgressionIndex) return axes;
+
+  let result = normalizeDesireAxes(axes);
+
+  for (
+    let progressionIndex = completedCount + 1;
+    progressionIndex <= maxProgressionIndex;
+    progressionIndex += 1
+  ) {
+    result = Object.fromEntries(DESIRE_KEYS.map((key) => {
+      const value = result[key];
+      return [key, applyDesireScore(value, value, progressionIndex)];
+    }));
+  }
+
+  return result;
+}
+
 function moveDesireAxesTowardNeutral(axes, step = SKIP_NEUTRAL_STEP) {
   const neutralStep = Math.max(0, Math.round(Number(step) || 0));
   const current = normalizeDesireAxes(axes);
@@ -71,6 +96,7 @@ module.exports = {
   calculateBaseDeclarationDelta,
   clampDesireValue,
   convertLegacyDesireAxes,
+  extrapolateMissedDeclarations,
   moveDesireAxesTowardNeutral,
   normalizeDesireAxes,
 };
