@@ -458,11 +458,6 @@ export default function App() {
         console.warn('handleEndingRevealComplete: failed to unlock collapse codex entry', err.message);
       });
     }
-    if (figureDiagnosis?.figure?.key) {
-      unlockCodexEntry('figure', figureDiagnosis.figure.key).catch((err) => {
-        console.warn('handleEndingRevealComplete: failed to unlock figure codex entry', err.message);
-      });
-    }
   };
 
   /** エンディング表示後にプレイ状態を初期化してホームへ戻る。 */

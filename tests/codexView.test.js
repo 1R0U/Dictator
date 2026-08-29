@@ -11,12 +11,10 @@ require.extensions['.jpg'] = (module, filename) => {
 const {
   applyCodexUnlock,
   buildCollapseCodexEntries,
-  buildFigureCodexEntries,
   normalizeCodexCategory,
   normalizeCodexState,
 } = require('../game/codexView');
 const { COLLAPSE_VISUALS } = require('../data/collapseVisuals');
-const { FIGURES } = require('../data/figures');
 
 test('applyCodexUnlock: 未解放から解放すると1回目としてtimesSeenとfirstSeenAtを刻む', () => {
   const entry = applyCodexUnlock(null, '2026-08-01T00:00:00.000Z');
@@ -92,20 +90,4 @@ test('buildCollapseCodexEntries: 未知の値やカテゴリ未保存でも全�
   const entries = buildCollapseCodexEntries({});
   assert.equal(entries.length, Object.keys(COLLAPSE_VISUALS).length);
   assert.ok(entries.every((entry) => entry.unlocked === false));
-});
-
-test('buildFigureCodexEntries: FIGURES全件を登録順に並べ、解放状態を合成する', () => {
-  const firstFigureKey = FIGURES[0].key;
-  const codexState = {
-    figure: { [firstFigureKey]: { timesSeen: 5, firstSeenAt: '2026-08-05T00:00:00.000Z' } },
-  };
-  const entries = buildFigureCodexEntries(codexState);
-
-  assert.equal(entries.length, FIGURES.length);
-  assert.equal(entries[0].key, firstFigureKey);
-  assert.equal(entries[0].number, '01');
-  assert.equal(entries[0].unlocked, true);
-  assert.equal(entries[0].timesSeen, 5);
-  assert.deepEqual(entries[0].pattern, FIGURES[0].pattern);
-  assert.equal(entries[1].unlocked, false);
 });
