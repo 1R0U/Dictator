@@ -25,9 +25,10 @@ const CODEX_MESSENGER_CHARACTERS = [
 ];
 const CODEX_MESSENGER_MESSAGES = [
   '閣下、統治の記録をこの図鑑にまとめてございます。',
-  '崩壊の光景の数々も、閣下の歩みの証にございます。',
+  '崩壊の光景は、すべて閣下の歩みの証にございます。',
   'まだ見ぬ結末が、いくつも眠っております。',
   '空欄を埋めるたび、この者も身が引き締まる思いです。',
+  '滅びの記録を、一つたりとも見逃しませぬ。',
   'すべてを埋めるまで、統治は終わりませんぞ。',
 ];
 
@@ -40,18 +41,8 @@ const CARD_PADDING = 10;
 const DETAIL_MAX_WIDTH = 480;
 const DETAIL_HORIZONTAL_PADDING = 24;
 
-/**
- * 図鑑のセクション定義。新しいカテゴリを増やす場合はここへ1件追記するだけでよい。
- * buildEntries: 図鑑状態からそのセクションのエントリ一覧を作る純粋関数。
- */
-const CODEX_SECTIONS = Object.freeze([
-  Object.freeze({
-    key: 'collapse',
-    listLabel: 'COLLAPSE ARCHIVE',
-    emptyHint: '国を崩壊させると、その光景がここに記録されます。',
-    buildEntries: buildCollapseCodexEntries,
-  }),
-]);
+const CODEX_LIST_LABEL = 'COLLAPSE ARCHIVE';
+const CODEX_EMPTY_HINT = '国を崩壊させると、その光景がここに記録されます。';
 
 /**
  * 図鑑カードの見た目（サムネイル or ロック表示）を1件分描画する。
@@ -68,7 +59,9 @@ function CodexCard({ entry, size, onPress }) {
 
   return (
     <PressableScale
-      accessibilityLabel={entry.unlocked ? `${entry.number} ${entry.label}` : `未解放 ${entry.number}`}
+      accessibilityLabel={entry.unlocked
+        ? `${entry.number} ${entry.label}`
+        : `未解放 ${entry.number}`}
       accessibilityRole="button"
       glowColor="#b9985a"
       onPress={() => entry.unlocked && onPress(entry)}
@@ -112,7 +105,7 @@ function CodexCard({ entry, size, onPress }) {
 }
 
 /**
- * 選択中エントリの全画面詳細（画像+結末文）。
+ * 選択中の崩壊ルートを画像と結末文で表示する。
  * 画像もテキスト列も、windowWidthから算出した固定px幅をImageのwidth/heightに直接渡す
  * （Web版のImageは明示的なpx数値を渡さないと自身の実ピクセルサイズに広がってしまうため）。
  */
@@ -202,8 +195,7 @@ export default function Codex({ onBack, loadCodex = loadCodexState }) {
     };
   }, [fetchCodex]);
 
-  const activeSection = CODEX_SECTIONS[0];
-  const entries = codexState ? activeSection.buildEntries(codexState) : [];
+  const entries = codexState ? buildCollapseCodexEntries(codexState) : [];
   const unlockedCount = entries.filter((entry) => entry.unlocked).length;
 
   const horizontalPadding = isCompact
@@ -230,7 +222,7 @@ export default function Codex({ onBack, loadCodex = loadCodexState }) {
           <View style={[styles.intro, isCompact && styles.compactIntro]}>
             <View style={styles.headingCopy}>
               <Text style={[styles.title, isCompact && styles.compactTitle]}>図鑑</Text>
-              <Text style={styles.description}>出会った崩壊の光景たち。</Text>
+              <Text style={styles.description}>目撃した国家崩壊の光景を記録する書庫。</Text>
             </View>
             <CornerMessenger
               characters={CODEX_MESSENGER_CHARACTERS}
@@ -267,11 +259,11 @@ export default function Codex({ onBack, loadCodex = loadCodexState }) {
           {!isLoading && !loadError ? (
             <View>
               <View style={styles.listHeader}>
-                <Text style={styles.listLabel}>{activeSection.listLabel}</Text>
+                <Text style={styles.listLabel}>{CODEX_LIST_LABEL}</Text>
                 <Text style={styles.resultCount}>{unlockedCount} / {entries.length}</Text>
               </View>
               {unlockedCount === 0 ? (
-                <Text style={styles.emptyHint}>{activeSection.emptyHint}</Text>
+                <Text style={styles.emptyHint}>{CODEX_EMPTY_HINT}</Text>
               ) : null}
               <View style={styles.grid}>
                 {entries.map((entry) => (
@@ -350,7 +342,7 @@ const styles = StyleSheet.create({
   },
   listArea: {
     flex: 1,
-    marginTop: 40,
+    marginTop: 28,
   },
   statePanel: {
     minHeight: 320,
