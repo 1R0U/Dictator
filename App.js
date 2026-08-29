@@ -228,6 +228,10 @@ export default function App() {
     endingPreparationRef.current = false;
 
     const result = await mapDesire(nextGenerationInput.declaration);
+    if (result.valid === false) {
+      alert("宣言の内容を理解できませんでした。国家の法律や政策として意味のある宣言を入力してください。");
+      return;
+    }
     setDesireAxes(applyMapping(createInitialMeter(), result, 0));
     setStage(STAGES.DAY_GENERATION);
   };
