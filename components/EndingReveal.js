@@ -491,6 +491,33 @@ export default function EndingReveal({
               <Text style={styles.figureLead}>あなたに最も近い人物は…</Text>
               <Text style={styles.figureName}>{resolvedFigure.name}</Text>
               <Text style={styles.figureEpithet}>{resolvedFigure.type ?? resolvedFigure.epithet}</Text>
+              <View style={styles.figureStatList}>
+                {AXES.map((axis) => {
+                  const value = clampMeterValue(resolvedFigure.pattern?.[axis.key]);
+                  const position = normalizeMeterValue(value);
+                  const width = `${Math.abs(position - 50)}%`;
+                  const fillPosition = value < 0 ? `${position}%` : '50%';
+
+                  return (
+                    <View
+                      accessibilityLabel={`${resolvedFigure.name}の${axis.name} ${value}`}
+                      accessibilityValue={{ max: METER_MAX, min: METER_MIN, now: value }}
+                      accessible
+                      key={axis.key}
+                      style={styles.figureStatRow}
+                    >
+                      <View style={styles.figureStatLabels}>
+                        <Text style={styles.figureStatLabel}>{axis.label}</Text>
+                        <Text style={styles.figureStatValue}>{value > 0 ? `+${value}` : value}</Text>
+                      </View>
+                      <View style={styles.meterTrack}>
+                        <View style={styles.meterCenter} />
+                        <View style={[styles.meterFill, { left: fillPosition, width }]} />
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
               <Text style={styles.figureBlurb}>{resolvedBlurb}</Text>
               <View style={styles.biasDivider} />
               <Text style={styles.biasLabel}>あなたの性格は偏見的にこれ！</Text>
@@ -811,6 +838,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     textAlign: 'center',
+  },
+  figureStatList: {
+    marginTop: 18,
+    gap: 10,
+  },
+  figureStatRow: {
+    gap: 5,
+  },
+  figureStatLabels: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  figureStatLabel: {
+    color: '#d8c9aa',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  figureStatValue: {
+    color: '#f3eee4',
+    fontSize: 12,
+    fontWeight: '900',
   },
   figureBlurb: {
     marginTop: 14,
