@@ -52,7 +52,6 @@ import {
   createEndingNewsScenes,
 } from './game/endingNews';
 
-const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 // desireAxesが未設定（通常発生しない）な場合のみ使うフォールバック値。
 const FALLBACK_FINAL_METER = Object.freeze({
   domination: 82,
@@ -228,7 +227,7 @@ export default function App() {
     setHasEndingPreparationStarted(false);
     endingPreparationRef.current = false;
 
-    const result = await mapDesire(nextGenerationInput.declaration, GEMINI_API_KEY);
+    const result = await mapDesire(nextGenerationInput.declaration);
     setDesireAxes(applyMapping(createInitialMeter(), result, 0));
     setStage(STAGES.DAY_GENERATION);
   };
@@ -257,7 +256,6 @@ export default function App() {
           milestoneIndex,
         ),
         tone: generationInput.tone,
-        apiKey: GEMINI_API_KEY,
         previousState: previousReport?.collapsePressure,
       });
       const collapseState = advanceCollapseState({
@@ -342,7 +340,7 @@ export default function App() {
     setLoadingMilestoneKey(milestoneKey);
 
     try {
-      const mapping = await mapDesire(nextDeclaration.declaration, GEMINI_API_KEY);
+      const mapping = await mapDesire(nextDeclaration.declaration);
       const progressionIndex = Math.min(nextDeclarations.length, 3);
       const nextDesireAxes = applyMapping(desireAxes, mapping, progressionIndex);
 
@@ -382,7 +380,6 @@ export default function App() {
 
       const narrationPromise = newsScenes.length
         ? generateNarration({
-          apiKey: GEMINI_API_KEY,
           text: buildEndingNarrationText(newsScenes),
         })
           .then((narration) => {
@@ -403,13 +400,11 @@ export default function App() {
           meter,
           previousDeclarations: getPreviousDeclarationTexts(additionalDeclarations),
           tone: generationInput.tone,
-          apiKey: GEMINI_API_KEY,
         }),
         match
           ? generateFigureDiagnosis({
             figure: match.figure,
             desireAxes: meter,
-            apiKey: GEMINI_API_KEY,
           }).catch((err) => {
             console.warn('handleFinish: figure diagnosis failed', err.message);
             return null;
