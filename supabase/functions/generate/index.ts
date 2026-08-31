@@ -1,3 +1,5 @@
+import { createClient } from 'npm:@supabase/supabase-js@2';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -12,6 +14,7 @@ type GenerateRequest = {
 };
 
 const MAX_INPUT_CHARACTERS = 40_000;
+const ALLOWED_MODELS = new Set(['claude-haiku-4-5-20251001']);
 
 Deno.serve(async (request: Request) => {
   if (request.method === 'OPTIONS') {
@@ -21,6 +24,19 @@ Deno.serve(async (request: Request) => {
     return json({ error: 'Method not allowed' }, 405);
   }
 
+  const authorization = request.headers.get('Authorization');
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  if (!authorization || !supabaseUrl || !supabaseAnonKey) {
+    return json({ error: 'Authentication required' }, 401);
+  }
+  const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authorization } },
+    auth: { persistSession: false },
+  });
+  const { data: { user }, error: authError } = await authClient.auth.getUser();
+  if (authError || !user) return json({ error: 'Authentication required' }, 401);
+
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) return json({ error: 'ANTHROPIC_API_KEY is not configured' }, 503);
 
@@ -29,6 +45,8 @@ Deno.serve(async (request: Request) => {
     if (!Array.isArray(body.messages) || body.messages.length === 0) {
       return json({ error: 'messages are required' }, 400);
     }
+    const model = body.model ?? Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-haiku-4-5-20251001';
+    if (!ALLOWED_MODELS.has(model)) return json({ error: 'Unsupported model' }, 400);
     const validMessages = body.messages.every((message) =>
       (message.role === 'user' || message.role === 'assistant')
       && typeof message.content === 'string'
@@ -48,7 +66,7 @@ Deno.serve(async (request: Request) => {
         'x-api-key': apiKey,
       },
       body: JSON.stringify({
-        model: body.model ?? Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-haiku-4-5-20251001',
+        model,
         system: body.system ?? '',
         messages: body.messages,
         max_tokens: Math.min(Math.max(body.maxTokens ?? 1024, 1), 4096),

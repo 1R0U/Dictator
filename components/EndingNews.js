@@ -115,8 +115,11 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
 
   useEffect(() => {
     if (hasAudio || !scene?.narration) return undefined;
-    Speech.stop().then(() => Speech.speak(scene.narration, { rate: 1 }));
-    return () => { Speech.stop(); };
+    let cancelled = false;
+    Speech.stop().then(() => {
+      if (!cancelled) Speech.speak(scene.narration, { rate: 1 });
+    });
+    return () => { cancelled = true; Speech.stop(); };
   }, [hasAudio, scene?.key, scene?.narration]);
 
   useEffect(() => {

@@ -1,20 +1,22 @@
 const memory = new Map<string, string>();
 
 function storage() {
-  return typeof window !== 'undefined' ? window.localStorage : null;
+  try { return typeof window !== 'undefined' ? window.localStorage : null; }
+  catch { return null; }
 }
 
 const AsyncStorage = {
   async getItem(key: string) {
-    return storage()?.getItem(key) ?? memory.get(key) ?? null;
+    try { return storage()?.getItem(key) ?? memory.get(key) ?? null; }
+    catch { return memory.get(key) ?? null; }
   },
   async setItem(key: string, value: string) {
     const target = storage();
-    if (target) target.setItem(key, value);
-    else memory.set(key, value);
+    try { target?.setItem(key, value); } catch { /* use memory fallback */ }
+    memory.set(key, value);
   },
   async removeItem(key: string) {
-    storage()?.removeItem(key);
+    try { storage()?.removeItem(key); } catch { /* memory is still cleared */ }
     memory.delete(key);
   },
 };

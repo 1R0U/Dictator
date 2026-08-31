@@ -1,6 +1,8 @@
 // AI API共通クライアント：サーバーレス関数経由でGemini APIを呼び出す。
 // APIキーはサーバー側に保持し、クライアントには渡さない。
 
+import { supabase } from '../lib/supabase';
+
 const TIMEOUT_MS = 15000;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
@@ -17,9 +19,11 @@ function wait(ms) {
 }
 
 export async function callClaudeApi({ apiKey, model, system, messages, maxTokens, responseSchema }) {
-  if (!API_BASE_URL || !SUPABASE_ANON_KEY) {
+  if (!API_BASE_URL || !SUPABASE_ANON_KEY || !supabase) {
     throw new Error('Supabase AI function is not configured');
   }
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error('Sign in is required for AI generation');
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -27,7 +31,7 @@ export async function callClaudeApi({ apiKey, model, system, messages, maxTokens
     try {
       const headers = { 'Content-Type': 'application/json' };
       headers.apikey = SUPABASE_ANON_KEY;
-      headers.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
+      headers.Authorization = `Bearer ${session.access_token}`;
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
         headers,

@@ -10,6 +10,7 @@ import CornerMessenger from './CornerMessenger';
 import PressableScale from './PressableScale';
 import ScreenContainer, { useResponsiveLayout } from './ScreenContainer';
 import { loadResults } from '../data/history';
+import { supabase } from '../lib/supabase';
 import { playSoundEffect } from '../utils/sound';
 import {
   HISTORY_PAGE_SIZE,
@@ -67,6 +68,17 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
     return () => {
       requestIdRef.current += 1;
     };
+  }, [fetchHistory]);
+
+  useEffect(() => {
+    if (!supabase) return undefined;
+    const { data } = supabase.auth.onAuthStateChange(() => {
+      requestIdRef.current += 1;
+      setResults([]);
+      setPage(0);
+      fetchHistory();
+    });
+    return () => data.subscription.unsubscribe();
   }, [fetchHistory]);
 
   return (
