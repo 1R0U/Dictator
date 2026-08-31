@@ -1,4 +1,4 @@
-const memory = new Map<string, string>();
+const memory = new Map<string, string | null>();
 
 function storage() {
   try { return typeof window !== 'undefined' ? window.localStorage : null; }
@@ -7,7 +7,8 @@ function storage() {
 
 const AsyncStorage = {
   async getItem(key: string) {
-    try { return storage()?.getItem(key) ?? memory.get(key) ?? null; }
+    if (memory.has(key)) return memory.get(key) ?? null;
+    try { return storage()?.getItem(key) ?? null; }
     catch { return memory.get(key) ?? null; }
   },
   async setItem(key: string, value: string) {
@@ -17,7 +18,7 @@ const AsyncStorage = {
   },
   async removeItem(key: string) {
     try { storage()?.removeItem(key); } catch { /* memory is still cleared */ }
-    memory.delete(key);
+    memory.set(key, null);
   },
 };
 

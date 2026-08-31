@@ -22,7 +22,7 @@ Next.jsをアプリの正式なエントリーポイントとし、既存ゲー�
 
 - Node.js / npm
 - Supabaseプロジェクト
-- Supabase CLI（`npx supabase`、または公式手順でインストール）
+- Supabase CLI（このREADMEでは`npx supabase`で実行）
 - Claude APIキー（Supabase Edge Function secretとしてのみ設定）
 - `.env.example`をコピーした`.env.local`
 
@@ -38,7 +38,7 @@ npm run dev
 - `http://localhost:3000`をブラウザで開く
 - `npm run typecheck`でTypeScript型検査、`npm test`でゲームロジックのテストを実行する
 - `npm run build`でVercel向け本番ビルドを確認する
-- `supabase db push`で履歴テーブル、`supabase functions deploy generate`でAI関数を反映する
+- `npx supabase db push`で履歴テーブル、`npx supabase functions deploy generate`でAI関数を反映する
 
 ### ディレクトリ構成
 
