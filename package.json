@@ -1,27 +1,27 @@
 {
   "name": "desire-nation-sim",
   "version": "1.0.0",
-  "main": "index.js",
   "dependencies": {
-    "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "^2.112.4",
-    "expo": "~54.0.36",
-    "expo-audio": "~1.1.1",
-    "expo-file-system": "~19.0.24",
-    "expo-speech": "~14.0.8",
-    "expo-status-bar": "~3.0.9",
+    "next": "^16.3.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-native": "0.81.5",
     "react-native-web": "^0.21.2"
   },
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "node scripts/dev-web.js",
+    "dev": "next dev --webpack",
+    "start": "next start",
+    "build": "next build --webpack",
+    "typecheck": "tsc --noEmit",
+    "web": "next dev --webpack",
     "test": "node --test",
     "sync-roadmap": "node scripts/sync-roadmap.js"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "typescript": "^5.9.3"
+  }
 }

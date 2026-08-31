@@ -39,6 +39,14 @@ jobs:
         if: steps.pkg.outputs.exists == 'true'
         run: npm test --if-present
 
+      - name: Typecheck
+        if: steps.pkg.outputs.exists == 'true'
+        run: npm run typecheck
+
+      - name: Build
+        if: steps.pkg.outputs.exists == 'true'
+        run: npm run build
+
       - name: No package.json yet
         if: steps.pkg.outputs.exists == 'false'
         run: echo "package.json not found yet - skipping install/lint/test."

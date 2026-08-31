@@ -1,0 +1,4 @@
+project_id = "desire-nation-sim"
+
+[functions.generate]
+verify_jwt = true

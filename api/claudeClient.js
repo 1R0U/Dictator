@@ -5,22 +5,33 @@ const TIMEOUT_MS = 15000;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || '/api/generate';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const FUNCTION_NAME = process.env.NEXT_PUBLIC_AI_FUNCTION_NAME || 'generate';
+const API_BASE_URL = SUPABASE_URL
+  ? `${SUPABASE_URL}/functions/v1/${FUNCTION_NAME}`
+  : null;
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function callClaudeApi({ apiKey, model, system, messages, maxTokens, responseSchema }) {
+  if (!API_BASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error('Supabase AI function is not configured');
+  }
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      headers.apikey = SUPABASE_ANON_KEY;
+      headers.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ system, messages, maxTokens, responseSchema }),
+        headers,
+        body: JSON.stringify({ model, system, messages, maxTokens, responseSchema }),
         signal: controller.signal,
       });
 

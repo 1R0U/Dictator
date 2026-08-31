@@ -26,7 +26,10 @@ async function appendLocalEntry(result) {
 async function saveToSupabase(entry) {
   if (!supabase) return;
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
     const { error } = await supabase.from('game_results').insert({
+      user_id: user.id,
       declaration_summary: entry.declarationSummary ?? '',
       desire_axes: entry.desireAxes ?? {},
       ending_type: entry.endingType ?? '',
@@ -61,6 +64,11 @@ export async function loadResults() {
     return entries.reverse();
   }
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      const entries = await readLocalEntries();
+      return entries.reverse();
+    }
     const { data, error } = await supabase
       .from('game_results')
       .select('*')
