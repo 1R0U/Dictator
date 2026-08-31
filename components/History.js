@@ -10,6 +10,8 @@ import CornerMessenger from './CornerMessenger';
 import PressableScale from './PressableScale';
 import ScreenContainer, { useResponsiveLayout } from './ScreenContainer';
 import { loadResults } from '../data/history';
+import { supabase } from '../lib/supabase';
+import { scheduleAuthHistoryReload } from '../game/authHistory';
 import { playSoundEffect } from '../utils/sound';
 import {
   HISTORY_PAGE_SIZE,
@@ -66,6 +68,25 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
     fetchHistory();
     return () => {
       requestIdRef.current += 1;
+    };
+  }, [fetchHistory]);
+
+  useEffect(() => {
+    if (!supabase) return undefined;
+    const pendingReloads = new Set();
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      requestIdRef.current += 1;
+      setResults([]);
+      setPage(0);
+      const timer = scheduleAuthHistoryReload(event, () => {
+        pendingReloads.delete(timer);
+        fetchHistory();
+      });
+      if (timer !== null) pendingReloads.add(timer);
+    });
+    return () => {
+      data.subscription.unsubscribe();
+      pendingReloads.forEach(clearTimeout);
     };
   }, [fetchHistory]);
 

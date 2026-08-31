@@ -26,7 +26,10 @@ async function appendLocalEntry(result) {
 async function saveToSupabase(entry) {
   if (!supabase) return;
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
     const { error } = await supabase.from('game_results').insert({
+      user_id: user.id,
       declaration_summary: entry.declarationSummary ?? '',
       desire_axes: entry.desireAxes ?? {},
       ending_type: entry.endingType ?? '',
@@ -60,7 +63,14 @@ export async function loadResults() {
     const entries = await readLocalEntries();
     return entries.reverse();
   }
+  let isAuthenticated = false;
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      const entries = await readLocalEntries();
+      return entries.reverse();
+    }
+    isAuthenticated = true;
     const { data, error } = await supabase
       .from('game_results')
       .select('*')
@@ -78,8 +88,9 @@ export async function loadResults() {
       }));
     }
   } catch (err) {
-    console.warn('Supabase load failed, using local:', err.message);
+    console.warn('Supabase load failed:', err.message);
   }
+  if (isAuthenticated) return [];
   const entries = await readLocalEntries();
   return entries.reverse();
 }

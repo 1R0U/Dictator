@@ -5,24 +5,26 @@
 
 ## Stack（最終スタック）
 
-| レイヤー | 技術 | 理由 |
+| レイヤー | 技術 | 役割 |
 |---|---|---|
-| 開発環境 | Expo Snack → ローカルExpo | 環境構築ゼロでブラウザから即実機プレビュー。詰まったらローカルに移行。 |
-| 言語 | JavaScript | 型エラーで手を止めない。ハッカソンでは速度優先。 |
-| 状態管理 | useState / useReducer | 一本道の進行なのでライブラリ不要。 |
-| 永続化 | AsyncStorage（結果アーカイブのみ） | 進行中のセーブは持たないが、完了したプレイの結果だけ配列で保存し、あとから見返せるようにする。 |
-| 画面遷移 | react-navigation不使用 | stage indexの切り替えのみで一本道を表現できる。 |
-| AI連携 | Claude API（Haiku中心）を直接fetch | ネイティブ実行はCORS制約なし。サーバーを挟まず即動く。 |
-
-画像生成・マルチプレイ・自由入力へのFunction callingは今回スコープ外。時間が余った場合の拡張候補として後述。
+| フレームワーク | Next.js（App Router） | Web専業。SSR、ルーティング、APIレイヤーを一体で担う。 |
+| 言語 | TypeScript | 長期開発を見据え、既存JavaScriptロジックを段階的に型付けする。 |
+| UI | React 19 | 現行と同じメンタルモデルを維持する。移行中の既存UIにはreact-native-webを利用する。 |
+| 認証 | Supabase Auth | メールリンク認証と複数端末ログインを実現する。 |
+| DB | Supabase Postgres | プレイ履歴をユーザーIDに紐付け、RLSを有効にしてクラウド同期する。 |
+| AI連携 | Supabase Edge Functions | Claude API呼び出しと秘密鍵をサーバー側に隔離する。 |
+| ホスティング | Vercel + Supabase Cloud | フロントとBaaSをそれぞれのマネージドサービスへ委譲する。 |
+| 状態管理 | React標準（必要時Zustand） | 一本道の進行のため、当面は追加ライブラリを使わない。 |
 
 ## Setup（環境構築）
 
-`npx create-expo-app`相当の雛形（`package.json` / `App.js` / `app.json` / `index.js`）は作成済み。Snackを経由せず、最初からローカルExpoで開始している（詰まったときの避難先ではなく本線）。
+Next.jsをアプリの正式なエントリーポイントとし、既存ゲームUIは移行期間中react-native-web互換層で再利用する。Claudeの秘密鍵はNext.jsへ置かず、Supabase Edge Functionのsecretとして管理する。
 
-- **Node.js 20系 / npm** — CI（[.github/workflows/ci.yml](.github/workflows/ci.yml)）もNode 20で揃えている
-- **実機確認用にExpo Goアプリ**（iOS/Android）、またはシミュレータ/エミュレータ
-- **Claude APIキー** — `.env`等で環境変数として渡し、リポジトリにはコミットしない（クライアントから直接fetchするため、公開ビルドでのキー露出に注意）
+- Node.js / npm
+- Supabaseプロジェクト
+- Supabase CLI（このREADMEでは`npx supabase`で実行）
+- Claude APIキー（Supabase Edge Function secretとしてのみ設定）
+- `.env.example`をコピーした`.env.local`
 
 ### 起動手順
 
@@ -30,23 +32,23 @@
 git clone <このリポジトリ>
 cd Dictator
 npm install
-npx expo start
+npm run dev
 ```
 
-- ターミナルに表示されるQRコードをExpo Goアプリ（iOS/Android）で読み取ると実機プレビューできる
-- ブラウザで確認したい場合は起動後に`w`キー、またはコマンド`npx expo start --web`
-- シミュレータ/エミュレータを使う場合は起動後に`i`（iOS）/ `a`（Android）キー
-
-### もしローカルで詰まったら（Expo Snackへの退避）
-
-ローカル環境構築がうまくいかない場合は、[snack.expo.dev](https://snack.expo.dev/) に`App.js`の中身を貼り付けるだけでブラウザ実機プレビューに切り替えられる（`components/` 以下など複数ファイルに分かれた分はSnack上に個別ファイルとして作成し直す）。
+- `http://localhost:3000`をブラウザで開く
+- `npm run typecheck`でTypeScript型検査、`npm test`でゲームロジックのテストを実行する
+- `npm run build`でVercel向け本番ビルドを確認する
+- `npx supabase db push`で履歴テーブル、`npx supabase functions deploy generate`でAI関数を反映する
 
 ### ディレクトリ構成
 
+- `app/` — Next.js App Routerのレイアウトとページ
 - `components/` — UIコンポーネント（画面・表示部品）
 - `api/` — Claude API呼び出し関数（`mapDesire.js` / `generateBeat.js` / `generateEnding.js`）
 - `data/` — 欲望軸・プロンプト・履歴などの静的データ定義
 - `game/` — メーター加算やエンディング判定などのゲームロジック
+- `supabase/` — Postgres migrationとEdge Functions
+- `shims/` — Expo UIをWebへ段階移行するための一時的なブラウザ互換層
 
 ## Flow（画面 / 進行フロー）
 
@@ -92,7 +94,7 @@ npx expo start
 
 ## History（過去の結果を振り返る機能）
 
-1プレイ中の進行状態そのものは保存しないが、完了したプレイの「結果」だけは端末に貯めていき、あとから見返せるようにする。
+1プレイ中の進行状態そのものは保存しない。ログイン中は完了したプレイの「結果」をユーザーIDに紐付けてSupabaseへ保存し、複数端末で同期する。未ログイン時や通信失敗時はブラウザのローカル保存をフォールバックとして使う。
 
 - **保存タイミング** — エンディング表示が完了した時点で1件を配列に追記する
 - **保存する内容** — 日時／冒頭宣言の要約／最終的な欲望軸の値／選ばれたエンディング型と見出し

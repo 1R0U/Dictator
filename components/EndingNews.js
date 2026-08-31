@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import * as Speech from 'expo-speech';
 
 import { getSceneAtTime } from '../game/endingNews';
 
@@ -111,6 +112,15 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
     const timer = setInterval(() => setFallbackSeconds((value) => value + 0.1), 100);
     return () => clearInterval(timer);
   }, [hasAudio]);
+
+  useEffect(() => {
+    if (hasAudio || !scene?.narration) return undefined;
+    let cancelled = false;
+    Speech.stop().then(() => {
+      if (!cancelled) Speech.speak(scene.narration, { rate: 1 });
+    });
+    return () => { cancelled = true; Speech.stop(); };
+  }, [hasAudio, scene?.key, scene?.narration]);
 
   useEffect(() => {
     fade.setValue(0);
