@@ -39,6 +39,7 @@ npm run dev
 - `npm run typecheck`でTypeScript型検査、`npm test`でゲームロジックのテストを実行する
 - `npm run build`でVercel向け本番ビルドを確認する
 - `npx supabase db push`で履歴テーブル、`npx supabase functions deploy generate`でAI関数を反映する
+- アプリ更新前に履歴メタデータ用migration（`20260906000000_preserve_history_metadata.sql`）も適用する。既存履歴で欠落している人物診断・欲望値の形式バージョンは自動復元しない。
 
 ### ディレクトリ構成
 

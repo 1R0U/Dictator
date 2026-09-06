@@ -94,7 +94,7 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
     let cancelled = false;
     setHasPlaybackFailed(false);
     setAudioModeAsync({ playsInSilentMode: true })
-      .then(() => { if (!cancelled && audioUri) player.play(); })
+      .then(() => { if (!cancelled && audioUri) return player.play(); })
       .catch(() => { if (!cancelled && audioUri) setHasPlaybackFailed(true); });
     return () => { cancelled = true; };
   }, [audioUri, player]);

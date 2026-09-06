@@ -12,9 +12,30 @@ export function AuthPanel() {
 
   useEffect(() => {
     if (!supabase) return undefined;
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
-    return () => data.subscription.unsubscribe();
+    let active = true;
+    let receivedAuthEvent = false;
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!active || receivedAuthEvent) return;
+      if (error) {
+        setMessage('ログイン状態を確認できませんでした。ページを再読み込みしてください。');
+        return;
+      }
+      setSession(data.session);
+    }).catch(() => {
+      if (active && !receivedAuthEvent) {
+        setMessage('ログイン状態を確認できませんでした。ページを再読み込みしてください。');
+      }
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!active) return;
+      receivedAuthEvent = true;
+      setSession(nextSession);
+      setMessage('');
+    });
+    return () => {
+      active = false;
+      data.subscription.unsubscribe();
+    };
   }, []);
 
   if (!isSupabaseConfigured || !supabase) {
@@ -40,11 +61,25 @@ export function AuthPanel() {
     }
   }
 
+  async function signOut() {
+    setBusy(true);
+    setMessage('');
+    try {
+      const { error } = await client.auth.signOut();
+      if (error) throw error;
+    } catch {
+      setMessage('ログアウトできませんでした。もう一度お試しください。');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (session?.user) {
     return (
       <aside className="auth-panel" aria-label="アカウント">
         <span className="auth-message">{session.user.email}</span>
-        <button type="button" onClick={() => client.auth.signOut()}>ログアウト</button>
+        <button disabled={busy} type="button" onClick={signOut}>ログアウト</button>
+        {message ? <span className="auth-message" role="status">{message}</span> : null}
       </aside>
     );
   }

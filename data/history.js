@@ -39,6 +39,8 @@ async function saveToSupabase(entry, user) {
     user_id: user.id,
     declaration_summary: entry.declarationSummary ?? '',
     desire_axes: entry.desireAxes ?? {},
+    desire_scale_version: entry.desireScaleVersion ?? null,
+    figure_diagnosis: entry.figureDiagnosis ?? null,
     ending_type: entry.endingType ?? '',
     ending_headline: entry.endingTitle ?? '',
     ending_body: entry.endingBody ?? '',
@@ -82,6 +84,8 @@ export async function loadResults() {
   return (data ?? []).map((row) => ({
     declarationSummary: row.declaration_summary,
     desireAxes: row.desire_axes,
+    desireScaleVersion: row.desire_scale_version,
+    figureDiagnosis: row.figure_diagnosis,
     endingType: row.ending_type,
     endingTitle: row.ending_headline,
     endingBody: row.ending_body,

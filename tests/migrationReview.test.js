@@ -8,7 +8,8 @@ function loadModule(path, dependencies, globals = {}) {
   const exports = {};
   const source = fs.readFileSync(require.resolve(path), 'utf8');
   const { outputText } = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
+    fileName: path.replace(/\.js$/, '.jsx'),
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true, jsx: ts.JsxEmit.ReactJSX },
   });
   vm.runInNewContext(outputText, {
     exports,
@@ -80,6 +81,29 @@ test('cloud failures propagate and never fall back to shared local storage', asy
   h.state.error = null;
   h.state.rows = [{ ending_headline: 'restored' }];
   assert.equal((await h.loadResults())[0].endingTitle, 'restored');
+});
+
+test('cloud round-trip preserves current desire values and figure diagnosis', async () => {
+  const { createHistoryResult, normalizeHistoryResults } = require('../game/historyView');
+  const h = historyHarness();
+  const entry = createHistoryResult({
+    desireAxes: { domination: 0, egoism: -25, innovation: 50, prestige: 100, madness: -100 },
+    figureDiagnosis: { name: 'test figure', body: 'test diagnosis' },
+  });
+  await h.saveResult(entry);
+  h.state.rows = h.state.inserted;
+  const [loaded] = normalizeHistoryResults(await h.loadResults());
+  assert.deepEqual(loaded.desireAxes, entry.desireAxes);
+  assert.equal(loaded.desireScaleVersion, entry.desireScaleVersion);
+  assert.deepEqual(loaded.figureDiagnosis, entry.figureDiagnosis);
+});
+
+test('legacy cloud rows still use legacy scale conversion', async () => {
+  const { normalizeHistoryResults } = require('../game/historyView');
+  const h = historyHarness();
+  h.state.rows = [{ desire_axes: { domination: 50 }, desire_scale_version: null }];
+  const [loaded] = normalizeHistoryResults(await h.loadResults());
+  assert.equal(loaded.desireAxes.domination, 0);
 });
 
 test('auth lookup failures cannot save or load guest history', async () => {
@@ -215,4 +239,220 @@ test('audio status preserves object identity while idle and updates on playback 
   audio.ended = true;
   tick();
   assert.equal(status.didJustFinish, true);
+});
+
+test('audio hook recreates its media element after effect cleanup and remount', async () => {
+  let effect;
+  const instances = [];
+  const api = loadModule('../shims/expo-audio.ts', {
+    react: { useMemo: (factory) => factory(), useEffect: (callback) => { effect = callback; } },
+  }, {
+    Audio: class {
+      constructor(uri) { this.uri = uri; this.paused = true; instances.push(this); }
+      play() { this.paused = false; return Promise.resolve(); }
+      pause() { this.paused = true; }
+    },
+  });
+  const player = api.useAudioPlayer('narration.mp3');
+  assert.equal(instances.length, 0, 'render should not allocate media resources');
+  const cleanup = effect();
+  await player.play();
+  assert.equal(instances[0].paused, false);
+  cleanup();
+  assert.equal(instances[0].paused, true);
+  const finalCleanup = effect();
+  await player.play();
+  assert.equal(instances.length, 2);
+  assert.equal(instances[1].paused, false);
+  finalCleanup();
+});
+
+test('rejected ending audio playback activates fallback', async () => {
+  const state = [];
+  const effects = [];
+  const api = loadModule('../components/EndingNews.js', {
+    react: {
+      useState(value) { const index = state.push(value) - 1; return [value, (next) => { state[index] = next; }]; },
+      useRef: (value) => ({ current: value }),
+      useEffect: (effect) => effects.push(effect),
+    },
+    'react/jsx-runtime': { jsx: () => null, jsxs: () => null },
+    'react-native': {
+      Platform: { OS: 'web' }, StyleSheet: { create: (value) => value },
+      useWindowDimensions: () => ({ width: 800, height: 800 }),
+      Animated: { Value: class {} },
+    },
+    'expo-audio': {
+      useAudioPlayer: () => ({ play: async () => { throw new Error('autoplay blocked'); } }),
+      useAudioPlayerStatus: () => ({}),
+      setAudioModeAsync: async () => {},
+    },
+    'expo-speech': {},
+    '../game/endingNews': { getSceneAtTime: () => 0 },
+  });
+  api.default({ scenes: [{ narration: 'news', key: 'one' }], audioUri: 'news.mp3' });
+  const cleanup = effects[0]();
+  await new Promise(setImmediate);
+  assert.equal(state[1], true);
+  cleanup();
+});
+
+test('sound effects absorb asynchronous playback rejection', async () => {
+  let calls = 0;
+  const api = loadModule('../utils/sound.js', {
+    'expo-audio': { createAudioPlayer: () => ({
+      seekTo: async () => {},
+      play: async () => { calls += 1; throw new Error('autoplay blocked'); },
+    }) },
+    '../data/soundEffects': { SOUND_EFFECTS: { click: 'click.mp3' } },
+  });
+  api.playSoundEffect('click');
+  await new Promise(setImmediate);
+  assert.equal(calls, 1);
+});
+
+function authPanelHarness(initial, signOut = async () => ({})) {
+  const state = [];
+  let cursor = 0;
+  let effect;
+  let callback;
+  const api = loadModule('../components/web/AuthPanel.tsx', {
+    react: {
+      useState(value) {
+        const index = cursor++;
+        if (!(index in state)) state[index] = value;
+        return [state[index], (next) => { state[index] = next; }];
+      },
+      useEffect: (next) => { effect = next; },
+    },
+    'react/jsx-runtime': { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) },
+    '../../lib/supabase': { isSupabaseConfigured: true, supabase: { auth: {
+      getSession: () => initial,
+      onAuthStateChange(next) { callback = next; return { data: { subscription: { unsubscribe() {} } } }; },
+      signOut,
+    } } },
+  });
+  const render = () => { cursor = 0; return api.AuthPanel(); };
+  render();
+  const cleanup = effect();
+  return { state, render, cleanup, emit: (session) => callback('SIGNED_OUT', session) };
+}
+
+test('late initial auth lookup cannot restore the signed-out account', async () => {
+  let resolve;
+  const h = authPanelHarness(new Promise((done) => { resolve = done; }));
+  h.emit(null);
+  resolve({ data: { session: { user: { id: 'old-account' } } } });
+  await new Promise(setImmediate);
+  assert.equal(h.state[0], null);
+  h.cleanup();
+});
+
+test('auth lookup completion after unmount does not update state', async () => {
+  let resolve;
+  const h = authPanelHarness(new Promise((done) => { resolve = done; }));
+  h.cleanup();
+  resolve({ data: { session: { user: { id: 'old-account' } } } });
+  await new Promise(setImmediate);
+  assert.equal(h.state[0], null);
+});
+
+test('initial auth lookup rejection is handled and displayed', async () => {
+  const h = authPanelHarness(Promise.reject(new Error('offline')));
+  await new Promise(setImmediate);
+  assert.ok(h.state[2]);
+  h.cleanup();
+});
+
+for (const throws of [false, true]) {
+  test(`sign-out ${throws ? 'rejection' : 'error response'} keeps the account and displays an error`, async () => {
+    const session = { user: { id: 'alice', email: 'alice@example.test' } };
+    const h = authPanelHarness(Promise.resolve({ data: { session } }), async () => {
+      if (throws) throw new Error('offline');
+      return { error: new Error('offline') };
+    });
+    await new Promise(setImmediate);
+    const button = h.render().props.children.find((child) => child?.type === 'button');
+    await button.props.onClick();
+    assert.equal(h.state[0], session);
+    assert.ok(h.state[2]);
+    assert.equal(h.state[3], false);
+    const status = h.render().props.children.find((child) => child?.props?.role === 'status');
+    assert.ok(status);
+    h.cleanup();
+  });
+}
+
+function edgeHarness(upstream = new Response(JSON.stringify({ content: [{ type: 'text', text: 'ok' }] })), authLookup = async () => ({ data: { user: { id: 'alice' } }, error: null })) {
+  let handler;
+  const requests = [];
+  loadModule('../supabase/functions/generate/index.ts', {
+    'npm:@supabase/supabase-js@2': { createClient: () => ({ auth: {
+      getUser: authLookup,
+    } }) },
+  }, {
+    Deno: { env: { get: (key) => key === 'ANTHROPIC_MODEL' ? undefined : 'test' }, serve: (next) => { handler = next; } },
+    Response,
+    fetch: async (_url, options) => { requests.push(JSON.parse(options.body)); return upstream; },
+  });
+  return { requests, call: (body) => handler(new Request('https://example.test/generate', {
+    method: 'POST', headers: { Authorization: 'Bearer test' }, body,
+  })) };
+}
+
+for (const body of ['{', 'null', '[]', '{"messages":[null]}',
+  '{"messages":[{"role":"user","content":42}]}',
+  '{"messages":[{"role":"user","content":"ok"}],"system":{}}',
+  '{"messages":[{"role":"user","content":"ok"}],"maxTokens":1.5}',
+  '{"messages":[{"role":"user","content":"ok"}],"maxTokens":"100"}',
+]) {
+  test(`invalid generation input returns 400: ${body}`, async () => {
+    const h = edgeHarness();
+    assert.equal((await h.call(body)).status, 400);
+    assert.equal(h.requests.length, 0);
+  });
+}
+
+test('generation still forwards valid input with bounded output tokens', async () => {
+  const h = edgeHarness();
+  const response = await h.call(JSON.stringify({ messages: [{ role: 'user', content: 'ok' }], maxTokens: 9000 }));
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).text, 'ok');
+  assert.equal(h.requests[0].max_tokens, 4096);
+});
+
+test('non-JSON upstream errors preserve their HTTP status', async () => {
+  const h = edgeHarness(new Response('overloaded', { status: 529 }));
+  const response = await h.call(JSON.stringify({ messages: [{ role: 'user', content: 'ok' }] }));
+  assert.equal(response.status, 529);
+});
+
+test('auth service rejection produces a retryable JSON response without calling Claude', async () => {
+  const h = edgeHarness(undefined, async () => { throw new Error('connection failed'); });
+  const response = await h.call('{"messages":[{"role":"user","content":"ok"}]}');
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error, 'Authentication service unavailable');
+  assert.equal(response.headers.get('Access-Control-Allow-Origin'), '*');
+  assert.equal(h.requests.length, 0);
+});
+
+test('invalid auth is still rejected before calling Claude', async () => {
+  const h = edgeHarness(undefined, async () => ({ data: { user: null }, error: new Error('invalid token') }));
+  const response = await h.call('{"messages":[{"role":"user","content":"ok"}]}');
+  assert.equal(response.status, 401);
+  assert.equal(h.requests.length, 0);
+});
+
+test('successful sign-out still updates the panel through its auth event', async () => {
+  const h = authPanelHarness(Promise.resolve({ data: { session: { user: { id: 'alice' } } } }), async () => {
+    h.emit(null);
+    return { error: null };
+  });
+  await new Promise(setImmediate);
+  const button = h.render().props.children.find((child) => child?.type === 'button');
+  await button.props.onClick();
+  assert.equal(h.state[0], null);
+  assert.equal(h.state[2], '');
+  assert.equal(h.state[3], false);
+  h.cleanup();
 });

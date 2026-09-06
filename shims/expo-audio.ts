@@ -11,8 +11,11 @@ function resolveSource(source: AudioSource) {
 class WebAudioPlayer {
   audio: HTMLAudioElement | null = null;
 
-  constructor(source: AudioSource) {
-    if (typeof Audio !== 'undefined') this.audio = new Audio(resolveSource(source));
+  constructor(private source: AudioSource) {}
+
+  load() {
+    const uri = resolveSource(this.source);
+    if (!this.audio && uri && typeof Audio !== 'undefined') this.audio = new Audio(uri);
   }
 
   play() { return this.audio?.play() ?? Promise.resolve(); }
@@ -22,12 +25,17 @@ class WebAudioPlayer {
 }
 
 export function createAudioPlayer(source: AudioSource) {
-  return new WebAudioPlayer(source);
+  const player = new WebAudioPlayer(source);
+  player.load();
+  return player;
 }
 
 export function useAudioPlayer(source: AudioSource) {
   const player = useMemo(() => new WebAudioPlayer(source), [source]);
-  useEffect(() => () => player.remove(), [player]);
+  useEffect(() => {
+    player.load();
+    return () => player.remove();
+  }, [player]);
   return player;
 }
 
