@@ -117,7 +117,7 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
     if (hasAudio || !scene?.narration) return undefined;
     let cancelled = false;
     Speech.stop().then(() => {
-      if (!cancelled) Speech.speak(scene.narration, { rate: 1 });
+      if (!cancelled) Speech.speak(scene.narration, { language: 'ja-JP', rate: 1 });
     });
     return () => { cancelled = true; Speech.stop(); };
   }, [hasAudio, scene?.key, scene?.narration]);

@@ -49,7 +49,7 @@ function mountHistory(loadHistory) {
   return { state, requestId, emit: (event) => onAuth(event), cleanup: () => cleanups.forEach((fn) => fn?.()) };
 }
 
-for (const event of ['TOKEN_REFRESHED', 'USER_UPDATED', 'PASSWORD_RECOVERY']) {
+for (const event of ['INITIAL_SESSION', 'TOKEN_REFRESHED', 'USER_UPDATED', 'PASSWORD_RECOVERY']) {
   test(`${event} preserves displayed history, page and an in-flight request`, async () => {
     let resolve;
     const view = mountHistory(() => new Promise((done) => { resolve = done; }));
@@ -72,7 +72,7 @@ for (const event of ['TOKEN_REFRESHED', 'USER_UPDATED', 'PASSWORD_RECOVERY']) {
   });
 }
 
-for (const event of ['INITIAL_SESSION', 'SIGNED_IN', 'SIGNED_OUT']) {
+for (const event of ['SIGNED_IN', 'SIGNED_OUT']) {
   test(`${event} clears old history immediately and reloads outside the auth callback`, async () => {
     let calls = 0;
     const view = mountHistory(async () => { calls += 1; return []; });
@@ -94,3 +94,26 @@ for (const event of ['INITIAL_SESSION', 'SIGNED_IN', 'SIGNED_OUT']) {
     }
   });
 }
+
+test('INITIAL_SESSION does not duplicate the initial history load', async () => {
+  let calls = 0;
+  const view = mountHistory(async () => { calls += 1; return []; });
+  try {
+    view.emit('INITIAL_SESSION');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(calls, 1);
+  } finally {
+    view.cleanup();
+  }
+});
+
+test('a failed history request sets the error state instead of showing empty history', async () => {
+  const view = mountHistory(async () => { throw new Error('offline'); });
+  try {
+    await new Promise(setImmediate);
+    assert.equal(view.state[1], false);
+    assert.ok(view.state[2]);
+  } finally {
+    view.cleanup();
+  }
+});

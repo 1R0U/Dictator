@@ -12,7 +12,7 @@
     "dev": "next dev --webpack",
     "start": "next start",
     "build": "next build --webpack",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "web": "next dev --webpack",
     "test": "node --test",
     "sync-roadmap": "node scripts/sync-roadmap.js"

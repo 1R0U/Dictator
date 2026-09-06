@@ -39,14 +39,23 @@ export function useAudioPlayerStatus(player: WebAudioPlayer) {
   useEffect(() => {
     const timer = window.setInterval(() => {
       const audio = player.audio;
-      setStatus({
+      const nextStatus = {
         playing: Boolean(audio && !audio.paused && !audio.ended),
         isLoaded: Boolean(audio && audio.readyState >= 1),
         didJustFinish: Boolean(audio?.ended),
         duration: Number.isFinite(audio?.duration) ? audio?.duration ?? 0 : 0,
         currentTime: audio?.currentTime ?? 0,
         playbackState: audio?.error ? 'error' : 'ready',
-      });
+      };
+      setStatus((previous) => (
+        previous.playing === nextStatus.playing
+        && previous.isLoaded === nextStatus.isLoaded
+        && previous.didJustFinish === nextStatus.didJustFinish
+        && previous.duration === nextStatus.duration
+        && previous.currentTime === nextStatus.currentTime
+        && previous.playbackState === nextStatus.playbackState
+          ? previous : nextStatus
+      ));
     }, 100);
     return () => window.clearInterval(timer);
   }, [player]);

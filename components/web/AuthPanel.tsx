@@ -17,7 +17,9 @@ export function AuthPanel() {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  if (!isSupabaseConfigured || !supabase) return null;
+  if (!isSupabaseConfigured || !supabase) {
+    return <aside className="auth-panel" role="status">現在はサンプル文章で遊べます。AI生成は利用できません。</aside>;
+  }
   const client = supabase;
 
   async function signIn(event: FormEvent) {
@@ -49,6 +51,7 @@ export function AuthPanel() {
 
   return (
     <form className="auth-panel" onSubmit={signIn}>
+      <span className="auth-message">AIが物語を生成するにはログインが必要です。未ログインではサンプル文章で進行します。</span>
       <input
         aria-label="メールアドレス"
         autoComplete="email"

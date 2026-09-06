@@ -39,21 +39,24 @@ export async function callClaudeApi({ apiKey, model, system, messages, maxTokens
         signal: controller.signal,
       });
 
-      if (response.status === 503 && attempt < MAX_RETRIES - 1) {
+      const retryable = response.status === 429 || response.status >= 500;
+      if (retryable && attempt < MAX_RETRIES - 1) {
         clearTimeout(timer);
         await wait(RETRY_DELAY_MS * (attempt + 1));
         continue;
       }
 
       if (!response.ok) {
-        throw new Error('API error: ' + response.status);
+        const error = new Error('API error: ' + response.status);
+        error.retryable = retryable;
+        throw error;
       }
 
       const data = await response.json();
       return data.text ?? '';
     } catch (err) {
       clearTimeout(timer);
-      if (attempt < MAX_RETRIES - 1 && err.name !== 'AbortError') {
+      if (attempt < MAX_RETRIES - 1 && err.name !== 'AbortError' && err.retryable !== false) {
         await wait(RETRY_DELAY_MS * (attempt + 1));
         continue;
       }

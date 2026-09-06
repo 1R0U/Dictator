@@ -1,4 +1,4 @@
-const HISTORY_AUTH_EVENTS = new Set(['INITIAL_SESSION', 'SIGNED_IN', 'SIGNED_OUT']);
+const HISTORY_AUTH_EVENTS = new Set(['SIGNED_IN', 'SIGNED_OUT']);
 
 /** Schedule history loading after Supabase finishes its auth callback. */
 export function scheduleAuthHistoryReload(event, reload, schedule = setTimeout) {

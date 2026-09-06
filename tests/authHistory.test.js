@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 
 const { scheduleAuthHistoryReload } = require('../game/authHistory');
 
-for (const event of ['INITIAL_SESSION', 'SIGNED_IN', 'SIGNED_OUT']) {
+for (const event of ['SIGNED_IN', 'SIGNED_OUT']) {
   test(`${event}後に認証コールバック外で履歴を再読込する`, () => {
     let reloaded = false;
     const scheduled = [];
