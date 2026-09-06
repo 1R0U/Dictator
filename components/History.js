@@ -75,14 +75,16 @@ export default function History({ onBack, onSelect, loadHistory = loadResults })
     if (!supabase) return undefined;
     const pendingReloads = new Set();
     const { data } = supabase.auth.onAuthStateChange((event) => {
-      requestIdRef.current += 1;
-      setResults([]);
-      setPage(0);
       const timer = scheduleAuthHistoryReload(event, () => {
         pendingReloads.delete(timer);
         fetchHistory();
       });
-      if (timer !== null) pendingReloads.add(timer);
+      if (timer !== null) {
+        requestIdRef.current += 1;
+        setResults([]);
+        setPage(0);
+        pendingReloads.add(timer);
+      }
     });
     return () => {
       data.subscription.unsubscribe();
