@@ -28,10 +28,10 @@ async function getHistoryUser() {
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;
   if (!session) return null;
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: { user }, error } = await supabase.auth.getUser(session.access_token);
   if (error) throw error;
   if (!user) throw new Error('Unable to verify history owner');
-  return user;
+  return { id: user.id };
 }
 
 async function saveToSupabase(entry, user) {
@@ -50,8 +50,12 @@ async function saveToSupabase(entry, user) {
 let saveQueue = Promise.resolve();
 
 export function saveResult(result) {
+  // Bind verification to the captured session before waiting for earlier saves.
+  const historyUser = getHistoryUser();
+  // Observe early failures while queued; the original promise still rejects below.
+  historyUser.catch(() => {});
   const run = saveQueue.then(async () => {
-    const user = await getHistoryUser();
+    const user = await historyUser;
     if (!user) return appendLocalEntry(result);
     const entry = { ...result, savedAt: new Date().toISOString() };
     await saveToSupabase(entry, user);

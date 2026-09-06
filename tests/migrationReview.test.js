@@ -29,7 +29,11 @@ function historyHarness() {
     eq(_key, id) { state.filter = id; return this; },
     order() { return this; },
     async limit() { return { data: state.rows, error: state.error }; },
-    async insert(row) { state.inserted.push(row); return { error: state.error }; },
+    async insert(row) {
+      state.inserted.push(row);
+      if (state.pendingInsert) await state.pendingInsert;
+      return { error: state.error };
+    },
   };
   const api = loadModule('../data/history.js', {
     '@react-native-async-storage/async-storage': {
@@ -38,8 +42,13 @@ function historyHarness() {
     },
     '../lib/supabase': { supabase: {
       auth: {
-        async getSession() { return { data: { session: state.user ? {} : null }, error: state.authError }; },
-        async getUser() { return { data: { user: state.user }, error: null }; },
+        async getSession() {
+          return { data: { session: state.user ? { access_token: state.user.id } : null }, error: state.authError };
+        },
+        async getUser(token) {
+          if (state.pendingVerification) await state.pendingVerification;
+          return { data: { user: token ? { id: token } : state.user }, error: null };
+        },
       },
       from: () => query,
     } },
@@ -78,6 +87,68 @@ test('auth lookup failures cannot save or load guest history', async () => {
   h.state.authError = new Error('auth unavailable');
   await assert.rejects(h.loadResults(), /auth unavailable/);
   await assert.rejects(h.saveResult({}), /auth unavailable/);
+  assert.equal(h.store.size, 0);
+});
+
+test('queued saves keep their original owner across sign-out and sign-in', async () => {
+  const h = historyHarness();
+  let releaseInsert;
+  h.state.pendingInsert = new Promise((resolve) => { releaseInsert = resolve; });
+  const first = h.saveResult({ declarationSummary: 'first' });
+  await new Promise(setImmediate);
+  assert.equal(h.state.inserted.length, 1);
+
+  let releaseVerification;
+  h.state.pendingVerification = new Promise((resolve) => { releaseVerification = resolve; });
+  const alice = h.saveResult({ declarationSummary: 'alice queued' });
+  h.state.user = null;
+  const guest = h.saveResult({ declarationSummary: 'guest queued' });
+  h.state.user = { id: 'bob' };
+  const bob = h.saveResult({ declarationSummary: 'bob queued' });
+  await new Promise(setImmediate);
+  assert.equal(h.state.inserted.length, 1);
+  releaseVerification();
+  releaseInsert();
+  await Promise.all([first, alice, guest, bob]);
+  assert.deepEqual(h.state.inserted.map((row) => [row.user_id, row.declaration_summary]), [
+    ['alice', 'first'], ['alice', 'alice queued'], ['bob', 'bob queued'],
+  ]);
+  h.state.user = null;
+  const local = await h.loadResults();
+  assert.equal(local.length, 1);
+  assert.equal(local[0].declarationSummary, 'guest queued');
+});
+
+test('queued signed-in save stays private when the user remains signed out', async () => {
+  const h = historyHarness();
+  let release;
+  h.state.pendingInsert = new Promise((resolve) => { release = resolve; });
+  const first = h.saveResult({});
+  await new Promise(setImmediate);
+  const queued = h.saveResult({ declarationSummary: 'private' });
+  h.state.user = null;
+  release();
+  await Promise.all([first, queued]);
+  assert.equal(h.state.inserted[1].user_id, 'alice');
+  assert.equal(h.store.size, 0);
+});
+
+test('owner lookup failure while queued rejects without leaking or blocking later saves', async () => {
+  const h = historyHarness();
+  let release;
+  h.state.pendingInsert = new Promise((resolve) => { release = resolve; });
+  const first = h.saveResult({});
+  await new Promise(setImmediate);
+  h.state.authError = new Error('auth unavailable');
+  const failed = h.saveResult({ declarationSummary: 'must not save' });
+  const rejection = assert.rejects(failed, /auth unavailable/);
+  await new Promise(setImmediate);
+  h.state.authError = null;
+  const next = h.saveResult({ declarationSummary: 'next' });
+  release();
+  await Promise.all([first, rejection, next]);
+  assert.equal(h.state.inserted.length, 2);
+  assert.equal(h.state.inserted[1].declaration_summary, 'next');
   assert.equal(h.store.size, 0);
 });
 
