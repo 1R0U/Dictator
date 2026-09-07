@@ -109,9 +109,11 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
 
   useEffect(() => {
     if (hasAudio) return undefined;
+    // Cancel pending playback too, so a late load cannot overlap fallback speech.
+    player.pause();
     const timer = setInterval(() => setFallbackSeconds((value) => value + 0.1), 100);
     return () => clearInterval(timer);
-  }, [hasAudio]);
+  }, [hasAudio, player]);
 
   useEffect(() => {
     if (hasAudio || !scene?.narration) return undefined;
@@ -193,7 +195,14 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
         {hasAudio ? (
           <Pressable
             accessibilityRole="button"
-            onPress={() => (status.playing ? player.pause() : player.play())}
+            onPress={async () => {
+              try {
+                if (status.playing) player.pause();
+                else await player.play();
+              } catch {
+                setHasPlaybackFailed(true);
+              }
+            }}
             style={styles.controlButton}
           >
             <Text style={styles.controlText}>{status.playing ? '\u4e00\u6642\u505c\u6b62' : '\u518d\u751f'}</Text>

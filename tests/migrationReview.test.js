@@ -25,23 +25,29 @@ function loadModule(path, dependencies, globals = {}) {
 function historyHarness() {
   const store = new Map();
   const state = { user: { id: 'alice' }, rows: [], error: null, authError: null, inserted: [] };
-  const query = {
+  function queryFor(accessToken) { return {
     select() { return this; },
     eq(_key, id) { state.filter = id; return this; },
     order() { return this; },
-    async limit() { return { data: state.rows, error: state.error }; },
+    async limit() {
+      state.readToken = accessToken;
+      return { data: accessToken === state.filter ? state.rows : [], error: state.error };
+    },
     async insert(row) {
+      if (!accessToken || accessToken !== row.user_id) {
+        return { error: new Error('RLS: token does not match history owner') };
+      }
       state.inserted.push(row);
       if (state.pendingInsert) await state.pendingInsert;
       return { error: state.error };
     },
-  };
+  }; }
   const api = loadModule('../data/history.js', {
     '@react-native-async-storage/async-storage': {
       async getItem(key) { return store.get(key) ?? null; },
       async setItem(key, value) { store.set(key, value); },
     },
-    '../lib/supabase': { supabase: {
+    '../lib/supabase': { createHistoryClient: (token) => ({ from: () => queryFor(token) }), supabase: {
       auth: {
         async getSession() {
           return { data: { session: state.user ? { access_token: state.user.id } : null }, error: state.authError };
@@ -51,7 +57,7 @@ function historyHarness() {
           return { data: { user: token ? { id: token } : state.user }, error: null };
         },
       },
-      from: () => query,
+      from: () => queryFor(state.user?.id),
     } },
   });
   return { ...api, state, store };
@@ -82,6 +88,23 @@ test('cloud failures propagate and never fall back to shared local storage', asy
   h.state.rows = [{ ending_headline: 'restored' }];
   assert.equal((await h.loadResults())[0].endingTitle, 'restored');
 });
+
+for (const nextUser of [null, { id: 'bob' }]) {
+  test(`history lookup keeps its verified identity across ${nextUser ? 'account switch' : 'sign-out'}`, async () => {
+    const h = historyHarness();
+    let release;
+    h.state.pendingVerification = new Promise((resolve) => { release = resolve; });
+    h.state.rows = [{ ending_headline: 'alice result' }];
+    const loading = h.loadResults();
+    await new Promise(setImmediate);
+    h.state.user = nextUser;
+    release();
+    const results = await loading;
+    assert.equal(h.state.readToken, 'alice');
+    assert.equal(results[0].endingTitle, 'alice result');
+    assert.equal(h.store.size, 0);
+  });
+}
 
 test('cloud round-trip preserves current desire values and figure diagnosis', async () => {
   const { createHistoryResult, normalizeHistoryResults } = require('../game/historyView');
@@ -267,16 +290,21 @@ test('audio hook recreates its media element after effect cleanup and remount', 
   finalCleanup();
 });
 
-test('rejected ending audio playback activates fallback', async () => {
+for (const mode of ['automatic', 'manual']) {
+test(`rejected ${mode} ending audio playback activates fallback`, async () => {
   const state = [];
   const effects = [];
+  const buttons = [];
   const api = loadModule('../components/EndingNews.js', {
     react: {
       useState(value) { const index = state.push(value) - 1; return [value, (next) => { state[index] = next; }]; },
       useRef: (value) => ({ current: value }),
       useEffect: (effect) => effects.push(effect),
     },
-    'react/jsx-runtime': { jsx: () => null, jsxs: () => null },
+    'react/jsx-runtime': {
+      jsx: (_type, props) => { if (props.onPress) buttons.push(props.onPress); return null; },
+      jsxs: () => null,
+    },
     'react-native': {
       Platform: { OS: 'web' }, StyleSheet: { create: (value) => value },
       useWindowDimensions: () => ({ width: 800, height: 800 }),
@@ -291,10 +319,69 @@ test('rejected ending audio playback activates fallback', async () => {
     '../game/endingNews': { getSceneAtTime: () => 0 },
   });
   api.default({ scenes: [{ narration: 'news', key: 'one' }], audioUri: 'news.mp3' });
-  const cleanup = effects[0]();
+  const cleanup = mode === 'automatic' ? effects[0]() : () => {};
+  if (mode === 'manual') await buttons[0]();
   await new Promise(setImmediate);
   assert.equal(state[1], true);
   cleanup();
+});
+}
+
+for (const playbackState of ['ready', 'error']) {
+  test(`ending fallback cancels pending audio playback (${playbackState})`, () => {
+    const effects = [];
+    let stateIndex = 0;
+    let pauses = 0;
+    let cleared = false;
+    const api = loadModule('../components/EndingNews.js', {
+      react: {
+        useState(value) { return [stateIndex++ === 1 ? playbackState === 'ready' : value, () => {}]; },
+        useRef: (value) => ({ current: value }),
+        useEffect: (effect) => effects.push(effect),
+      },
+      'react/jsx-runtime': { jsx: () => null, jsxs: () => null },
+      'react-native': {
+        Platform: { OS: 'web' }, StyleSheet: { create: (value) => value },
+        useWindowDimensions: () => ({ width: 800, height: 800 }),
+        Animated: { Value: class {} },
+      },
+      'expo-audio': {
+        useAudioPlayer: () => ({ pause: () => { pauses += 1; } }),
+        useAudioPlayerStatus: () => ({ playbackState }),
+      },
+      'expo-speech': {},
+      '../game/endingNews': { getSceneAtTime: () => 0 },
+    }, {
+      setInterval: () => 1,
+      clearInterval: () => { cleared = true; },
+    });
+    api.default({ scenes: [{ narration: 'news', key: 'one' }], audioUri: 'news.mp3' });
+    const cleanup = effects[2]();
+    assert.equal(pauses, 1);
+    cleanup();
+    assert.equal(cleared, true);
+  });
+}
+
+test('history request client sends its captured bearer token independently of other clients', async () => {
+  const { createClient } = require('@supabase/supabase-js');
+  const headers = [];
+  const api = loadModule('../lib/supabase.js', {
+    '@supabase/supabase-js': { createClient: (url, key, options) => createClient(url, key, {
+      ...options,
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      global: { fetch: async (_url, request) => {
+        headers.push(new Headers(request.headers).get('Authorization'));
+        return new Response(null, { status: 201 });
+      } },
+    }) },
+  }, { process: { env: { NEXT_PUBLIC_SUPABASE_URL: 'https://example.test', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test' } } });
+  const alice = api.createHistoryClient('alice-token');
+  const bob = api.createHistoryClient('bob-token');
+  await bob.from('game_results').insert({ user_id: 'bob' });
+  await alice.from('game_results').insert({ user_id: 'alice' });
+  assert.deepEqual(headers, ['Bearer bob-token', 'Bearer alice-token']);
+  assert.throws(() => api.createHistoryClient(''), /authentication is required/);
 });
 
 test('sound effects absorb asynchronous playback rejection', async () => {

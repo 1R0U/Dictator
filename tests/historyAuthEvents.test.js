@@ -107,6 +107,30 @@ test('INITIAL_SESSION does not duplicate the initial history load', async () => 
   }
 });
 
+for (const event of ['SIGNED_IN', 'SIGNED_OUT']) {
+  test(`${event} discards the previous account's late history response`, async () => {
+    let resolvePrevious;
+    let calls = 0;
+    const view = mountHistory(() => {
+      calls += 1;
+      return calls === 1
+        ? new Promise((resolve) => { resolvePrevious = resolve; })
+        : Promise.resolve([{ id: 'current-account' }]);
+    });
+    try {
+      view.emit(event);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      assert.equal(view.state[0][0].id, 'current-account');
+      resolvePrevious([{ id: 'previous-account' }]);
+      await new Promise(setImmediate);
+      assert.equal(view.state[0][0].id, 'current-account');
+      assert.equal(view.state[1], false);
+    } finally {
+      view.cleanup();
+    }
+  });
+}
+
 test('a failed history request sets the error state instead of showing empty history', async () => {
   const view = mountHistory(async () => { throw new Error('offline'); });
   try {

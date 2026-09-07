@@ -1,6 +1,6 @@
 // ログイン中はSupabase、未ログイン時は端末内に結果を保存する。
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../lib/supabase';
+import { createHistoryClient, supabase } from '../lib/supabase';
 
 const STORAGE_KEY = '@dictator/history';
 const MAX_ENTRIES = 20;
@@ -28,14 +28,16 @@ async function getHistoryUser() {
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;
   if (!session) return null;
-  const { data: { user }, error } = await supabase.auth.getUser(session.access_token);
+  const accessToken = session.access_token;
+  const { data: { user }, error } = await supabase.auth.getUser(accessToken);
   if (error) throw error;
   if (!user) throw new Error('Unable to verify history owner');
-  return { id: user.id };
+  return { id: user.id, accessToken };
 }
 
 async function saveToSupabase(entry, user) {
-  const { error } = await supabase.from('game_results').insert({
+  const client = createHistoryClient(user.accessToken);
+  const { error } = await client.from('game_results').insert({
     user_id: user.id,
     declaration_summary: entry.declarationSummary ?? '',
     desire_axes: entry.desireAxes ?? {},
@@ -74,7 +76,7 @@ export async function loadResults() {
     const entries = await readLocalEntries();
     return entries.reverse();
   }
-  const { data, error } = await supabase
+  const { data, error } = await createHistoryClient(user.accessToken)
     .from('game_results')
     .select('*')
     .eq('user_id', user.id)
