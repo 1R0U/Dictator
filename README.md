@@ -20,7 +20,7 @@
 
 Next.jsをアプリの正式なエントリーポイントとし、既存ゲームUIは移行期間中react-native-web互換層で再利用する。Claudeの秘密鍵はNext.jsへ置かず、Supabase Edge Functionのsecretとして管理する。
 
-- Node.js / npm
+- Node.js 24系 / npm（`.nvmrc`・CI・`package.json`の`engines`で統一。Supabaseクライアントが標準WebSocketを使用するためNode.js 20は対象外）
 - Supabaseプロジェクト
 - Supabase CLI（このREADMEでは`npx supabase`で実行）
 - Claude APIキー（Supabase Edge Function secretとしてのみ設定）
