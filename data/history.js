@@ -1,6 +1,6 @@
-// 結果アーカイブ：Supabaseに保存し、AsyncStorageをオフラインフォールバックとして残す
+// ログイン中はSupabase、未ログイン時は端末内に結果を保存する。
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../lib/supabase';
+import { createHistoryClient, supabase } from '../lib/supabase';
 
 const STORAGE_KEY = '@dictator/history';
 const MAX_ENTRIES = 20;
@@ -23,31 +23,46 @@ async function appendLocalEntry(result) {
   return entry;
 }
 
-async function saveToSupabase(entry) {
-  if (!supabase) return;
-  try {
-    const { error } = await supabase.from('game_results').insert({
-      declaration_summary: entry.declarationSummary ?? '',
-      desire_axes: entry.desireAxes ?? {},
-      ending_type: entry.endingType ?? '',
-      ending_headline: entry.endingTitle ?? '',
-      ending_body: entry.endingBody ?? '',
-      additional_declarations: entry.additionalDeclarations ?? [],
-    });
-    if (error) {
-      console.warn('Supabase save failed:', error.message);
-    }
-  } catch (err) {
-    console.warn('Supabase save failed, kept local result:', err.message);
-  }
+async function getHistoryUser() {
+  if (!supabase) return null;
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) throw sessionError;
+  if (!session) return null;
+  const accessToken = session.access_token;
+  const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+  if (error) throw error;
+  if (!user) throw new Error('Unable to verify history owner');
+  return { id: user.id, accessToken };
+}
+
+async function saveToSupabase(entry, user) {
+  const client = createHistoryClient(user.accessToken);
+  const { error } = await client.from('game_results').insert({
+    user_id: user.id,
+    declaration_summary: entry.declarationSummary ?? '',
+    desire_axes: entry.desireAxes ?? {},
+    desire_scale_version: entry.desireScaleVersion ?? null,
+    figure_diagnosis: entry.figureDiagnosis ?? null,
+    ending_type: entry.endingType ?? '',
+    ending_headline: entry.endingTitle ?? '',
+    ending_body: entry.endingBody ?? '',
+    additional_declarations: entry.additionalDeclarations ?? [],
+  });
+  if (error) throw error;
 }
 
 let saveQueue = Promise.resolve();
 
 export function saveResult(result) {
+  // Bind verification to the captured session before waiting for earlier saves.
+  const historyUser = getHistoryUser();
+  // Observe early failures while queued; the original promise still rejects below.
+  historyUser.catch(() => {});
   const run = saveQueue.then(async () => {
-    const entry = await appendLocalEntry(result);
-    await saveToSupabase(entry);
+    const user = await historyUser;
+    if (!user) return appendLocalEntry(result);
+    const entry = { ...result, savedAt: new Date().toISOString() };
+    await saveToSupabase(entry, user);
     return entry;
   });
   saveQueue = run.catch(() => {});
@@ -56,30 +71,27 @@ export function saveResult(result) {
 
 export async function loadResults() {
   await saveQueue;
-  if (!supabase) {
+  const user = await getHistoryUser();
+  if (!user) {
     const entries = await readLocalEntries();
     return entries.reverse();
   }
-  try {
-    const { data, error } = await supabase
-      .from('game_results')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(MAX_ENTRIES);
-    if (!error && data && data.length > 0) {
-      return data.map((row) => ({
-        declarationSummary: row.declaration_summary,
-        desireAxes: row.desire_axes,
-        endingType: row.ending_type,
-        endingTitle: row.ending_headline,
-        endingBody: row.ending_body,
-        additionalDeclarations: row.additional_declarations,
-        savedAt: row.created_at,
-      }));
-    }
-  } catch (err) {
-    console.warn('Supabase load failed, using local:', err.message);
-  }
-  const entries = await readLocalEntries();
-  return entries.reverse();
+  const { data, error } = await createHistoryClient(user.accessToken)
+    .from('game_results')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(MAX_ENTRIES);
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    declarationSummary: row.declaration_summary,
+    desireAxes: row.desire_axes,
+    desireScaleVersion: row.desire_scale_version,
+    figureDiagnosis: row.figure_diagnosis,
+    endingType: row.ending_type,
+    endingTitle: row.ending_headline,
+    endingBody: row.ending_body,
+    additionalDeclarations: row.additional_declarations,
+    savedAt: row.created_at,
+  }));
 }

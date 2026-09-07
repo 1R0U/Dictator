@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import * as Speech from 'expo-speech';
 
 import { getSceneAtTime } from '../game/endingNews';
 
@@ -93,7 +94,7 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
     let cancelled = false;
     setHasPlaybackFailed(false);
     setAudioModeAsync({ playsInSilentMode: true })
-      .then(() => { if (!cancelled && audioUri) player.play(); })
+      .then(() => { if (!cancelled && audioUri) return player.play(); })
       .catch(() => { if (!cancelled && audioUri) setHasPlaybackFailed(true); });
     return () => { cancelled = true; };
   }, [audioUri, player]);
@@ -108,9 +109,20 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
 
   useEffect(() => {
     if (hasAudio) return undefined;
+    // Cancel pending playback too, so a late load cannot overlap fallback speech.
+    player.pause();
     const timer = setInterval(() => setFallbackSeconds((value) => value + 0.1), 100);
     return () => clearInterval(timer);
-  }, [hasAudio]);
+  }, [hasAudio, player]);
+
+  useEffect(() => {
+    if (hasAudio || !scene?.narration) return undefined;
+    let cancelled = false;
+    Speech.stop().then(() => {
+      if (!cancelled) Speech.speak(scene.narration, { language: 'ja-JP', rate: 1 });
+    });
+    return () => { cancelled = true; Speech.stop(); };
+  }, [hasAudio, scene?.key, scene?.narration]);
 
   useEffect(() => {
     fade.setValue(0);
@@ -183,7 +195,14 @@ export default function EndingNews({ scenes, audioUri, narrationError, onComplet
         {hasAudio ? (
           <Pressable
             accessibilityRole="button"
-            onPress={() => (status.playing ? player.pause() : player.play())}
+            onPress={async () => {
+              try {
+                if (status.playing) player.pause();
+                else await player.play();
+              } catch {
+                setHasPlaybackFailed(true);
+              }
+            }}
             style={styles.controlButton}
           >
             <Text style={styles.controlText}>{status.playing ? '\u4e00\u6642\u505c\u6b62' : '\u518d\u751f'}</Text>

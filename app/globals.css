@@ -1,0 +1,23 @@
+:root {
+  color-scheme: light;
+  font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", system-ui, sans-serif;
+  background: #f3efe5;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; margin: 0; }
+body { overflow-x: hidden; }
+button, input { font: inherit; }
+.app-shell { min-height: 100vh; }
+.boot-message { margin: 0; padding: 2rem; text-align: center; }
+.auth-panel {
+  position: fixed; z-index: 1000; top: .75rem; right: .75rem;
+  display: flex; gap: .5rem; align-items: center; padding: .5rem;
+  border: 1px solid rgba(255,255,255,.25); border-radius: .75rem;
+  background: rgba(20,20,20,.82); color: white; backdrop-filter: blur(8px);
+}
+.auth-panel input { width: 13rem; padding: .45rem .6rem; border: 0; border-radius: .4rem; }
+.auth-panel button { padding: .45rem .7rem; border: 0; border-radius: .4rem; cursor: pointer; }
+.auth-message { max-width: 16rem; font-size: .75rem; }
+@media (max-width: 640px) {
+  .auth-panel { position: relative; top: auto; right: auto; border-radius: 0; flex-wrap: wrap; }
+}

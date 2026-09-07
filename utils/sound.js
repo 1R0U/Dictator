@@ -21,7 +21,7 @@ export function playSoundEffect(key) {
   try {
     const player = getPlayer(key);
     player.seekTo(0).catch(() => {});
-    player.play();
+    Promise.resolve(player.play()).catch(() => {});
   } catch (err) {
     console.warn(`playSoundEffect: failed to play "${key}"`, err?.message);
   }

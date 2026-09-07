@@ -12,7 +12,6 @@ import { extrapolateMissedDeclarations, moveDesireAxesTowardNeutral } from './ga
 import { generateBeat } from './api/generateBeat';
 import { generateEnding } from './api/generateEnding';
 import { generateFigureDiagnosis } from './api/generateFigureDiagnosis';
-import { generateNarration } from './api/generateNarration';
 import CheckupEvent from './components/CheckupEvent';
 import Codex from './components/Codex';
 import DeclarationForm from './components/DeclarationForm';
@@ -48,7 +47,6 @@ import { getPreviousMilestoneEvents } from './game/storyContext';
 import { createHistoryResult } from './game/historyView';
 import { playSoundEffect } from './utils/sound';
 import {
-  buildEndingNarrationText,
   createEndingNewsScenes,
 } from './game/endingNews';
 
@@ -197,8 +195,6 @@ export default function App() {
   const [figureDiagnosis, setFigureDiagnosis] = useState(null);
   const [isEndingLoading, setIsEndingLoading] = useState(false);
   const [endingNewsScenes, setEndingNewsScenes] = useState([]);
-  const [endingNarrationUri, setEndingNarrationUri] = useState(null);
-  const [endingNarrationError, setEndingNarrationError] = useState(null);
   const [hasEndingPreparationStarted, setHasEndingPreparationStarted] = useState(false);
   const generatingMilestonesRef = useRef(new Set());
   const endingPreparationRef = useRef(false);
@@ -222,8 +218,6 @@ export default function App() {
     setMilestoneReports({});
     setLoadingMilestoneKey(null);
     setEndingNewsScenes([]);
-    setEndingNarrationUri(null);
-    setEndingNarrationError(null);
     setHasEndingPreparationStarted(false);
     endingPreparationRef.current = false;
 
@@ -370,8 +364,6 @@ export default function App() {
     const resolvedEndingType = forcedEndingType ?? decideEnding(desireAxes);
     const newsScenes = createEndingNewsScenes(MILESTONES, milestoneReports);
     setEndingNewsScenes(newsScenes);
-    setEndingNarrationUri(null);
-    setEndingNarrationError(null);
 
     try {
       const isCollapseEnding = Boolean(resolvedEndingType?.startsWith('collapse'));
@@ -381,21 +373,6 @@ export default function App() {
         if (meter !== desireAxes) setDesireAxes(meter);
       }
       const match = matchFigure(meter);
-
-      const narrationPromise = newsScenes.length
-        ? generateNarration({
-          text: buildEndingNarrationText(newsScenes),
-        })
-          .then((narration) => {
-            setEndingNarrationUri(narration.uri);
-            return narration;
-          })
-          .catch((err) => {
-            console.warn('handleFinish: narration generation failed', err.message);
-            setEndingNarrationError(err);
-            return null;
-          })
-        : Promise.resolve(null);
 
       const [ending, diagnosis] = await Promise.all([
         generateEnding({
@@ -414,7 +391,6 @@ export default function App() {
             return null;
           })
           : Promise.resolve(null),
-        narrationPromise,
       ]);
 
       setEndingReport(ending);
@@ -478,8 +454,6 @@ export default function App() {
     setFigureDiagnosis(null);
     setIsEndingLoading(false);
     setEndingNewsScenes([]);
-    setEndingNarrationUri(null);
-    setEndingNarrationError(null);
     setHasEndingPreparationStarted(false);
     endingPreparationRef.current = false;
     setStage(STAGES.TITLE);
@@ -590,8 +564,8 @@ export default function App() {
     case STAGES.ENDING_NEWS:
       screen = (
         <EndingNews
-          audioUri={endingNarrationUri}
-          narrationError={endingNarrationError}
+          audioUri={null}
+          narrationError={null}
           onComplete={() => setStage(STAGES.ENDING)}
           scenes={endingNewsScenes}
         />
