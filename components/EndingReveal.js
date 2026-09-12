@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Animated,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 
 import PressableScale from './PressableScale';
@@ -98,6 +108,8 @@ export default function EndingReveal({
   scrollViewRef,
   enableCollapseIntro = false,
 }) {
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const containFullscreenArtwork = Platform.OS === 'web' && windowWidth >= 720 && windowWidth > windowHeight;
   const [phase, setPhase] = useState(PHASES.ENDING);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
   const [isImageFullscreen, setIsImageFullscreen] = useState(false);
@@ -345,7 +357,7 @@ export default function EndingReveal({
             <Image
               accessibilityLabel={collapseVisual.imageLabel}
               accessible
-              resizeMode="cover"
+              resizeMode={containFullscreenArtwork ? 'contain' : 'cover'}
               source={collapseVisual.image}
               style={styles.fullscreenImage}
             />
