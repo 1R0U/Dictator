@@ -1,5 +1,6 @@
 import {
   ImageBackground,
+  Platform,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -60,12 +61,16 @@ function MenuButton({ index, label, onPress, secondary = false }) {
  */
 export default function TitleScreen({ onStart, onOpenHistory, onOpenCodex }) {
   const { isCompactHeight: isCompact, width, height } = useResponsiveLayout();
+  const useWideWebArtwork = Platform.OS === 'web' && width >= 720;
 
   return (
     <ImageBackground
       accessible={false}
-      imageStyle={[styles.backgroundImage, { width, height }]}
-      resizeMode="cover"
+      imageStyle={[
+        { width, height },
+        useWideWebArtwork ? styles.wideWebBackgroundImage : styles.backgroundImage,
+      ]}
+      resizeMode={useWideWebArtwork ? 'contain' : 'cover'}
       source={HOME_BACKGROUND}
       style={styles.background}
     >
@@ -145,6 +150,9 @@ const styles = StyleSheet.create({
   background: { flex: 1, backgroundColor: '#172127' },
   backgroundImage: {
     transform: [{ scale: 1.5 }, { translateX: 0 }, { translateY: 130 }],
+  },
+  wideWebBackgroundImage: {
+    transform: [{ scale: 1 }],
   },
   imageShade: {
     ...StyleSheet.absoluteFillObject,
